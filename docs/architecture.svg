@@ -1,0 +1,119 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 610" width="1200" height="610" role="img" aria-labelledby="title desc">
+  <title id="title">CodeVerse architecture</title>
+  <desc id="desc">On the server, a GitHub repository flows through the repository fetcher, file tree, language detection, AST parser, symbol extraction, import and dependency graph and git history analyzer into a normalized RepositoryGraph, cached per repository and commit. The graph is streamed to the browser, where the 3D layout engine and the WebGL renderer turn it into a city.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#4de2ff"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0 L10 5 L0 10 Z" fill="#627089"/>
+    </marker>
+    <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0 H0 V32" fill="none" stroke="#1a2434" stroke-opacity="0.45" stroke-width="1"/>
+    </pattern>
+    <style>
+      .title { font: 600 20px Geist, Inter, "Segoe UI", system-ui, -apple-system, sans-serif; fill: #e7edf5; }
+      .subtitle { font: 400 13px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #9aa8bb; }
+      .lane { font: 500 11px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; letter-spacing: 2px; fill: #4de2ff; }
+      .node-title { font: 600 14px Geist, Inter, "Segoe UI", system-ui, -apple-system, sans-serif; fill: #e7edf5; }
+      .node-sub { font: 400 11px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #9aa8bb; }
+      .edge-label { font: 400 11px "Geist Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; fill: #9aa8bb; }
+      .node { fill: #0b111c; stroke: #2a3850; stroke-width: 1.25; }
+      .node-key { fill: #0c1c26; stroke: #4de2ff; stroke-width: 1.5; }
+      .node-external { fill: #0b111c; stroke: #9b8cff; stroke-width: 1.25; stroke-dasharray: 5 4; }
+      .edge { stroke: #4de2ff; stroke-width: 1.5; fill: none; }
+      .edge-muted { stroke: #627089; stroke-width: 1.25; fill: none; stroke-dasharray: 4 4; }
+    </style>
+  </defs>
+
+  <rect width="1200" height="610" rx="20" fill="#04060b"/>
+  <rect width="1200" height="610" rx="20" fill="url(#grid)"/>
+
+  <text x="40" y="48" class="title">CodeVerse analysis pipeline</text>
+  <text x="40" y="72" class="subtitle">GET /api/analyze/{owner}/{repo} streams NDJSON progress events, a structure preview and one RepositoryGraph</text>
+
+  <!-- Server lane -->
+  <rect x="24" y="92" width="1152" height="330" rx="16" fill="#070b13" stroke="#1a2434"/>
+  <text x="44" y="118" class="lane">SERVER · NEXT.JS ROUTE HANDLER (NODE.JS)</text>
+
+  <!-- Row 1: left to right -->
+  <rect x="54" y="138" width="196" height="60" rx="10" class="node-external"/>
+  <text x="152" y="164" text-anchor="middle" class="node-title">GitHub</text>
+  <text x="152" y="183" text-anchor="middle" class="node-sub">REST + GraphQL APIs</text>
+
+  <rect x="278" y="138" width="196" height="60" rx="10" class="node"/>
+  <text x="376" y="164" text-anchor="middle" class="node-title">Repository Fetcher</text>
+  <text x="376" y="183" text-anchor="middle" class="node-sub">src/sources/github</text>
+
+  <rect x="502" y="138" width="196" height="60" rx="10" class="node"/>
+  <text x="600" y="164" text-anchor="middle" class="node-title">File Tree</text>
+  <text x="600" y="183" text-anchor="middle" class="node-sub">sanitized paths · limits</text>
+
+  <rect x="726" y="138" width="196" height="60" rx="10" class="node"/>
+  <text x="824" y="164" text-anchor="middle" class="node-title">Language Detection</text>
+  <text x="824" y="183" text-anchor="middle" class="node-sub">src/lib/languages</text>
+
+  <rect x="950" y="138" width="196" height="60" rx="10" class="node"/>
+  <text x="1048" y="164" text-anchor="middle" class="node-title">AST Parser</text>
+  <text x="1048" y="183" text-anchor="middle" class="node-sub">tree-sitter · WASM</text>
+
+  <path d="M250 168 H274" class="edge" marker-end="url(#arrow)"/>
+  <path d="M474 168 H498" class="edge" marker-end="url(#arrow)"/>
+  <path d="M698 168 H722" class="edge" marker-end="url(#arrow)"/>
+  <path d="M922 168 H946" class="edge" marker-end="url(#arrow)"/>
+  <path d="M1048 198 V252" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- Row 2: right to left -->
+  <rect x="950" y="256" width="196" height="60" rx="10" class="node"/>
+  <text x="1048" y="282" text-anchor="middle" class="node-title">Symbol Extraction</text>
+  <text x="1048" y="301" text-anchor="middle" class="node-sub">src/parser</text>
+
+  <rect x="726" y="256" width="196" height="60" rx="10" class="node"/>
+  <text x="824" y="282" text-anchor="middle" class="node-title">Import / Dependency Graph</text>
+  <text x="824" y="301" text-anchor="middle" class="node-sub">resolvers per language</text>
+
+  <rect x="502" y="256" width="196" height="60" rx="10" class="node"/>
+  <text x="600" y="282" text-anchor="middle" class="node-title">Git History Analyzer</text>
+  <text x="600" y="301" text-anchor="middle" class="node-sub">commits · contributors</text>
+
+  <rect x="54" y="256" width="420" height="60" rx="10" class="node-key"/>
+  <text x="264" y="282" text-anchor="middle" class="node-title">Normalized RepositoryGraph</text>
+  <text x="264" y="301" text-anchor="middle" class="node-sub">src/graph/model · provider-agnostic · deterministic</text>
+
+  <path d="M950 286 H926" class="edge" marker-end="url(#arrow)"/>
+  <path d="M726 286 H702" class="edge" marker-end="url(#arrow)"/>
+  <path d="M502 286 H478" class="edge" marker-end="url(#arrow)"/>
+
+  <!-- Cache -->
+  <rect x="278" y="344" width="196" height="56" rx="10" class="node"/>
+  <text x="376" y="368" text-anchor="middle" class="node-title">Graph cache</text>
+  <text x="376" y="386" text-anchor="middle" class="node-sub">key: repository@commitSha</text>
+  <path d="M376 316 V340" class="edge-muted" marker-end="url(#arrow-muted)"/>
+
+  <text x="726" y="372" class="edge-label">Repository content is parsed, never executed.</text>
+  <text x="726" y="392" class="edge-label">No source code is stored in the cache.</text>
+
+  <!-- Browser lane -->
+  <rect x="24" y="436" width="1152" height="150" rx="16" fill="#070b13" stroke="#1a2434"/>
+  <text x="44" y="462" class="lane">BROWSER</text>
+
+  <!-- Stream (drawn over both lanes) -->
+  <path d="M150 316 V494" class="edge" marker-end="url(#arrow)"/>
+  <text x="162" y="430" class="edge-label">NDJSON stream</text>
+
+  <rect x="54" y="498" width="300" height="60" rx="10" class="node"/>
+  <text x="204" y="524" text-anchor="middle" class="node-title">3D Layout Engine</text>
+  <text x="204" y="543" text-anchor="middle" class="node-sub">Web Worker · squarified treemap</text>
+
+  <rect x="390" y="498" width="300" height="60" rx="10" class="node"/>
+  <text x="540" y="524" text-anchor="middle" class="node-title">Renderer</text>
+  <text x="540" y="543" text-anchor="middle" class="node-sub">three.js · instancing · level of detail</text>
+
+  <rect x="726" y="498" width="420" height="60" rx="10" class="node"/>
+  <text x="936" y="524" text-anchor="middle" class="node-title">Explorer UI</text>
+  <text x="936" y="543" text-anchor="middle" class="node-sub">search · panels · timeline · source viewer</text>
+
+  <path d="M354 528 H386" class="edge" marker-end="url(#arrow)"/>
+  <path d="M694 528 H722" class="edge-muted" marker-start="url(#arrow-muted)" marker-end="url(#arrow-muted)"/>
+  <text x="708" y="488" text-anchor="middle" class="edge-label">shared explorer store</text>
+</svg>

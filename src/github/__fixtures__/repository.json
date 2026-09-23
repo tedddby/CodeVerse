@@ -1,0 +1,41 @@
+{
+  "id": 10270250,
+  "node_id": "MDEwOlJlcG9zaXRvcnkxMDI3MDI1MA==",
+  "name": "react",
+  "full_name": "facebook/react",
+  "private": false,
+  "owner": {
+    "login": "facebook",
+    "id": 69631,
+    "avatar_url": "https://avatars.githubusercontent.com/u/69631?v=4",
+    "type": "Organization"
+  },
+  "html_url": "https://github.com/facebook/react",
+  "description": "The library for web and native user interfaces.",
+  "fork": false,
+  "url": "https://api.github.com/repos/facebook/react",
+  "created_at": "2013-05-24T16:15:54Z",
+  "updated_at": "2026-09-20T10:00:00Z",
+  "pushed_at": "2026-09-22T18:31:07Z",
+  "homepage": "https://react.dev",
+  "size": 1034567,
+  "stargazers_count": 239000,
+  "watchers_count": 239000,
+  "language": "JavaScript",
+  "forks_count": 49500,
+  "archived": false,
+  "disabled": false,
+  "open_issues_count": 1024,
+  "license": {
+    "key": "mit",
+    "name": "MIT License",
+    "spdx_id": "MIT",
+    "url": "https://api.github.com/licenses/mit"
+  },
+  "topics": ["declarative", "frontend", "javascript", "library", "react", "ui"],
+  "visibility": "public",
+  "default_branch": "main",
+  "permissions": { "admin": false, "push": false, "pull": true },
+  "subscribers_count": 6700,
+  "network_count": 49500
+}

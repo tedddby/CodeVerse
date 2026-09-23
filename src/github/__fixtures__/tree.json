@@ -1,0 +1,74 @@
+{
+  "sha": "9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
+  "url": "https://api.github.com/repos/octocat/hello/git/trees/9fb037999f264ba9a7fc6274d15fa3ae2ab98312",
+  "tree": [
+    {
+      "path": "README.md",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 1204
+    },
+    {
+      "path": "src",
+      "mode": "040000",
+      "type": "tree",
+      "sha": "b1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0"
+    },
+    {
+      "path": "src/index.ts",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "c1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 3120
+    },
+    {
+      "path": "src/util/format.ts",
+      "mode": "100755",
+      "type": "blob",
+      "sha": "d1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 512
+    },
+    {
+      "path": "docs/latest",
+      "mode": "120000",
+      "type": "blob",
+      "sha": "e1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 12
+    },
+    {
+      "path": "vendor/lib",
+      "mode": "160000",
+      "type": "commit",
+      "sha": "f1b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0"
+    },
+    {
+      "path": "Makefile",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a2b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0"
+    },
+    {
+      "path": "../escape.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a3b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 5
+    },
+    {
+      "path": "bad\u0007name.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a4b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 5
+    },
+    {
+      "path": "a//b.txt",
+      "mode": "100644",
+      "type": "blob",
+      "sha": "a5b2c3d4e5f6a7b8c9d0a1b2c3d4e5f6a7b8c9d0",
+      "size": 5
+    }
+  ],
+  "truncated": false
+}

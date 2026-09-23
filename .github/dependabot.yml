@@ -1,0 +1,56 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 10
+    commit-message:
+      prefix: "chore(deps)"
+    labels:
+      - dependencies
+    groups:
+      next:
+        patterns: ["next", "eslint-config-next", "@next/*"]
+      react:
+        patterns: ["react", "react-dom", "@types/react", "@types/react-dom"]
+      three:
+        patterns: ["three", "@types/three", "@react-three/*"]
+      tree-sitter:
+        patterns: ["web-tree-sitter", "tree-sitter-*"]
+      testing:
+        patterns:
+          [
+            "vitest",
+            "@vitest/*",
+            "@vitejs/*",
+            "vite",
+            "jsdom",
+            "@testing-library/*",
+            "@playwright/test",
+          ]
+      tooling:
+        patterns:
+          [
+            "eslint",
+            "prettier",
+            "prettier-plugin-*",
+            "typescript",
+            "tailwindcss",
+            "@tailwindcss/*",
+            "@types/node",
+          ]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    commit-message:
+      prefix: "chore(ci)"
+    labels:
+      - dependencies
+    groups:
+      actions:
+        patterns: ["*"]

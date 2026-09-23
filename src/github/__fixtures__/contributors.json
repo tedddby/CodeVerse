@@ -1,0 +1,32 @@
+[
+  {
+    "login": "gaearon",
+    "id": 810438,
+    "avatar_url": "https://avatars.githubusercontent.com/u/810438?v=4",
+    "html_url": "https://evil.example/gaearon",
+    "type": "User",
+    "contributions": 1850
+  },
+  {
+    "login": "sebmarkbage",
+    "id": 63648,
+    "avatar_url": "https://avatars.githubusercontent.com/u/63648?v=4",
+    "type": "User",
+    "contributions": 1600
+  },
+  {
+    "login": "dependabot[bot]",
+    "id": 49699333,
+    "avatar_url": "https://avatars.githubusercontent.com/in/29110?v=4",
+    "type": "Bot",
+    "contributions": 120
+  },
+  {
+    "login": "tracker",
+    "id": 5,
+    "avatar_url": "https://tracker.example/pixel.png",
+    "type": "User",
+    "contributions": 7
+  },
+  { "login": "<script>", "id": 6, "type": "User", "contributions": 3 }
+]

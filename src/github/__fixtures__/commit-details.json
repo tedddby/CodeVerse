@@ -1,0 +1,41 @@
+{
+  "sha": "6f2c1a9e0b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e",
+  "commit": {
+    "author": {
+      "name": "Ada Lovelace",
+      "email": "ada@example.com",
+      "date": "2026-09-20T12:34:56Z"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "date": "2026-09-20T12:40:00Z"
+    },
+    "message": "Fix scheduler starvation under load"
+  },
+  "html_url": "https://github.com/facebook/react/commit/6f2c1a9e0b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e",
+  "author": { "login": "ada", "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4" },
+  "stats": { "total": 42, "additions": 30, "deletions": 12 },
+  "files": [
+    {
+      "filename": "packages/scheduler/src/Scheduler.js",
+      "status": "modified",
+      "additions": 20,
+      "deletions": 8,
+      "patch": "@@ -1 +1 @@"
+    },
+    {
+      "filename": "packages/scheduler/src/__tests__/Scheduler-test.js",
+      "status": "modified",
+      "additions": 10,
+      "deletions": 4
+    },
+    { "filename": "../../etc/passwd", "status": "added", "additions": 0, "deletions": 0 },
+    {
+      "filename": "packages/scheduler/src/Scheduler.js",
+      "status": "modified",
+      "additions": 0,
+      "deletions": 0
+    }
+  ]
+}

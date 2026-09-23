@@ -1,0 +1,29 @@
+{
+  "sha": "6f2c1a9e0b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e",
+  "node_id": "C_kwDOAJy2KtoAKDZmMmMxYTll",
+  "commit": {
+    "author": {
+      "name": "Ada Lovelace",
+      "email": "ada@example.com",
+      "date": "2026-09-20T12:34:56Z"
+    },
+    "committer": {
+      "name": "GitHub",
+      "email": "noreply@github.com",
+      "date": "2026-09-20T12:40:00Z"
+    },
+    "message": "Fix scheduler starvation under load\n\nLonger explanation of the change that must not appear in the model.",
+    "tree": { "sha": "9fb037999f264ba9a7fc6274d15fa3ae2ab98312" },
+    "comment_count": 0
+  },
+  "url": "https://api.github.com/repos/facebook/react/commits/6f2c1a9e0b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e",
+  "html_url": "https://github.com/facebook/react/commit/6f2c1a9e0b3d4c5e6f7a8b9c0d1e2f3a4b5c6d7e",
+  "author": {
+    "login": "ada",
+    "id": 1,
+    "avatar_url": "https://avatars.githubusercontent.com/u/1?v=4",
+    "type": "User"
+  },
+  "committer": { "login": "web-flow", "id": 19864447 },
+  "parents": [{ "sha": "5e1b0a8d9c2b3a4f5e6d7c8b9a0f1e2d3c4b5a69" }]
+}

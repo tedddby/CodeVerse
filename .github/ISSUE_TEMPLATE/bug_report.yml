@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in CodeVerse is broken or behaves unexpectedly.
+labels: ["bug", "triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. Please do **not** report security vulnerabilities here;
+        follow [SECURITY.md](../blob/main/SECURITY.md) instead.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear description of the problem, and what you expected to happen instead.
+      placeholder: Selecting a file in dependencies mode shows no arcs, although the file has imports.
+    validations:
+      required: true
+
+  - type: input
+    id: repository
+    attributes:
+      label: Repository explored
+      description: The public repository URL (and branch, tag or commit) where it happens, if any.
+      placeholder: https://github.com/owner/repo/tree/main
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open https://.../explore/owner/repo
+        2. Press 2 (dependencies mode)
+        3. Click the building for src/index.ts
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - Analysis (fetching, parsing, dependencies, history)
+        - 3D view (layout, rendering, camera)
+        - Panels, search or source viewer
+        - Landing page
+        - Self-hosting (Docker, configuration)
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: Browser and OS
+      description: Include the GPU if it is a rendering issue (see chrome://gpu or about:support).
+      placeholder: Chrome 131 on macOS 15, Apple M2
+    validations:
+      required: true
+
+  - type: dropdown
+    id: deployment
+    attributes:
+      label: Deployment
+      options:
+        - Public instance
+        - Self-hosted (Docker)
+        - Self-hosted (Vercel or other)
+        - Local development
+    validations:
+      required: true
+
+  - type: textarea
+    id: details
+    attributes:
+      label: Screenshots, logs or analysis report
+      description: The explorer's statistics panel (I) shows the analysis report and warnings. Remove any secrets from logs.
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and this has not been reported yet.
+          required: true

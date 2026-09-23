@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an idea or improvement for CodeVerse.
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What problem would this solve?
+      description: Describe what you are trying to understand or do in a codebase, and what gets in the way today.
+      placeholder: When exploring a monorepo I can't tell which packages depend on each other.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: How could CodeVerse help? Sketches and references to other tools are welcome.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      options:
+        - New language support
+        - New repository source (GitLab, local folder, archive, ...)
+        - Analysis and data
+        - Visualization and navigation
+        - Panels, search or source viewer
+        - Self-hosting and configuration
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+
+  - type: checkboxes
+    id: contribution
+    attributes:
+      label: Contribution
+      options:
+        - label: I would like to work on this (see CONTRIBUTING.md).

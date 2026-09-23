@@ -1,0 +1,40 @@
+# Version control and CI
+.git
+.gitattributes
+.github
+
+# Dependencies and build output (rebuilt inside the image)
+node_modules
+.next
+out
+build
+*.tsbuildinfo
+next-env.d.ts
+
+# Generated in the image by the postinstall script
+public/grammars
+
+# Tests, reports and local caches
+coverage
+playwright-report
+test-results
+blob-report
+playwright/.cache
+e2e
+.codeverse-cache
+
+# Secrets: never bake environment files into the image
+.env
+.env.*
+!.env.example
+
+# Tooling and docs not needed at runtime
+.vscode
+.idea
+.vercel
+docs
+*.log
+.DS_Store
+Thumbs.db
+Dockerfile
+.dockerignore
