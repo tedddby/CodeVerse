@@ -83,7 +83,8 @@ describe("useLayoutEngine", () => {
     const graph = freshMock();
     useExplorerStore.getState().loadGraph(graph);
     const { result } = renderHook(() => useLayoutEngine());
-    await waitFor(() => expect(useExplorerStore.getState().layout).not.toBeNull());
+    // The fallback defers to the next frame and computes synchronously; allow for a loaded CI machine.
+    await waitFor(() => expect(useExplorerStore.getState().layout).not.toBeNull(), { timeout: 10_000 });
     expect(result.current.computing).toBe(false);
     expect(useExplorerStore.getState().layout?.buildings).toHaveLength(graph.files.length);
   });

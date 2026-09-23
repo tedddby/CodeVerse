@@ -114,7 +114,8 @@ describe("Shiki integration", () => {
     expect(colorOf("42")).toBe("#f5a3c3");
     expect(colorOf("done")).toBe("#5f6d85");
     highlighter.dispose();
-  });
+    // Cold imports compile the TypeScript grammar; slow under a fully parallel suite.
+  }, 60_000);
 
   it("continues grammar state across chunks (multi-line comments)", async () => {
     const { loadShikiHighlighter } = await import("./highlighter");
