@@ -155,7 +155,15 @@ export type SourceErrorCode =
   | "INVALID_RESPONSE"
   | "ABORTED";
 
+/**
+ * Brand shared by every copy of this module. Bundlers may duplicate this file
+ * into several server chunks, which breaks `instanceof` across them; a
+ * registry symbol is the same value in every copy.
+ */
+const SOURCE_ERROR_BRAND: unique symbol = Symbol.for("codeverse.SourceError");
+
 export class SourceError extends Error {
+  readonly [SOURCE_ERROR_BRAND] = true;
   readonly code: SourceErrorCode;
   /** HTTP status from the provider, if any. */
   readonly status?: number;
@@ -171,6 +179,12 @@ export class SourceError extends Error {
   }
 }
 
+/** Recognizes SourceErrors (and subclasses) even when they come from another bundled copy of this module. */
 export function isSourceError(value: unknown): value is SourceError {
-  return value instanceof SourceError;
+  return (
+    value instanceof SourceError ||
+    (typeof value === "object" &&
+      value !== null &&
+      (value as { [SOURCE_ERROR_BRAND]?: unknown })[SOURCE_ERROR_BRAND] === true)
+  );
 }

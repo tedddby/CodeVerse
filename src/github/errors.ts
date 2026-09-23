@@ -1,4 +1,4 @@
-import { SourceError, type SourceErrorCode } from "@/sources/types";
+import { SourceError, isSourceError, type SourceErrorCode } from "@/sources/types";
 import { parseRetryAfterMs } from "./rate-limit";
 import { cleanSingleLine, redactSecret } from "./text";
 
@@ -53,6 +53,11 @@ export interface ResponseErrorInput {
 }
 
 /** Extracts and sanitizes the `message` field of a GitHub JSON error body. */
+/** GitHubApiError check that survives duplicated module copies (see `isSourceError`). */
+export function isGitHubApiError(value: unknown): value is GitHubApiError {
+  return value instanceof GitHubApiError || (isSourceError(value) && value.name === "GitHubApiError");
+}
+
 export function readUpstreamMessage(bodyText: string, secret?: string): string | undefined {
   if (!bodyText) return undefined;
   let parsed: unknown;
@@ -164,7 +169,7 @@ export function mapTransportError(
   },
 ): SourceError {
   // An ABORTED error raised by our own abort checks may really be the timeout firing.
-  if (error instanceof SourceError && error.code !== "ABORTED") return error;
+  if (isSourceError(error) && error.code !== "ABORTED") return error;
   if (context.callerSignal?.aborted) {
     return new SourceError("ABORTED", "The request was cancelled.");
   }
@@ -172,7 +177,7 @@ export function mapTransportError(
     const seconds = Math.round(context.timeoutMs / 100) / 10;
     return new SourceError("TIMEOUT", `GitHub did not respond within ${seconds}s.`);
   }
-  if (error instanceof SourceError) return error;
+  if (isSourceError(error)) return error;
   if (error instanceof Error && (error.name === "AbortError" || error.name === "TimeoutError")) {
     return new SourceError("ABORTED", "The request was cancelled.");
   }

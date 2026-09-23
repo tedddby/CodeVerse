@@ -1,5 +1,5 @@
 import type { SourceError } from "@/sources/types";
-import { GitHubApiError } from "./errors";
+import { isGitHubApiError } from "./errors";
 
 /**
  * Retry policy for GitHub requests: transient failures (network errors, 5xx)
@@ -30,7 +30,7 @@ export function retryDelay(
     return backoff;
   }
   if (
-    error instanceof GitHubApiError &&
+    isGitHubApiError(error) &&
     error.code === "RATE_LIMITED" &&
     error.retryAfterMs !== undefined &&
     error.retryAfterMs <= MAX_SECONDARY_RETRY_MS

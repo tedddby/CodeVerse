@@ -1,5 +1,5 @@
 import type { GitHubClient } from "@/github/client";
-import { GitHubApiError, invalidResponse } from "@/github/errors";
+import { invalidResponse, isGitHubApiError } from "@/github/errors";
 import { sanitizeRepositoryPath } from "@/github/paths";
 import {
   commitDetailsSchema,
@@ -201,7 +201,7 @@ export async function listContributors(
     );
   } catch (error) {
     if (
-      error instanceof GitHubApiError &&
+      isGitHubApiError(error) &&
       error.status === 403 &&
       error.code === "PRIVATE_OR_INACCESSIBLE" &&
       error.upstreamMessage !== undefined &&
