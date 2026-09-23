@@ -28,6 +28,13 @@ export const HEIGHT_HALF_RANGE_LINES = 1_500;
 
 const HEIGHT_HALF_RANGE_ROOT = Math.sqrt(HEIGHT_HALF_RANGE_LINES);
 
+/**
+ * Generated files (lockfiles, bundles, snapshots) are capped at this fraction
+ * of the height range: a 6,000-line lockfile says nothing about the code, so it
+ * must not become the tallest landmark in the skyline.
+ */
+export const GENERATED_HEIGHT_FRACTION = 0.12;
+
 /** Side length of the building's square footprint, from the file size in bytes. */
 export function buildingFootprint(file: Pick<FileNode, "size">, options: LayoutOptions): number {
   const size = Math.min(finiteNonNegative(file.size), FOOTPRINT_REFERENCE_BYTES);
@@ -38,15 +45,18 @@ export function buildingFootprint(file: Pick<FileNode, "size">, options: LayoutO
 /**
  * Building height from lines of code. Binary files and files without lines get
  * `minHeight` (a flat plot), so they stay visible without pretending to hold code.
- * Estimated line counts use the same scale as exact ones.
+ * Generated files are capped low (see GENERATED_HEIGHT_FRACTION). Estimated
+ * line counts use the same scale as exact ones.
  */
 export function buildingHeight(
-  file: Pick<FileNode, "lines" | "status">,
+  file: Pick<FileNode, "lines" | "status"> & Partial<Pick<FileNode, "isGenerated">>,
   options: LayoutOptions,
 ): number {
   const lines = finiteNonNegative(file.lines);
   if (lines === 0 || file.status === "binary") return options.minHeight;
   const root = Math.sqrt(lines);
   const t = root / (root + HEIGHT_HALF_RANGE_ROOT);
-  return options.minHeight + (options.maxHeight - options.minHeight) * t;
+  const range = options.maxHeight - options.minHeight;
+  if (file.isGenerated) return options.minHeight + range * Math.min(t, GENERATED_HEIGHT_FRACTION);
+  return options.minHeight + range * t;
 }

@@ -152,7 +152,7 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
       aria-labelledby={titleId}
       tabIndex={-1}
       className={cn(
-        "glass fixed inset-0 z-40 flex flex-col overflow-hidden shadow-2xl outline-none",
+        "fixed inset-0 z-40 flex flex-col overflow-hidden border border-line-strong bg-abyss shadow-2xl outline-none",
         "md:inset-y-3 md:right-3 md:left-auto md:w-[min(58vw,72rem)] md:rounded-2xl",
         !reducedMotion && "animate-slide-in-right",
       )}

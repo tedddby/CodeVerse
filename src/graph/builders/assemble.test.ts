@@ -290,11 +290,19 @@ describe("assembleGraph", () => {
     const known = graph.languages.filter((language) => language.id !== "unknown");
     const bytes = known.map((language) => language.bytes);
     expect(bytes).toEqual([...bytes].sort((a, b) => b - a));
-    // Unrecognized files (the PNG) are listed last regardless of size.
-    expect(graph.languages[graph.languages.length - 1]).toMatchObject({
-      id: "unknown",
-      bytes: 40_000,
-    });
+    // Binary files (the PNG) don't describe what the repository is written in.
+    const languageBytes = graph.languages.reduce((sum, language) => sum + language.bytes, 0);
+    const binaryBytes = graph.files
+      .filter((file) => file.status === "binary")
+      .reduce((sum, file) => sum + file.size, 0);
+    const generatedBytes = graph.files
+      .filter((file) => file.isGenerated && file.status !== "binary")
+      .reduce((sum, file) => sum + file.size, 0);
+    expect(binaryBytes).toBe(40_000);
+    expect(languageBytes).toBe(
+      graph.analysis.coverage.bytesInRepository - binaryBytes - generatedBytes,
+    );
+    expect(graph.languages.some((language) => language.id === "unknown" && language.bytes === 40_000)).toBe(false);
     expect(graph.analysis.unsupportedLanguages).toEqual([{ language: "c", name: "C", files: 2 }]);
   });
 

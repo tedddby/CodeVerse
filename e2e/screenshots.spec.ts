@@ -20,7 +20,7 @@ test.describe("visual captures", () => {
   test("explorer modes", async ({ page }) => {
     await mockAnalysisApi(page);
     await page.goto(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`);
-    await expect(page.getByRole("link", { name: new RegExp(`${FIXTURE_OWNER}/${FIXTURE_REPO}`, "i") }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: new RegExp(`${FIXTURE_OWNER}/${FIXTURE_REPO}`, "i") }).first()).toBeVisible({ timeout: 45_000 });
     // Let the intro camera animation and building rise settle.
     await page.waitForTimeout(3500);
     await page.screenshot({ path: out("explorer-architecture") });

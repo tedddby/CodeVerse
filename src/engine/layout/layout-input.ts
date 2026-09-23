@@ -26,7 +26,8 @@ export interface LayoutDirectoryInput {
 export type LayoutFileInput = Pick<
   FileNode,
   "id" | "path" | "size" | "lines" | "directoryId" | "status"
->;
+> &
+  Partial<Pick<FileNode, "isGenerated">>;
 
 export type LayoutDependencyInput = Pick<DependencyEdge, "source" | "target" | "weight">;
 
@@ -60,6 +61,7 @@ export function toLayoutInput(graph: LayoutGraphInput): LayoutGraphInput {
       lines: file.lines,
       directoryId: file.directoryId,
       status: file.status,
+      isGenerated: file.isGenerated,
     })),
     dependencies: graph.dependencies.map((edge) => ({
       source: edge.source,

@@ -74,6 +74,8 @@ export interface ExplorerState {
 
   visualMode: VisualMode;
   showDependencies: boolean;
+  /** True when dependency lines were switched on by entering Dependencies mode (not by the user). */
+  dependenciesFromMode: boolean;
   navigationMode: NavigationMode;
   timeline: TimelineState;
   activeContributorId: string | null;
@@ -129,6 +131,7 @@ const initialRepositoryState = {
   focusedDirectoryId: null,
   visualMode: "architecture" as VisualMode,
   showDependencies: false,
+  dependenciesFromMode: false,
   timeline: { active: false, cursor: null, windowDays: 30 } satisfies TimelineState,
   activeContributorId: null,
   panels: CLOSED_PANELS,
@@ -202,14 +205,27 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
   },
 
   setVisualMode: (mode) =>
-    set((state) => ({
-      visualMode: mode,
-      showDependencies: mode === "dependencies" ? true : state.showDependencies,
-      timeline: mode === "activity" ? { ...state.timeline, active: true } : state.timeline,
-      panels: mode === "contributors" ? { ...state.panels, contributors: true } : state.panels,
-    })),
+    set((state) => {
+      let { showDependencies, dependenciesFromMode } = state;
+      if (mode === "dependencies" && !showDependencies) {
+        showDependencies = true;
+        dependenciesFromMode = true;
+      } else if (mode !== "dependencies" && state.visualMode === "dependencies" && dependenciesFromMode) {
+        // Lines the mode turned on leave with it; lines the user turned on stay.
+        showDependencies = false;
+        dependenciesFromMode = false;
+      }
+      return {
+        visualMode: mode,
+        showDependencies,
+        dependenciesFromMode,
+        timeline: mode === "activity" ? { ...state.timeline, active: true } : state.timeline,
+        panels: mode === "contributors" ? { ...state.panels, contributors: true } : state.panels,
+      };
+    }),
 
-  toggleDependencies: (value) => set((state) => ({ showDependencies: value ?? !state.showDependencies })),
+  toggleDependencies: (value) =>
+    set((state) => ({ showDependencies: value ?? !state.showDependencies, dependenciesFromMode: false })),
 
   setNavigationMode: (mode) => set({ navigationMode: mode }),
 

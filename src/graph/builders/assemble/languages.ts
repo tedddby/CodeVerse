@@ -4,17 +4,26 @@ import type { InventoryFile } from "../inventory";
 import { compareTuples } from "../sort";
 import { linesContribution } from "./directories";
 
+/** Lockfiles, bundles, vendored code and binaries don't describe what a repository is written in. */
+function countsTowardLanguages(file: InventoryFile): boolean {
+  return !file.isGenerated && !file.isBinary && file.category !== "vendor";
+}
+
 /**
- * Language statistics over every file of the repository (omitted files
- * included, with size-based line estimates). Sorted by bytes, "unknown" last.
+ * Language statistics over the repository's own files (omitted files included,
+ * with size-based line estimates). Like GitHub Linguist, generated, vendored
+ * and binary files are excluded — unless the repository contains nothing else.
+ * Shares are relative to the counted bytes. Sorted by bytes, "unknown" last.
  */
 export function buildLanguageStats(
   inventoryFiles: readonly InventoryFile[],
   graphFiles: ReadonlyMap<string, FileNode>,
-  totalBytes: number,
 ): LanguageStat[] {
+  const ownFiles = inventoryFiles.filter(countsTowardLanguages);
+  const counted = ownFiles.length > 0 ? ownFiles : inventoryFiles;
+  const totalBytes = counted.reduce((sum, file) => sum + file.size, 0);
   const stats = new Map<string, LanguageStat>();
-  for (const file of inventoryFiles) {
+  for (const file of counted) {
     let stat = stats.get(file.language);
     if (!stat) {
       const info = getLanguage(file.language);

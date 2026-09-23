@@ -297,8 +297,12 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
 
   // ── Languages ──
   const totalBytes = files.reduce((sum, f) => sum + f.size, 0) || 1;
+  // Like production (and GitHub Linguist): generated, vendored and binary files don't count.
+  const ownFiles = files.filter((f) => !f.isGenerated && f.status !== "binary" && f.category !== "vendor");
+  const languageFiles = ownFiles.length > 0 ? ownFiles : files;
+  const languageBytes = languageFiles.reduce((sum, f) => sum + f.size, 0) || 1;
   const languageMap = new Map<string, LanguageStat>();
-  for (const file of files) {
+  for (const file of languageFiles) {
     const info = detectLanguage(file.path);
     const stat =
       languageMap.get(info.id) ??
@@ -309,7 +313,7 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
     languageMap.set(info.id, stat);
   }
   const languages = [...languageMap.values()]
-    .map((l) => ({ ...l, share: l.bytes / totalBytes }))
+    .map((l) => ({ ...l, share: l.bytes / languageBytes }))
     .sort((a, b) => b.bytes - a.bytes || a.id.localeCompare(b.id));
 
   // ── Timeline (weekly buckets over the commit range) ──

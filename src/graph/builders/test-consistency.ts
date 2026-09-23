@@ -4,6 +4,7 @@
 import { expect } from "vitest";
 import { buildGraphIndex } from "@/graph/model/graph-index";
 import type { RepositoryGraph } from "@/graph/model/types";
+import { isBinaryPath } from "@/lib/languages/registry";
 
 /** Asserts every cross-reference and aggregate in a graph is consistent. */
 export function expectConsistent(graph: RepositoryGraph): void {
@@ -83,10 +84,17 @@ export function expectConsistent(graph: RepositoryGraph): void {
   expect(coverage.importsFound).toBe(
     coverage.importsResolved + coverage.externalImports + coverage.unresolvedImports,
   );
-  expect(graph.languages.reduce((sum, language) => sum + language.files, 0)).toBe(
-    coverage.filesInRepository,
+  // Languages follow Linguist: generated, vendored and binary files do not count
+  // (unless the repository has nothing else).
+  const languageFiles = graph.languages.reduce((sum, language) => sum + language.files, 0);
+  expect(languageFiles).toBeLessThanOrEqual(coverage.filesInRepository);
+  expect(graph.languages.reduce((sum, language) => sum + language.lines, 0)).toBeLessThanOrEqual(
+    root?.stats.totalLines ?? 0,
   );
-  expect(graph.languages.reduce((sum, language) => sum + language.lines, 0)).toBe(
-    root?.stats.totalLines,
-  );
+  if (coverage.filesInGraph === coverage.filesInRepository && graph.files.length > 0) {
+    const own = graph.files.filter(
+      (file) => !file.isGenerated && !isBinaryPath(file.path) && file.category !== "vendor",
+    );
+    expect(languageFiles).toBe(own.length > 0 ? own.length : graph.files.length);
+  }
 }

@@ -6,10 +6,13 @@ const baseURL = process.env.E2E_BASE_URL ?? `http://127.0.0.1:${PORT}`;
 export default defineConfig({
   testDir: "./e2e",
   fullyParallel: true,
+  // Every test renders WebGL in software (SwiftShader), which is CPU-heavy:
+  // parallel browsers starve each other and the app server, making timings flaky.
+  workers: 1,
   forbidOnly: Boolean(process.env.CI),
   retries: process.env.CI ? 2 : 0,
   reporter: process.env.CI ? [["github"], ["html", { open: "never" }]] : "list",
-  timeout: 60_000,
+  timeout: 120_000,
   expect: { timeout: 15_000 },
   use: {
     baseURL,

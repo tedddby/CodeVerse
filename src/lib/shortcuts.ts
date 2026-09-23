@@ -37,6 +37,7 @@ export const KEYBOARD_SHORTCUTS: readonly KeyboardShortcut[] = [
   { keys: ["4"], action: "Contributors mode", group: "View" },
   { keys: ["5"], action: "Complexity mode", group: "View" },
   { keys: ["L"], action: "Toggle dependency lines", group: "View" },
+  { keys: ["`"], action: "Performance overlay", group: "View" },
   { keys: ["/"], action: "Search", group: "Panels" },
   { keys: ["I"], action: "Repository statistics", group: "Panels" },
   { keys: ["T"], action: "History timeline", group: "Panels" },

@@ -1,6 +1,7 @@
 import type { FileAnalysisResult, HistoryInput } from "@/graph/builders/assemble";
 import type { InventoryFile } from "@/graph/builders/inventory";
 import { planTimelineRanges } from "@/graph/builders/timeline";
+import type { RateLimitSnapshot } from "@/graph/model/types";
 import { formatInteger } from "@/lib/utils/format";
 import {
   isSourceError,
@@ -28,16 +29,64 @@ import { runPool } from "./pool";
 
 export const DETAIL_CONCURRENCY = 4;
 
+/** API calls left untouched so later analyses and the source viewer keep working. */
+export const QUOTA_RESERVE = 12;
+/** Without a token GitHub allows 60 requests/hour per IP: keep history to a few calls. */
+export const UNAUTHENTICATED_MAX_COMMITS = 100;
+export const UNAUTHENTICATED_MAX_COMMIT_DETAILS = 6;
+const COMMITS_PER_PAGE = 100;
+
+export interface HistoryBudget {
+  maxCommits: number;
+  maxCommitDetails: number;
+  /** True when the plan is smaller than the configured limits because of API quota. */
+  quotaLimited: boolean;
+}
+
+/**
+ * Sizes the history requests to the provider's remaining API quota.
+ *
+ * History is the most request-hungry stage (one call per commit detail), so
+ * unauthenticated servers — and authenticated ones close to their limit —
+ * fetch less of it instead of starving every other visitor.
+ */
+export function planHistoryBudget(
+  limits: Pick<PipelineContext["limits"], "maxCommits" | "maxCommitDetails">,
+  rateLimit: RateLimitSnapshot | undefined,
+  authenticated: boolean,
+): HistoryBudget {
+  let maxCommits = limits.maxCommits;
+  let maxCommitDetails = limits.maxCommitDetails;
+  if (!authenticated) {
+    maxCommits = Math.min(maxCommits, UNAUTHENTICATED_MAX_COMMITS);
+    maxCommitDetails = Math.min(maxCommitDetails, UNAUTHENTICATED_MAX_COMMIT_DETAILS);
+  }
+  if (rateLimit) {
+    const available = Math.max(0, rateLimit.remaining - QUOTA_RESERVE);
+    // One call for contributors, one per page of commits, the rest for details.
+    const pages = Math.min(Math.ceil(maxCommits / COMMITS_PER_PAGE), Math.max(0, available - 1));
+    maxCommits = Math.min(maxCommits, pages * COMMITS_PER_PAGE);
+    maxCommitDetails = Math.min(maxCommitDetails, Math.max(0, available - pages - 1), maxCommits);
+  }
+  return {
+    maxCommits,
+    maxCommitDetails,
+    quotaLimited: maxCommits < limits.maxCommits || maxCommitDetails < limits.maxCommitDetails,
+  };
+}
+
 export interface CommitHistory {
   status: "ok" | "unavailable" | "aborted";
   /** Why `listCommits` failed, when status is "unavailable". */
-  unavailableBecause?: "rate-limited" | "error";
+  unavailableBecause?: "rate-limited" | "error" | "quota-reserved";
   commits: SourceCommit[];
   details: SourceCommitDetails[];
   contributors: SourceContributor[];
   commitCounts: HistoryInput["commitCounts"];
   /** Optional steps skipped to stay within the time budget. */
   trimmed: boolean;
+  /** History was reduced to preserve the provider's API quota. */
+  quotaLimited: boolean;
 }
 
 function isRateLimited(error: unknown): boolean {
@@ -50,6 +99,12 @@ async function collectCommitHistory(
   snapshot: SourceSnapshot,
 ): Promise<CommitHistory> {
   const { limits, signal } = context;
+  const rateLimit = source.getRateLimit();
+  const budget = planHistoryBudget(
+    limits,
+    rateLimit,
+    rateLimit?.authenticated ?? source.capabilities.fileHistory,
+  );
   const history: CommitHistory = {
     status: "ok",
     commits: [],
@@ -57,6 +112,7 @@ async function collectCommitHistory(
     contributors: [],
     commitCounts: null,
     trimmed: false,
+    quotaLimited: budget.quotaLimited,
   };
   const overBudget = () => {
     const exceeded = context.budgetExceeded(BUDGET_FRACTIONS.history);
@@ -64,10 +120,17 @@ async function collectCommitHistory(
     return exceeded;
   };
 
-  if (limits.maxCommits > 0) {
+  if (limits.maxCommits > 0 && budget.maxCommits === 0) {
+    context.logger.info("commit history skipped to preserve API quota", {
+      remaining: rateLimit?.remaining,
+    });
+    return { ...history, status: "unavailable", unavailableBecause: "quota-reserved" };
+  }
+
+  if (budget.maxCommits > 0) {
     try {
       history.commits = await source.listCommits(snapshot, {
-        maxCommits: limits.maxCommits,
+        maxCommits: budget.maxCommits,
         signal,
       });
     } catch (error) {
@@ -82,7 +145,7 @@ async function collectCommitHistory(
     }
   }
 
-  const targets = history.commits.slice(0, Math.max(0, limits.maxCommitDetails));
+  const targets = history.commits.slice(0, Math.max(0, budget.maxCommitDetails));
   if (targets.length > 0 && !overBudget()) {
     const bySha = new Map<string, SourceCommitDetails>();
     const state = { rateLimited: false };
@@ -153,6 +216,7 @@ export function prefetchCommitHistory(
       contributors: [],
       commitCounts: null,
       trimmed: false,
+      quotaLimited: false,
     } satisfies CommitHistory;
   });
 }
@@ -203,6 +267,12 @@ export async function runHistoryStage(
         message:
           "Commit history could not be loaded because GitHub's API rate limit was reached, so activity and contributor views are empty.",
       });
+    } else if (history.unavailableBecause === "quota-reserved") {
+      context.addWarning({
+        code: "HISTORY_UNAVAILABLE",
+        message:
+          "Commit history was skipped because the server's GitHub API quota is nearly used up. Configure a GitHub token for full history.",
+      });
     }
     stage.finish("warning", "Commit history unavailable");
     return null;
@@ -243,6 +313,13 @@ export async function runHistoryStage(
       detail: { commits: history.commits.length, commitsWithDetails: history.details.length },
     });
     stage.finish("warning", "History trimmed to fit the analysis budget");
+  } else if (history.quotaLimited) {
+    context.addWarning({
+      code: "HISTORY_LIMITED",
+      message: `Activity is based on the latest ${formatInteger(history.commits.length)} commits (file changes from the latest ${formatInteger(history.details.length)}) to conserve GitHub API quota. Configure a GitHub token for deeper history.`,
+      detail: { commits: history.commits.length, commitsWithDetails: history.details.length },
+    });
+    stage.finish("done", historyMessage(history.commits.length, history.contributors.length));
   } else {
     stage.finish("done", historyMessage(history.commits.length, history.contributors.length));
   }

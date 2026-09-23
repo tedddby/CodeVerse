@@ -13,8 +13,14 @@ import { mockRepositoryGraph } from "../../src/fixtures/mock-repository-graph";
  * integration tests (and the opt-in live test with E2E_LIVE=1).
  */
 
-export const FIXTURE_OWNER = mockRepositoryGraph.repository.owner;
-export const FIXTURE_REPO = mockRepositoryGraph.repository.name;
+/** The fixture graph, presented as a GitHub repository so provider-specific UI (source viewer) is exercised. */
+export const e2eGraph: RepositoryGraph = {
+  ...mockRepositoryGraph,
+  repository: { ...mockRepositoryGraph.repository, provider: "github", id: `github:${mockRepositoryGraph.repository.fullName}` },
+};
+
+export const FIXTURE_OWNER = e2eGraph.repository.owner;
+export const FIXTURE_REPO = e2eGraph.repository.name;
 
 function analysisEvents(graph: RepositoryGraph): AnalysisEvent[] {
   const fileCount = graph.analysis.coverage.filesInRepository;
@@ -42,7 +48,7 @@ export interface MockApiOptions {
 }
 
 export async function mockAnalysisApi(page: Page, options: MockApiOptions = {}): Promise<void> {
-  const graph = options.graph ?? mockRepositoryGraph;
+  const graph = options.graph ?? e2eGraph;
 
   await page.route("**/api/analyze/**", async (route: Route) => {
     const events: AnalysisEvent[] = options.analysisError

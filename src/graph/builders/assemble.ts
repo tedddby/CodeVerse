@@ -98,7 +98,7 @@ function assemble(rawInput: AssembleInput, preview: boolean): RepositoryGraph {
     externalPackages,
     commits: history.commits,
     contributors: history.contributors,
-    languages: buildLanguageStats(inventoryFiles, filesByPath, totalBytes),
+    languages: buildLanguageStats(inventoryFiles, filesByPath),
     timeline: history.timeline,
     analysis,
   };

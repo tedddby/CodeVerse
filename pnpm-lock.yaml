@@ -53,6 +53,9 @@ importers:
       tree-sitter-typescript:
         specifier: 0.23.2
         version: 0.23.2
+      troika-three-text:
+        specifier: 0.52.5
+        version: 0.52.5(three@0.186.0)
       web-tree-sitter:
         specifier: 0.27.0
         version: 0.27.0

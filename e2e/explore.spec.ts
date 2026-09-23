@@ -1,5 +1,17 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 import { FIXTURE_OWNER, FIXTURE_REPO, mockAnalysisApi } from "./support/mock-api";
+
+/** Software-rendered WebGL (SwiftShader) makes the world slower to appear than on real GPUs. */
+const WORLD_TIMEOUT = { timeout: 45_000 };
+
+const repoLink = (page: Page) =>
+  page.getByRole("link", { name: new RegExp(`${FIXTURE_OWNER}/${FIXTURE_REPO}`, "i") }).first();
+
+/** Waits until client components are interactive, so typed input is not reset by hydration. */
+async function gotoHydrated(page: Page, url: string) {
+  await page.goto(url);
+  await page.waitForLoadState("networkidle");
+}
 
 /**
  * Core user journey:
@@ -11,17 +23,17 @@ test.describe("explore a repository", () => {
   });
 
   test("homepage → explorer → select file → view source", async ({ page }) => {
-    await page.goto("/");
+    await gotoHydrated(page, "/");
     await expect(page.getByRole("heading", { level: 1, name: /explore any codebase as a 3d universe/i })).toBeVisible();
 
     const input = page.getByRole("textbox", { name: /repository/i }).first();
     await input.fill(`https://github.com/${FIXTURE_OWNER}/${FIXTURE_REPO}`);
     await page.getByRole("button", { name: /^explore/i }).first().click();
 
-    await expect(page).toHaveURL(new RegExp(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`));
+    await expect(page).toHaveURL(new RegExp(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`), WORLD_TIMEOUT);
 
-    // The explorer shell appears once the analysis stream completes.
-    await expect(page.getByRole("link", { name: new RegExp(`${FIXTURE_OWNER}/${FIXTURE_REPO}`, "i") }).first()).toBeVisible();
+    // The explorer shell appears once the analysis stream completes and the world is laid out.
+    await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);
 
     // Select a file through global search (keyboard-first flow).
     await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => undefined);
@@ -37,18 +49,18 @@ test.describe("explore a repository", () => {
     await expect(details).toContainText(/TypeScript/);
 
     // Open the lazy-loaded source viewer.
-    await details.getByRole("button", { name: /view source/i }).click();
+    await details.getByRole("button", { name: "View source", exact: true }).click();
     await expect(page.getByText("CodeVerse E2E fixture")).toBeVisible();
   });
 
   test("shared deep link opens the explorer directly", async ({ page }) => {
     await page.goto(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}?mode=dependencies`);
-    await expect(page.getByRole("link", { name: new RegExp(`${FIXTURE_OWNER}/${FIXTURE_REPO}`, "i") }).first()).toBeVisible();
+    await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);
     await expect(page.getByRole("button", { name: /dependencies/i, pressed: true }).first()).toBeVisible();
   });
 
   test("invalid input shows an inline validation error", async ({ page }) => {
-    await page.goto("/");
+    await gotoHydrated(page, "/");
     const input = page.getByRole("textbox", { name: /repository/i }).first();
     await input.fill("https://gitlab.com/foo/bar");
     await page.getByRole("button", { name: /^explore/i }).first().click();

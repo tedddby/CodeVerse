@@ -28,8 +28,13 @@ import { useTimelinePlayback } from "./use-timeline-playback";
  */
 const BAR_CLASS = [
   "glass fixed bottom-[3.75rem] left-1/2 z-30 w-[calc(100vw-1.5rem)] -translate-x-1/2 rounded-2xl px-4 pb-3 pt-2.5 shadow-2xl",
-  "lg:bottom-3 lg:w-[min(50rem,calc(100vw-30rem))]",
+  // From lg the bar is bounded by the minimap (left) and the camera controls
+  // (right) and centred within that span by auto margins, up to 50rem wide.
+  "lg:bottom-3 lg:left-[15rem] lg:right-[15rem] lg:mx-auto lg:w-auto lg:max-w-[50rem] lg:translate-x-0",
 ].join(" ");
+
+/** With the selection panel docked on the right, the bar stops short of it. */
+const BESIDE_SELECTION_CLASS = "lg:right-[25rem]";
 
 /**
  * Bottom-centre history bar (`timeline.active`, shortcut "T"): commit activity
@@ -49,6 +54,7 @@ function TimelineBar({ index }: { index: GraphIndex }) {
   const setTimeline = useExplorerStore((state) => state.setTimeline);
   const select = useExplorerStore((state) => state.select);
   const reducedMotion = useExplorerStore((state) => state.reducedMotion);
+  const selectionOpen = useExplorerStore((state) => state.selection !== null);
 
   const extent = useMemo(() => timelineExtent(graph), [graph]);
   const bars = useMemo(() => histogramBars(graph.timeline.buckets), [graph.timeline.buckets]);
@@ -74,7 +80,7 @@ function TimelineBar({ index }: { index: GraphIndex }) {
   return (
     <section
       aria-label="History timeline"
-      className={cn(BAR_CLASS, !reducedMotion && "animate-slide-up")}
+      className={cn(BAR_CLASS, selectionOpen && BESIDE_SELECTION_CLASS, !reducedMotion && "animate-slide-up")}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-2">

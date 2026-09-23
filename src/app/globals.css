@@ -136,7 +136,7 @@ body {
 @layer components {
   /* Frosted glass surface used by explorer panels and overlays. */
   .glass {
-    background: color-mix(in oklab, var(--color-panel) 82%, transparent);
+    background: color-mix(in oklab, var(--color-panel) 90%, transparent);
     border: 1px solid color-mix(in oklab, var(--color-line-strong) 70%, transparent);
     backdrop-filter: blur(14px) saturate(140%);
     -webkit-backdrop-filter: blur(14px) saturate(140%);

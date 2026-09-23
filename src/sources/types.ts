@@ -32,6 +32,8 @@ export interface SourceTree {
   entries: SourceTreeEntry[];
   /** True when the provider could not list every entry. */
   truncated: boolean;
+  /** Entries dropped because their paths failed sanitization (unsafe or malformed). */
+  rejectedEntries?: number;
 }
 
 export type SourceFileResult =

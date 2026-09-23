@@ -68,3 +68,14 @@ describe("buildingHeight", () => {
     expect(buildingHeight({ lines: 1e9, status: "parsed" }, custom)).toBeGreaterThan(3.9);
   });
 });
+
+describe("generated files", () => {
+  it("never tower over the skyline", () => {
+    const lockfile = { lines: 6_400, status: "content-only" as const, isGenerated: true };
+    const source = { lines: 300, status: "parsed" as const, isGenerated: false };
+    expect(buildingHeight(lockfile, DEFAULT_LAYOUT_OPTIONS)).toBeLessThan(
+      buildingHeight(source, DEFAULT_LAYOUT_OPTIONS),
+    );
+    expect(buildingHeight(lockfile, DEFAULT_LAYOUT_OPTIONS)).toBeGreaterThan(DEFAULT_LAYOUT_OPTIONS.minHeight);
+  });
+});
