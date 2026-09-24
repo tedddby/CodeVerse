@@ -2,40 +2,55 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 
 export interface SectionHeadingProps {
-  /** Id of the heading, referenced by the section's aria-labelledby. */
   id: string;
-  /** Two-digit section index shown before the eyebrow, e.g. "02". */
-  index: string;
   eyebrow: string;
-  title: ReactNode;
+  title: string;
   children?: ReactNode;
+  /** "navy" for the deep developer section. */
+  tone?: "light" | "navy";
+  align?: "start" | "center";
   className?: string;
 }
 
-/** Monospace eyebrow + H2 + lede, shared by every landing section. */
+/** Eyebrow in the accent color, a tight navy headline and calm body copy. */
 export function SectionHeading({
   id,
-  index,
   eyebrow,
   title,
   children,
+  tone = "light",
+  align = "start",
   className,
 }: SectionHeadingProps) {
+  const navy = tone === "navy";
   return (
-    <div className={cn("max-w-2xl", className)}>
-      <p className="text-signal flex items-center gap-3 font-mono text-[11px] tracking-[0.22em] uppercase">
-        <span className="text-ink-muted">{index}</span>
-        <span aria-hidden="true" className="bg-line-strong h-px w-6" />
+    <div className={cn("max-w-[42rem]", align === "center" && "mx-auto text-center", className)}>
+      <p
+        className={cn(
+          "text-[15px] font-semibold tracking-[-0.005em]",
+          navy ? "text-[#9fe8ff]" : "text-(--lc-accent)",
+        )}
+      >
         {eyebrow}
       </p>
       <h2
         id={id}
-        className="text-ink mt-4 text-3xl font-semibold tracking-[-0.025em] text-balance sm:text-4xl"
+        className={cn(
+          "mt-3 text-[clamp(2rem,1.35rem+2.1vw,3rem)] leading-[1.08] font-semibold tracking-[-0.035em] text-balance",
+          navy ? "text-white" : "text-(--lc-ink)",
+        )}
       >
         {title}
       </h2>
       {children ? (
-        <div className="text-ink-muted mt-4 text-base leading-relaxed text-pretty">{children}</div>
+        <div
+          className={cn(
+            "mt-5 text-[17px] leading-[1.65] text-pretty sm:text-lg",
+            navy ? "text-[#b7c1d6]" : "text-(--lc-body)",
+          )}
+        >
+          {children}
+        </div>
       ) : null}
     </div>
   );

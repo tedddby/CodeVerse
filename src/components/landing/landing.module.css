@@ -1,0 +1,342 @@
+/*
+ * CodeVerse landing page — "Immersive gradient + city".
+ *
+ * Light page tokens, the animated hero gradient, skewed section edges and the
+ * page's own focus ring. Everything is scoped to `.root` so the explorer keeps
+ * its dark theme.
+ */
+
+/* The page canvas is light: overscroll and any area outside .root must not flash the explorer's dark theme. */
+:global(html):has(.root),
+:global(body):has(.root) {
+  background-color: #ffffff;
+}
+
+.root {
+  --lc-ink: #0f1c3f;
+  --lc-body: #4b5877;
+  --lc-muted: #5d6883;
+  --lc-line: #e3e8f1;
+  --lc-line-strong: #cdd5e3;
+  --lc-mist: #f4f6fb;
+  --lc-accent: #5b47eb;
+  --lc-accent-strong: #4535c9;
+  --lc-accent-soft: #efedff;
+  --lc-navy: #0b1430;
+  --lc-navy-raised: #111c3d;
+  --lc-focus: #4535c9;
+  /* Horizontal drop of skewed edges: the same angle at every width. */
+  --lc-skew: clamp(40px, 8vw, 150px);
+
+  position: relative;
+  color-scheme: light;
+  background: #ffffff;
+  color: var(--lc-body);
+  overflow-x: clip;
+}
+
+/* The root layout paints the document dark for the explorer; this page is light. */
+:global(html):has(.root),
+:global(body):has(.root) {
+  background: #ffffff;
+  color-scheme: light;
+}
+
+.root ::selection {
+  background: #dcd6ff;
+  color: var(--lc-ink);
+}
+
+/*
+ * Focus: the global ring is a pale cyan made for dark surfaces. Here it is a
+ * 2px indigo outline (white on color and navy), keeping each element's radius.
+ */
+.root :focus-visible {
+  outline: 2px solid var(--lc-focus);
+  outline-offset: 3px;
+  border-radius: revert-layer;
+}
+
+.onColor :focus-visible {
+  outline-color: #ffffff;
+}
+
+/* The repository field shows focus on its whole frame instead. */
+.root .bareInput:focus-visible {
+  outline: none;
+}
+
+/*
+ * Opt-out for elements whose focus is shown elsewhere: whole-card links (the
+ * card draws the ring through `has-[a:focus-visible]`) and the skip target.
+ */
+.root .noRing:focus-visible {
+  outline: none;
+}
+
+/* ─── Skewed edges ─────────────────────────────────────────────────────── */
+
+.skewBottom {
+  clip-path: polygon(0 0, 100% 0, 100% calc(100% - var(--lc-skew)), 0 100%);
+}
+
+.skewTop {
+  clip-path: polygon(0 var(--lc-skew), 100% 0, 100% 100%, 0 100%);
+}
+
+.skewBoth {
+  clip-path: polygon(0 var(--lc-skew), 100% 0, 100% calc(100% - var(--lc-skew)), 0 100%);
+}
+
+/* ─── Gradient field ───────────────────────────────────────────────────── */
+
+.field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  background: #3a23c4;
+}
+
+.wash {
+  position: absolute;
+  border-radius: 9999px;
+  will-change: transform;
+  animation-duration: 26s;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+  animation-direction: alternate;
+}
+
+/* Deep indigo behind the header and the logo. */
+.washIndigo {
+  left: -18%;
+  top: -55%;
+  width: 72%;
+  height: 130%;
+  background: radial-gradient(closest-side, #2a1b9e 0%, rgb(42 27 158 / 0.75) 45%, rgb(42 27 158 / 0) 100%);
+  animation-name: driftIndigo;
+  animation-duration: 31s;
+}
+
+/* The violet core that carries the headline. */
+.washViolet {
+  left: 14%;
+  top: -30%;
+  width: 72%;
+  height: 120%;
+  background: radial-gradient(closest-side, #6b45f2 0%, rgb(107 69 242 / 0.7) 40%, rgb(107 69 242 / 0) 100%);
+  animation-name: driftViolet;
+  animation-duration: 24s;
+}
+
+.washMagenta {
+  left: 52%;
+  top: -12%;
+  width: 66%;
+  height: 112%;
+  background: radial-gradient(closest-side, #cf2690 0%, rgb(207 38 144 / 0.72) 42%, rgb(207 38 144 / 0) 100%);
+  animation-name: driftMagenta;
+  animation-duration: 28s;
+}
+
+/* Horizon light: cyan and amber stay low, where no text sits on them. */
+.washCyan {
+  left: -24%;
+  top: 48%;
+  width: 70%;
+  height: 100%;
+  background: radial-gradient(closest-side, #18c2f0 0%, rgb(24 194 240 / 0.72) 45%, rgb(24 194 240 / 0) 100%);
+  animation-name: driftCyan;
+  animation-duration: 22s;
+}
+
+.washAmber {
+  left: 46%;
+  top: 60%;
+  width: 70%;
+  height: 90%;
+  background: radial-gradient(closest-side, #ffae45 0%, rgb(255 174 69 / 0.75) 42%, rgb(255 174 69 / 0) 100%);
+  animation-name: driftAmber;
+  animation-duration: 34s;
+}
+
+/* A soft top-down shade that keeps white text above 4.5:1 wherever it sits. */
+.shade {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(180deg, rgb(26 14 96 / 0.34) 0%, rgb(26 14 96 / 0.12) 38%, rgb(26 14 96 / 0) 62%);
+}
+
+@keyframes driftIndigo {
+  to {
+    transform: translate3d(10%, 8%, 0) scale(1.08);
+  }
+}
+
+@keyframes driftViolet {
+  to {
+    transform: translate3d(-9%, 6%, 0) scale(1.12);
+  }
+}
+
+@keyframes driftMagenta {
+  to {
+    transform: translate3d(-12%, 10%, 0) scale(0.92);
+  }
+}
+
+@keyframes driftCyan {
+  to {
+    transform: translate3d(16%, -8%, 0) scale(1.14);
+  }
+}
+
+@keyframes driftAmber {
+  to {
+    transform: translate3d(-18%, -6%, 0) scale(1.1);
+  }
+}
+
+.field[data-paused="true"] .wash {
+  animation-play-state: paused;
+}
+
+/* ─── City silhouette ──────────────────────────────────────────────────── */
+
+/*
+ * One geometry, two inks. Faces read their fills from custom properties set on
+ * each <use>, which inherit into the use-element's shadow tree.
+ */
+.cityFaces {
+  stroke: var(--lc-city-edge);
+}
+
+.cityLeft,
+.cityRight,
+.cityTop,
+.cityGround {
+  vector-effect: non-scaling-stroke;
+}
+
+.cityLeft {
+  fill: var(--lc-city-left);
+}
+
+.cityRight {
+  fill: var(--lc-city-right);
+}
+
+.cityTop {
+  fill: var(--lc-city-top);
+}
+
+.cityGround {
+  fill: var(--lc-city-ground);
+}
+
+/* Luminance mask: white edges, faintly lit faces, opaque so near faces hide far lines. */
+.cityMaskInk {
+  --lc-city-edge: #ffffff;
+  --lc-city-top: #4a4a4a;
+  --lc-city-left: #2a2a2a;
+  --lc-city-right: #1a1a1a;
+  --lc-city-ground: #141414;
+}
+
+.cityPageInk {
+  --lc-city-edge: #bcc4dc;
+  --lc-city-top: #ffffff;
+  --lc-city-left: #f2f4fa;
+  --lc-city-right: #e8ecf5;
+  --lc-city-ground: #fbfcfe;
+}
+
+/*
+ * The hero city: one box size and one "rise" (the fraction of the city standing
+ * above the skewed edge) shared by the copy on color and the copy on paper, so
+ * their lines meet exactly at the edge.
+ */
+.heroCity {
+  --lc-city-rise: 0.4;
+  position: absolute;
+  left: 50%;
+  width: max(1080px, 150vw);
+}
+
+@media (min-width: 640px) {
+  .heroCity {
+    width: max(1180px, 128vw);
+  }
+}
+
+@media (min-width: 1024px) {
+  .heroCity {
+    width: max(1560px, 118vw);
+  }
+}
+
+.heroCityOnColor {
+  bottom: 0;
+  transform: translate(-50%, calc((1 - var(--lc-city-rise)) * 100%));
+}
+
+.heroCityOnPage {
+  top: 0;
+  transform: translate(-50%, calc(var(--lc-city-rise) * -100%));
+  mask-image: linear-gradient(
+    to bottom,
+    #000 calc(var(--lc-city-rise) * 100% + 6%),
+    transparent calc(var(--lc-city-rise) * 100% + 26%)
+  );
+}
+
+/*
+ * The skyline fades up into the gradient before it reaches the copy, and opens
+ * a clearing around the call-to-action row so no line crosses a button.
+ */
+.horizon {
+  --lc-clear-w: 24%;
+  --lc-clear-h: 30%;
+  position: absolute;
+  inset-inline: 0;
+  bottom: 0;
+  height: 58%;
+  mask-image:
+    linear-gradient(to bottom, transparent 8%, rgb(0 0 0 / 0.6) 34%, #000 58%),
+    radial-gradient(var(--lc-clear-w) var(--lc-clear-h) at 50% 40%, transparent 50%, #000 100%);
+  -webkit-mask-composite: source-in;
+  mask-composite: intersect;
+}
+
+@media (max-width: 639px) {
+  .horizon {
+    --lc-clear-w: 64%;
+    --lc-clear-h: 22%;
+  }
+}
+
+/* The closing band's city, rising from its lower edge. */
+.cityOnColor {
+  mask-image: linear-gradient(to top, #000 62%, transparent 96%);
+}
+
+/* ─── Pipeline connector ───────────────────────────────────────────────── */
+
+.flow {
+  stroke-dasharray: 3 5;
+  animation: flow 1.6s linear infinite;
+}
+
+@keyframes flow {
+  to {
+    stroke-dashoffset: -16;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wash,
+  .flow {
+    animation: none;
+  }
+}

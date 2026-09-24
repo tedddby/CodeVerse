@@ -84,8 +84,14 @@ describe("useLayoutEngine", () => {
     useExplorerStore.getState().loadGraph(graph);
     const { result } = renderHook(() => useLayoutEngine());
     // The fallback defers to the next frame and computes synchronously; allow for a loaded CI machine.
-    await waitFor(() => expect(useExplorerStore.getState().layout).not.toBeNull(), { timeout: 10_000 });
-    expect(result.current.computing).toBe(false);
+    await waitFor(
+      () => {
+        expect(useExplorerStore.getState().layout).not.toBeNull();
+        // The store is updated a tick before the hook's own state settles.
+        expect(result.current.computing).toBe(false);
+      },
+      { timeout: 10_000 },
+    );
     expect(useExplorerStore.getState().layout?.buildings).toHaveLength(graph.files.length);
   });
 

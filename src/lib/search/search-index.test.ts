@@ -214,8 +214,9 @@ describe("performance", () => {
     const graphIndex = buildGraphIndex(graph);
     const buildStart = performance.now();
     const largeIndex = buildSearchIndex(graphIndex);
-    // Generous guard against accidental O(n²) work in the (one-off) index build.
-    expect(performance.now() - buildStart).toBeLessThan(1_000);
+    // Guard against accidental O(n²) work in the (one-off) index build: quadratic
+    // work over ~85k entries would take minutes, while a loaded CI box needs ~1-2 s.
+    expect(performance.now() - buildStart).toBeLessThan(5_000);
     expect(largeIndex.counts.file).toBe(25_000);
     expect(largeIndex.counts.symbol).toBeGreaterThanOrEqual(60_000);
 

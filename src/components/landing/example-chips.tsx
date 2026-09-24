@@ -3,24 +3,22 @@ import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils/cn";
 import { explorePath } from "@/lib/validation/repository-url";
 
-/** One-click example repositories from the site configuration. */
+/** One-click example repositories, under the hero card. */
 export function ExampleChips({ className }: { className?: string }) {
   return (
-    <div className={cn("flex flex-wrap items-center gap-x-3 gap-y-2", className)}>
-      <span
-        aria-hidden="true"
-        className="text-ink-muted font-mono text-[11px] tracking-[0.18em] uppercase"
-      >
-        Try
+    <div className={cn("flex flex-wrap items-center justify-center gap-x-3 gap-y-2.5", className)}>
+      <span aria-hidden="true" className="text-[14px] font-medium text-(--lc-muted)">
+        Or try
       </span>
-      <ul aria-label="Example repositories" className="flex flex-wrap gap-2">
+      {/* A named list (not an id reference) so the chips can appear on several pages. */}
+      <ul aria-label="Example repositories" className="flex flex-wrap justify-center gap-2">
         {siteConfig.exampleRepositories.map(({ owner, repo }) => (
           <li key={`${owner}/${repo}`}>
             <Link
               href={explorePath(owner, repo)}
-              className="border-line-strong bg-panel/70 text-ink-muted hover:border-signal/50 hover:text-ink inline-flex h-8 items-center rounded-lg border px-2.5 font-mono text-xs transition-colors"
+              className="inline-flex h-9 items-center rounded-full bg-white px-3.5 font-mono text-[13px] text-(--lc-muted) ring-1 ring-(--lc-line-strong) transition-[color,box-shadow] duration-150 ring-inset hover:text-(--lc-ink) hover:ring-(--lc-accent)"
             >
-              {owner}/<span className="text-ink">{repo}</span>
+              {owner}/<span className="font-medium text-(--lc-ink)">{repo}</span>
             </Link>
           </li>
         ))}

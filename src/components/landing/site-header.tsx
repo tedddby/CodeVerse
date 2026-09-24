@@ -1,48 +1,49 @@
 import Link from "next/link";
 import { GitHubMark } from "@/components/brand/github-mark";
-import { Logo } from "@/components/brand/logo";
+import { PROJECT_LINKS } from "@/components/landing/constants";
 import { siteConfig } from "@/config/site";
-import { PROJECT_LINKS, SECTION_IDS } from "./constants";
+import { cn } from "@/lib/utils/cn";
+import { BrandLockup } from "./brand";
+import styles from "./landing.module.css";
+import { ANCHORS, CONTAINER } from "./tokens";
 
 const NAV_ITEMS = [
-  { href: `#${SECTION_IDS.demo}`, label: "Demo" },
-  { href: `#${SECTION_IDS.howItWorks}`, label: "How it works" },
-  { href: `#${SECTION_IDS.features}`, label: "Features" },
-  { href: `#${SECTION_IDS.examples}`, label: "Examples" },
+  { href: `/#${ANCHORS.demo}`, label: "Demo" },
+  { href: `/#${ANCHORS.howItWorks}`, label: "How it works" },
+  { href: `/#${ANCHORS.features}`, label: "Features" },
+  { href: `/#${ANCHORS.examples}`, label: "Examples" },
+  { href: `/#${ANCHORS.openSource}`, label: "Open source" },
 ] as const;
 
-/** Sticky top bar for the landing and 404 pages. */
-export function SiteHeader({ showSectionLinks = true }: { showSectionLinks?: boolean }) {
+/** Top bar laid over the hero gradient (white on color). */
+export function SiteHeader() {
   return (
-    <header className="border-line/70 bg-void/75 sticky top-0 z-40 border-b backdrop-blur-md">
-      <div className="mx-auto flex h-14 max-w-6xl items-center justify-between gap-4 px-4 sm:px-6">
+    <header className={cn("absolute inset-x-0 top-0 z-20", styles.onColor)}>
+      <div className={cn(CONTAINER, "flex h-[72px] items-center justify-between gap-6")}>
         <Link href="/" aria-label={`${siteConfig.name} home`} className="rounded-md">
-          <Logo />
+          <BrandLockup surface="color" maskId="lc-mark-header" />
         </Link>
-        <nav aria-label="Primary" className="flex items-center gap-1">
-          {showSectionLinks ? (
-            <ul className="hidden items-center gap-1 md:flex">
-              {NAV_ITEMS.map((item) => (
-                <li key={item.href}>
-                  <a
-                    href={item.href}
-                    className="text-ink-muted hover:text-ink rounded-md px-3 py-1.5 text-sm transition-colors"
-                  >
-                    {item.label}
-                  </a>
-                </li>
-              ))}
-            </ul>
-          ) : null}
+        <nav aria-label="Primary" className="flex items-center gap-2">
+          <ul className="hidden items-center lg:flex">
+            {NAV_ITEMS.map((item) => (
+              <li key={item.href}>
+                <a
+                  href={item.href}
+                  className="rounded-full px-3.5 py-2 text-[15px] font-medium text-white/90 transition-[color] hover:text-white"
+                >
+                  {item.label}
+                </a>
+              </li>
+            ))}
+          </ul>
           <a
             href={PROJECT_LINKS.repository}
             target="_blank"
             rel="noopener noreferrer"
-            className="border-line-strong text-ink-muted hover:border-signal/50 hover:text-ink ml-1 inline-flex h-9 items-center gap-2 rounded-lg border px-3 text-sm transition-colors"
+            className="ml-2 inline-flex size-9 items-center justify-center gap-2 rounded-full bg-[rgb(20_12_76/0.3)] text-[14px] font-semibold text-white ring-1 ring-white/40 transition-[background-color] ring-inset hover:bg-[rgb(20_12_76/0.46)] sm:w-auto sm:px-3.5"
           >
             <GitHubMark className="size-4" />
-            <span className="hidden sm:inline">GitHub</span>
-            <span className="sr-only sm:hidden">{siteConfig.name} on GitHub</span>
+            <span className="sr-only sm:not-sr-only">GitHub</span>
           </a>
         </nav>
       </div>

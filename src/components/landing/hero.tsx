@@ -1,82 +1,75 @@
-import { ArrowDown } from "lucide-react";
 import { GitHubMark } from "@/components/brand/github-mark";
-import { ButtonLink, buttonClasses } from "@/components/ui/button";
+import { FocusInputLink } from "@/components/landing/focus-input-link";
 import { siteConfig } from "@/config/site";
-import { PROJECT_LINKS, SECTION_IDS } from "./constants";
+import { cn } from "@/lib/utils/cn";
 import { ExampleChips } from "./example-chips";
-import { FocusInputLink } from "./focus-input-link";
-import { HeroBackdrop } from "./hero-backdrop";
-import { RepositoryForm } from "./repository-form";
-
-const TRUST_POINTS = ["MIT licensed", "Repository code is never executed", "No tracking"] as const;
+import { GradientField } from "./gradient-field";
+import { HeroCity } from "./hero-city";
+import { HoverArrow } from "./hover-arrow";
+import styles from "./landing.module.css";
+import { RepositoryCard } from "./repository-card";
+import { buttonClass, CONTAINER } from "./tokens";
 
 /**
- * Above the fold. DOM order is copy → form → calls to action, so on phones the
- * form sits right under the promise; on desktop the form moves to the right
- * column and the calls to action sit under the copy.
+ * Above the fold: the gradient field with the promise in white, and the
+ * repository card straddling the skewed edge between the gradient and the page.
+ * The demo repository's city rises behind the card and crosses the edge,
+ * white on color and ink on paper.
  */
 export function Hero() {
   return (
-    <section
-      aria-labelledby="hero-title"
-      className="relative isolate flex flex-col justify-center lg:min-h-[min(calc(100svh-3.5rem),58rem)]"
-    >
-      <HeroBackdrop />
-      <div className="mx-auto grid w-full max-w-6xl gap-x-14 gap-y-10 px-4 pt-14 pb-44 sm:px-6 sm:pt-20 lg:grid-cols-2 lg:gap-y-9 lg:pt-16 lg:pb-48">
-        <div className="lg:col-start-1 lg:row-start-1 lg:self-end">
-          <p className="border-line-strong bg-panel/60 text-ink-muted inline-flex items-center gap-2 rounded-full border px-3 py-1 font-mono text-[11px] tracking-[0.18em] uppercase">
-            <span aria-hidden="true" className="bg-ok size-1.5 rounded-full" />
-            Open source code explorer
-          </p>
+    <section aria-labelledby="hero-title" className="relative isolate">
+      {/* Short desktop screens (1280x720 laptops) tighten the band so the repository card stays above the fold. */}
+      <div className="relative z-[1] pt-[132px] pb-[176px] sm:pt-[156px] sm:pb-[196px] lg:pt-[168px] lg:pb-[212px] lg:[@media(max-height:820px)]:pt-[108px] lg:[@media(max-height:820px)]:pb-[188px]">
+        <div aria-hidden="true" className={cn("absolute inset-0 overflow-hidden", styles.skewBottom)}>
+          <GradientField />
+          <div className={styles.horizon}>
+            <div className={cn(styles.heroCity, styles.heroCityOnColor)}>
+              <HeroCity surface="color" withGeometry maskId="lc-city-mask-hero" className="w-full" />
+            </div>
+          </div>
+        </div>
+
+        <div className={cn(CONTAINER, styles.onColor, "relative text-center")}>
           <h1
             id="hero-title"
-            className="text-ink mt-6 text-[2.6rem] leading-[1.02] font-semibold tracking-[-0.035em] text-balance sm:text-6xl lg:text-[4.1rem]"
+            className="mx-auto max-w-[15ch] text-[clamp(2.6rem,1.05rem+5.6vw,5.1rem)] leading-[1.02] font-semibold tracking-[-0.045em] text-balance text-white sm:max-w-none"
           >
             {siteConfig.headline}
           </h1>
-          <p className="text-ink-muted mt-6 max-w-xl text-lg leading-relaxed text-pretty">
+          <p className="mx-auto mt-6 max-w-[34rem] text-[clamp(1.08rem,0.98rem+0.45vw,1.3rem)] leading-[1.55] text-pretty text-white">
             {siteConfig.description}
           </p>
-        </div>
-
-        <div className="glass animate-slide-up rounded-2xl p-5 shadow-[0_24px_80px_-32px_rgba(0,0,0,0.9)] sm:p-6 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-center">
-          <div className="border-line mb-5 flex items-center justify-between gap-3 border-b pb-4">
-            <p className="text-ink font-mono text-[11px] tracking-[0.18em] uppercase">
-              New exploration
-            </p>
-            <p className="text-ink-muted font-mono text-[11px]">github.com</p>
-          </div>
-          <RepositoryForm />
-          <ExampleChips className="border-line mt-5 border-t pt-5" />
-        </div>
-
-        <div className="lg:col-start-1 lg:row-start-2 lg:self-start">
-          <div className="flex flex-wrap gap-3">
-            <FocusInputLink className={buttonClasses("primary", "lg")}>
+          <div className="mt-9 flex flex-wrap items-center justify-center gap-3">
+            <FocusInputLink className={buttonClass("white")}>
               Explore a repository
+              <HoverArrow />
             </FocusInputLink>
-            <ButtonLink href={PROJECT_LINKS.repository} external variant="secondary" size="lg">
-              <GitHubMark className="size-4" />
-              View on GitHub
-            </ButtonLink>
+            <a
+              href={siteConfig.repositoryUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="View on GitHub"
+              className={buttonClass("glass")}
+            >
+              <GitHubMark aria-hidden="true" className="size-4" />
+              <span aria-hidden="true">
+                <span className="max-sm:hidden">View on </span>GitHub
+              </span>
+            </a>
           </div>
-          <ul className="text-ink-muted mt-9 flex flex-wrap gap-x-5 gap-y-2 font-mono text-xs">
-            {TRUST_POINTS.map((point) => (
-              <li key={point} className="flex items-center gap-2">
-                <span aria-hidden="true" className="bg-signal/70 h-px w-3" />
-                {point}
-              </li>
-            ))}
-          </ul>
         </div>
       </div>
-      <a
-        href={`#${SECTION_IDS.demo}`}
-        className="text-ink-muted hover:text-ink absolute bottom-8 left-1/2 hidden -translate-x-1/2 items-center gap-2 font-mono text-[11px] tracking-[0.18em] uppercase transition-colors lg:inline-flex"
-      >
-        <ArrowDown aria-hidden="true" className="size-3.5" />
-        See it running
-      </a>
+
+      <div className="relative pb-6">
+        <div aria-hidden="true" className={cn(styles.heroCity, styles.heroCityOnPage)}>
+          <HeroCity surface="page" className="w-full" />
+        </div>
+        <div className={cn(CONTAINER, "relative z-[2] -mt-[112px] sm:-mt-[124px] lg:-mt-[136px]")}>
+          <RepositoryCard className="mx-auto max-w-[720px] text-left max-sm:-mx-1" />
+          <ExampleChips className="mt-7" />
+        </div>
+      </div>
     </section>
   );
 }

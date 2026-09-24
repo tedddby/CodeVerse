@@ -11,11 +11,11 @@ export function NotFoundSuggestion() {
   const suggestion = pathname ? suggestRepositoryFromPath(pathname) : null;
   if (!suggestion) return null;
   return (
-    <p className="text-ink-muted mt-6 text-sm">
+    <p className="mt-6 text-center text-[15px] text-(--lc-muted)">
       Looking for a repository?{" "}
       <Link
         href={suggestion.href}
-        className="text-signal inline-flex items-center gap-1 font-mono underline-offset-4 hover:underline"
+        className="inline-flex items-center gap-1 font-mono font-medium text-(--lc-accent) underline-offset-4 hover:underline"
       >
         Explore {suggestion.label}
         <ArrowRight aria-hidden="true" className="size-3.5" />

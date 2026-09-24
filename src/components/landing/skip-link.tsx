@@ -1,17 +1,11 @@
 /** Keyboard skip link; visually hidden until focused. */
-export function SkipLink({
-  targetId,
-  label = "Skip to content",
-}: {
-  targetId: string;
-  label?: string;
-}) {
+export function SkipLink({ targetId }: { targetId: string }) {
   return (
     <a
       href={`#${targetId}`}
-      className="bg-signal text-void sr-only rounded-lg px-4 py-2 text-sm font-medium focus:not-sr-only focus:fixed focus:top-3 focus:left-4 focus:z-50"
+      className="sr-only rounded-full bg-(--lc-ink) px-4 py-2.5 text-sm font-semibold text-white shadow-lg focus:not-sr-only focus:fixed focus:top-3 focus:left-4 focus:z-50"
     >
-      {label}
+      Skip to content
     </a>
   );
 }

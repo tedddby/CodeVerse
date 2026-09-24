@@ -1,6 +1,7 @@
-import { Logo } from "@/components/brand/logo";
+import { PROJECT_LINKS } from "@/components/landing/constants";
 import { siteConfig } from "@/config/site";
-import { PROJECT_LINKS } from "./constants";
+import { BrandLockup } from "./brand";
+import { CONTAINER } from "./tokens";
 
 const FOOTER_LINKS = [
   { href: PROJECT_LINKS.repository, label: "GitHub" },
@@ -11,21 +12,21 @@ const FOOTER_LINKS = [
 
 export function SiteFooter() {
   return (
-    <footer className="border-line border-t">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 py-10 sm:px-6 md:flex-row md:items-center md:justify-between">
+    <footer className="bg-white">
+      <div className={`${CONTAINER} flex flex-col gap-8 py-12 md:flex-row md:items-center md:justify-between`}>
         <div>
-          <Logo />
-          <p className="text-ink-muted mt-3 text-sm">{siteConfig.tagline}</p>
+          <BrandLockup surface="light" maskId="lc-mark-footer" />
+          <p className="mt-3 text-[14px] text-(--lc-muted)">{siteConfig.tagline}</p>
         </div>
         <nav aria-label="Footer">
-          <ul className="flex flex-wrap gap-x-6 gap-y-3 text-sm">
+          <ul className="flex flex-wrap gap-x-7 gap-y-3 text-[14px] font-medium">
             {FOOTER_LINKS.map((link) => (
               <li key={link.label}>
                 <a
                   href={link.href}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-ink-muted hover:text-ink transition-colors"
+                  className="rounded text-(--lc-body) transition-[color] hover:text-(--lc-ink)"
                 >
                   {link.label}
                 </a>
@@ -34,8 +35,8 @@ export function SiteFooter() {
           </ul>
         </nav>
       </div>
-      <div className="border-line/60 border-t">
-        <p className="text-ink-muted mx-auto max-w-6xl px-4 py-5 font-mono text-[11px] sm:px-6">
+      <div className="border-t border-(--lc-line)">
+        <p className={`${CONTAINER} py-6 text-[13px] text-(--lc-muted)`}>
           MIT License · Built by {siteConfig.name} contributors · Not affiliated with GitHub
         </p>
       </div>

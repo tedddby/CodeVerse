@@ -105,6 +105,9 @@ describe("Shiki integration", () => {
     const tokens = highlighter.codeToTokensBase("const answer: number = 42; // done", {
       lang: "typescript",
       theme: CODEVERSE_THEME_NAME,
+      // No per-line time limit: on a loaded machine the first line also pays for
+      // compiling the grammar, and a hit limit leaves the rest of the line unstyled.
+      tokenizeTimeLimit: 0,
     });
     const flat = tokens[0] ?? [];
     expect(flat.map((token) => token.content).join("")).toBe("const answer: number = 42; // done");
