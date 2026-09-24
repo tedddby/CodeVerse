@@ -17,12 +17,16 @@ import { LEFT_DOCK_CLASS, useExclusiveLeftDock } from "./left-dock";
 /** Show a filter box once the list gets long. */
 const FILTER_THRESHOLD = 10;
 
+/** The filter field hides its own outline, so its box shows keyboard focus instead. */
+const FILTER_BOX_CLASS =
+  "border-line-strong bg-abyss/60 flex items-center gap-2 rounded-lg border px-2.5 focus-within:ring-2 focus-within:ring-signal/60";
+
 /**
  * Left-docked contributor list (`panels.contributors`). Choosing a contributor
  * switches the world to contributors mode (their files light up) and shows what
  * they worked on within the analysed history window. Contributors who touched
- * no files in that window are listed last, muted, since selecting them
- * highlights nothing.
+ * files in that window come first, with their file counts; the rest are listed
+ * last, muted, since selecting them highlights nothing.
  */
 export function ContributorsPanel() {
   const open = useExplorerStore((state) => state.panels.contributors);
@@ -46,7 +50,6 @@ function ContributorsPanelContent({ index }: { index: GraphIndex }) {
   const setPanel = useExplorerStore((state) => state.setPanel);
   const reducedMotion = useExplorerStore((state) => state.reducedMotion);
   const [filter, setFilter] = useState("");
-  const quietCaptionId = useId();
 
   const contributors = useMemo(
     () => sortContributors(index.graph.contributors),
@@ -101,7 +104,7 @@ function ContributorsPanelContent({ index }: { index: GraphIndex }) {
       ) : (
         <>
           {contributors.length > FILTER_THRESHOLD ? (
-            <label className="border-line-strong bg-abyss/60 flex items-center gap-2 rounded-lg border px-2.5">
+            <label className={FILTER_BOX_CLASS}>
               <Search aria-hidden="true" className="text-ink-subtle size-3.5" />
               <span className="sr-only">Filter contributors</span>
               <input
@@ -114,37 +117,21 @@ function ContributorsPanelContent({ index }: { index: GraphIndex }) {
             </label>
           ) : null}
           {groups.active.length > 0 ? (
-            <ul aria-label="Contributors" className="-mx-1.5 space-y-0.5">
-              {groups.active.map((contributor) => (
-                <ContributorRow
-                  key={contributor.id}
-                  contributor={contributor}
-                  active={contributor.id === activeId}
-                  onToggle={toggle}
-                />
-              ))}
-            </ul>
+            <ContributorGroup
+              caption="Touched files in the analysed window"
+              contributors={groups.active}
+              activeId={activeId}
+              onToggle={toggle}
+            />
           ) : null}
           {groups.inactive.length > 0 ? (
-            <div>
-              <p
-                id={quietCaptionId}
-                className="text-ink-subtle mb-1 font-mono text-[10px] tracking-[0.14em] uppercase"
-              >
-                No files touched in the analysed window
-              </p>
-              <ul aria-labelledby={quietCaptionId} className="-mx-1.5 space-y-0.5">
-                {groups.inactive.map((contributor) => (
-                  <ContributorRow
-                    key={contributor.id}
-                    contributor={contributor}
-                    active={contributor.id === activeId}
-                    muted
-                    onToggle={toggle}
-                  />
-                ))}
-              </ul>
-            </div>
+            <ContributorGroup
+              caption="No files touched in the analysed window"
+              contributors={groups.inactive}
+              activeId={activeId}
+              muted
+              onToggle={toggle}
+            />
           ) : null}
           {visible.length === 0 ? (
             <p className="text-ink-subtle text-center text-xs">
@@ -156,10 +143,54 @@ function ContributorsPanelContent({ index }: { index: GraphIndex }) {
 
       <p className="border-line/60 text-ink-subtle border-t pt-2 text-[10.5px] leading-relaxed">
         Public GitHub data only. Contributors who touched the most files in the analysed history
-        window come first. The first number is all-time contributions reported by GitHub; commit
-        counts cover the analysed window.
+        window come first. The first number is all-time contributions reported by GitHub; file and
+        commit counts cover the analysed window.
       </p>
     </Panel>
+  );
+}
+
+/**
+ * A captioned list of contributors. Those with files touched in the analysed
+ * window get a signal-tinted caption and file counts; the rest are muted.
+ */
+function ContributorGroup({
+  caption,
+  contributors,
+  activeId,
+  muted = false,
+  onToggle,
+}: {
+  caption: string;
+  contributors: readonly ContributorNode[];
+  activeId: string | null;
+  muted?: boolean;
+  onToggle: (contributor: ContributorNode) => void;
+}) {
+  const captionId = useId();
+  return (
+    <div>
+      <p
+        id={captionId}
+        className={cn(
+          "mb-1 font-mono text-[10px] tracking-[0.14em] uppercase",
+          muted ? "text-ink-subtle" : "text-signal/80",
+        )}
+      >
+        {caption}
+      </p>
+      <ul aria-labelledby={captionId} className="-mx-1.5 space-y-0.5">
+        {contributors.map((contributor) => (
+          <ContributorRow
+            key={contributor.id}
+            contributor={contributor}
+            active={contributor.id === activeId}
+            muted={muted}
+            onToggle={onToggle}
+          />
+        ))}
+      </ul>
+    </div>
   );
 }
 
@@ -218,6 +249,14 @@ function ContributorRow({
             {contributor.contributions > 0 ? formatCompact(contributor.contributions) : "—"}
           </span>
           <span className="text-ink-subtle block text-[10px]">
+            {muted ? null : (
+              <>
+                <span className="text-signal/90">
+                  {pluralize(contributor.fileIds.length, "file")}
+                </span>
+                {" · "}
+              </>
+            )}
             {pluralize(contributor.commitCount, "commit")}
           </span>
         </span>

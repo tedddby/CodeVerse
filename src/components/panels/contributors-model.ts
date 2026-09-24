@@ -1,6 +1,8 @@
+import { isHistoryTruncated } from "@/components/timeline/timeline-model";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { CommitNode, ContributorNode, RepositoryGraph } from "@/graph/model/types";
-import { formatDate, pluralize } from "@/lib/utils/format";
+import { formatDate, formatInteger, pluralize } from "@/lib/utils/format";
+import { latestCommits } from "./analytics-model";
 
 /** Pure derivations for the contributors panel. Uses only public repository data. */
 
@@ -125,4 +127,41 @@ export function historyWindowDescription(graph: RepositoryGraph): string | null 
     return `file details of the latest ${pluralize(history.commitsWithDetails, "commit")} (of ${pluralize(history.commitsFetched, "commit")} read${range})`;
   }
   return `the latest ${pluralize(history.commitsFetched, "commit")}${range}`;
+}
+
+/**
+ * Why selecting a contributor highlights no files, for their detail block, or
+ * null when they touched files in the analysed window (or no history was
+ * analysed at all). Says how much history was examined, e.g. "No file changes
+ * in the analysed window — only the latest 40 commits were examined."
+ */
+export function noFileChangesNote(
+  graph: RepositoryGraph,
+  contributor: ContributorNode,
+): string | null {
+  if (touchedFilesInWindow(contributor)) return null;
+  const { commitsFetched, commitsWithDetails } = graph.analysis.history;
+  if (commitsFetched === 0) return null;
+  const theirs = graph.commits.filter((commit) => commit.authorId === contributor.id);
+  if (theirs.length === 0) {
+    if (isHistoryTruncated(graph)) {
+      const verb = commitsFetched === 1 ? "was" : "were";
+      return `No file changes in the analysed window — only ${latestCommits(commitsFetched)} ${verb} examined.`;
+    }
+    // Every commit was read: none of them is linked to this contributor.
+    const none =
+      commitsFetched === 1
+        ? "its only commit is not theirs"
+        : `none of its ${formatInteger(commitsFetched)} commits are theirs`;
+    return `No file changes in the analysed history — ${none}.`;
+  }
+  // File details were fetched for some of their commits, but none of those files is in the graph.
+  if (theirs.some((commit) => commit.fileIds !== undefined)) {
+    return "No changes to files in this view — the files their commits in the analysed window changed were deleted or are not shown.";
+  }
+  if (commitsWithDetails === 0) {
+    return "No file changes in the analysed window — file details were not fetched for any commit.";
+  }
+  const notTheirs = commitsWithDetails === 1 ? "which is not theirs" : "and none are theirs";
+  return `No file changes in the analysed window — file details were fetched for only ${latestCommits(commitsWithDetails)}, ${notTheirs}.`;
 }

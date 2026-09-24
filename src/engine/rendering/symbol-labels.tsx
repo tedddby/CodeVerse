@@ -4,30 +4,31 @@ import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Group } from "three";
-import { screenBandSpans, selectSymbolLabels } from "@/engine/lod/symbols";
 import { snapshotCamera } from "./camera-snapshot";
 import { LABEL_FONT_URL } from "./label-font";
 import { createSceneLabelMaterial } from "./materials/label-materials";
 import { SCENE_HEX } from "./palette";
 import { reportLayerCount } from "./render-stats";
 import { applyScreenScale } from "./screen-size";
-import { bandProtrusion, symbolKindHex } from "./symbol-band-geometry";
 import { symbolLabelText, type BandEntry } from "./symbol-band-data";
+import { symbolKindHex } from "./symbol-band-geometry";
+import {
+  SYMBOL_LABEL_GAP_PX,
+  SYMBOL_LABEL_PX,
+  pickSymbolLabels,
+  symbolLabelFacadeOffset,
+} from "./symbol-label-views";
 import { useThrottledFrame } from "./use-throttled-frame";
 
 /**
  * Labels for the selected building's symbol bands, beside the facade on the
  * viewer's right. Constant on-screen size; which bands get a label (≤ 25,
  * largest first, never stacked closer than a line of text on screen, at any
- * pitch) is re-evaluated at most 4×/s as the camera moves.
+ * pitch, see symbol-label-views) is re-evaluated at most 4×/s as the camera
+ * moves.
  */
 
 const LABEL_HZ = 4;
-const LABEL_PX = 11.5;
-/** Minimum vertical distance between label centres on screen (px). */
-const LABEL_SPACING_PX = 16;
-/** Gap between the facade and the label (px). */
-const LABEL_GAP_PX = 6;
 
 export function SymbolLabels({
   entries,
@@ -45,20 +46,7 @@ export function SymbolLabels({
     `${building?.id ?? ""}|${selectedSymbolId ?? ""}|${entries.length}`,
     (state) => {
       if (!building) return;
-      // Spacing is measured on screen: labels sit beside the facade, so their
-      // screen y is the band's projected height on the building's axis.
-      const camera = snapshotCamera(state);
-      const spans = screenBandSpans(
-        entries.map((entry) => ({ id: entry.band.id, y0: entry.band.y0, y1: entry.band.y1 })),
-        (y) => camera.project(building.x, y, building.z)?.y ?? null,
-      );
-      const ids = new Set(
-        selectSymbolLabels(spans, LABEL_SPACING_PX, undefined, selectedSymbolId).map(
-          (span) => span.id,
-        ),
-      );
-      if (selectedSymbolId && entries.some((entry) => entry.band.id === selectedSymbolId))
-        ids.add(selectedSymbolId);
+      const ids = pickSymbolLabels(entries, snapshotCamera(state), selectedSymbolId);
       const signature = [...ids].sort().join("\n");
       if (signature === signatureRef.current) return;
       signatureRef.current = signature;
@@ -76,7 +64,7 @@ export function SymbolLabels({
   }, [visible]);
 
   if (!building) return null;
-  const facadeOffset = Math.hypot(building.width, building.depth) / 2 + bandProtrusion(building, 3);
+  const facadeOffset = symbolLabelFacadeOffset(building);
   return (
     <Suspense fallback={null}>
       {visible.map((entry) => (
@@ -111,7 +99,7 @@ function SymbolLabel({
 
   useFrame(({ camera, size }) => {
     const group = scaleRef.current;
-    if (group) applyScreenScale(group, camera, size.height, anchor, LABEL_PX);
+    if (group) applyScreenScale(group, camera, size.height, anchor, SYMBOL_LABEL_PX);
   });
 
   return (
@@ -121,7 +109,7 @@ function SymbolLabel({
           <Text
             font={LABEL_FONT_URL}
             material={material}
-            position={[LABEL_GAP_PX / LABEL_PX, 0, 0]}
+            position={[SYMBOL_LABEL_GAP_PX / SYMBOL_LABEL_PX, 0, 0]}
             fontSize={1}
             anchorX="left"
             anchorY="middle"

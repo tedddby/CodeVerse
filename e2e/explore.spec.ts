@@ -59,6 +59,28 @@ test.describe("explore a repository", () => {
     await expect(page.getByRole("button", { name: /dependencies/i, pressed: true }).first()).toBeVisible();
   });
 
+  test("the 3D canvas fills the explorer viewport after the entry transition", async ({ page }) => {
+    await page.goto(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`);
+    await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);
+    // Regression: the canvas kept the size it had during the zoomed loading
+    // transition (94% of the viewport), leaving a dead strip.
+    await expect
+      .poll(
+        () =>
+          page.evaluate(() => {
+            const container = document.querySelector<HTMLElement>("[data-explorer-canvas]");
+            const canvas = container?.querySelector("canvas");
+            if (!container || !canvas) return null;
+            return {
+              width: Math.abs(canvas.clientWidth - container.clientWidth),
+              height: Math.abs(canvas.clientHeight - container.clientHeight),
+            };
+          }),
+        { timeout: 15_000 },
+      )
+      .toEqual({ width: 0, height: 0 });
+  });
+
   test("glass panels keep their blur and focus rings can be inset", async ({ page }) => {
     await gotoHydrated(page, `/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`);
     await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);

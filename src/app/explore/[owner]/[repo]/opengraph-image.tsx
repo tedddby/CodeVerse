@@ -1,3 +1,4 @@
+import { headers } from "next/headers";
 import { ImageResponse } from "next/og";
 import { peekCachedGraph } from "@/analysis/service";
 import { SocialCard } from "@/components/brand/social-card";
@@ -6,6 +7,7 @@ import { siteConfig } from "@/config/site";
 import { withTimeout } from "@/lib/share/metadata";
 import { cardText, RepositoryOgCard, type RepositoryCardData } from "@/lib/share/og-card";
 import { buildRepositoryCardData, siteHost } from "@/lib/share/og-image-data";
+import { takeSummaryLookup } from "@/lib/share/summary-lookup";
 import { fetchRepositorySummary } from "@/sources/github";
 import { parseRepositoryParams } from "./route-params";
 
@@ -43,31 +45,47 @@ async function toResponse(image: ImageResponse, maxAgeSeconds: number): Promise<
   });
 }
 
-function renderRepositoryCard(data: RepositoryCardData, fontOptions: FontOptions): Promise<Response> {
-  return toResponse(new ImageResponse(<RepositoryOgCard {...data} />, { ...size, ...fontOptions }), CARD_MAX_AGE_S);
+function renderRepositoryCard(
+  data: RepositoryCardData,
+  fontOptions: FontOptions,
+): Promise<Response> {
+  return toResponse(
+    new ImageResponse(<RepositoryOgCard {...data} />, { ...size, ...fontOptions }),
+    CARD_MAX_AGE_S,
+  );
 }
 
-function renderFallbackCard(fontOptions: FontOptions, repository?: { owner: string; repo: string }): Promise<Response> {
+function renderFallbackCard(
+  fontOptions: FontOptions,
+  repository?: { owner: string; repo: string },
+): Promise<Response> {
   const image = new ImageResponse(
-    (
-      <SocialCard
-        eyebrow={repository ? "Explore in 3D" : "Open source"}
-        title={repository ? cardText(`${repository.owner}/${repository.repo}`, 48) : siteConfig.headline}
-        subtitle={siteConfig.tagline}
-        footer={siteHost(siteConfig.url)}
-      />
-    ),
+    <SocialCard
+      eyebrow={repository ? "Explore in 3D" : "Open source"}
+      title={
+        repository ? cardText(`${repository.owner}/${repository.repo}`, 48) : siteConfig.headline
+      }
+      subtitle={siteConfig.tagline}
+      footer={siteHost(siteConfig.url)}
+    />,
     { ...size, ...fontOptions },
   );
   return toResponse(image, FALLBACK_MAX_AGE_S);
 }
 
-export default async function OpenGraphImage({ params }: { params: Promise<{ owner: string; repo: string }> }) {
+export default async function OpenGraphImage({
+  params,
+}: {
+  params: Promise<{ owner: string; repo: string }>;
+}) {
   const fonts = await loadSocialCardFonts().catch(() => []);
   const fontOptions: FontOptions = fonts.length > 0 ? { fonts } : {};
   const parsed = parseRepositoryParams(await params);
   if (!parsed) return renderFallbackCard(fontOptions);
   const { owner, repo } = parsed;
+  // Clients over their summary budget get the branded card (short cache), without a GitHub lookup.
+  if (!takeSummaryLookup(await headers(), "og-image"))
+    return renderFallbackCard(fontOptions, { owner, repo });
 
   try {
     const [summary, graph] = await Promise.all([

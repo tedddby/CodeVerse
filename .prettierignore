@@ -8,3 +8,7 @@ public/grammars
 playwright-report
 test-results
 *.wasm
+tmp-*.mjs
+undefined
+.workflows
+docs/media/*.png

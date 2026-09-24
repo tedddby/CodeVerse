@@ -1,24 +1,36 @@
 import { PerspectiveCamera, Vector3 } from "three";
 import { computeWorldLayout } from "@/engine/layout/compute-layout";
 import { buildLayoutLookup } from "@/engine/layout/lookup";
-import { DISTRICT_LABEL_BUDGET, labelPixelSize } from "@/engine/lod/district-labels";
+import {
+  DISTRICT_LABEL_BUDGET,
+  labelPixelSize,
+  rectsOverlap,
+  type Rect2,
+} from "@/engine/lod/district-labels";
 import { distance3, projectedSizePx } from "@/engine/lod/projection";
 import { buildGraphIndex } from "@/graph/model/graph-index";
+import { fileId } from "@/graph/model/ids";
 import { createSyntheticGraph } from "@/fixtures/fixture-builder";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import {
+  BASELINE_LIFT_PX,
   LABEL_MIN_PIXELS,
   SUBLINE_MIN_TEXT_PX,
   VIEWPORT_INSET_PX,
   computeDistrictLabelViews,
+  labelExtent,
+  labelScreenRect,
   labelViewsSignature,
   nearEdge,
   placeOnEdge,
   sublineScaleFor,
   type DistrictLabelInput,
+  type DistrictLabelView,
   type LabelCamera,
   type LabelEdge,
 } from "./district-label-views";
+import { BandCache } from "./symbol-band-data";
+import { selectedSymbolLabelRects } from "./symbol-label-views";
 
 const WIDTH = 1440;
 const HEIGHT = 900;
@@ -199,6 +211,100 @@ describe("district label placement", () => {
     expect(labelViewsSignature([{ ...first, slide: edge }])).toBe(
       labelViewsSignature([{ ...first, x: first.x + 5, slide: edge }]),
     );
+  });
+});
+
+/** Screen area of a label as the overlap pass sees it (sliding labels at their current place). */
+function screenRect(view: DistrictLabelView, camera: LabelCamera): Rect2 | null {
+  const screen = view.slide
+    ? (placeOnEdge(view.slide, camera)?.screen ?? null)
+    : camera.project(view.x, view.y, view.z);
+  return screen ? labelScreenRect(screen, labelExtent(view)) : null;
+}
+
+describe("reserved screen areas", () => {
+  it("drops labels over a reserved area and keeps the rest of the pass", () => {
+    const labelled = views(overview);
+    const target = labelled.find((view) => !view.slide);
+    if (!target) throw new Error("expected a centred label");
+    const anchor = overview.project(target.x, target.y, target.z);
+    if (!anchor) throw new Error("expected the anchor on screen");
+    // A small area just above the anchor, where the label's text stands.
+    const reserved: Rect2 = {
+      minX: anchor.x - 1,
+      maxX: anchor.x + 1,
+      minY: anchor.y - BASELINE_LIFT_PX - 3,
+      maxY: anchor.y - BASELINE_LIFT_PX - 1,
+    };
+    const kept = views(overview, { reserved: [reserved] });
+    expect(kept.map((view) => view.id)).not.toContain(target.id);
+    expect(kept.length).toBeGreaterThan(0);
+    for (const view of kept) {
+      const rect = screenRect(view, overview);
+      if (rect) expect(rectsOverlap(rect, reserved)).toBe(false);
+    }
+    const offScreen: Rect2 = { minX: -500, maxX: -400, minY: -500, maxY: -400 };
+    expect(views(overview, { reserved: [offScreen] })).toEqual(labelled);
+  });
+
+  it("drops even the pinned focused district's label", () => {
+    const focusedId = "dir:src/payments";
+    expect(views(overview, { focusedId }).map((view) => view.id)).toContain(focusedId);
+    const everything: Rect2 = { minX: 0, maxX: WIDTH, minY: 0, maxY: HEIGHT };
+    expect(views(overview, { focusedId, reserved: [everything] })).toEqual([]);
+  });
+
+  it("never covers the selected file's symbol labels", () => {
+    const entries = new BandCache(index, lookup).entriesFor(fileId("src/auth/auth.ts"));
+    const building = entries[0]?.building;
+    if (!building) throw new Error("expected symbol bands on src/auth/auth.ts");
+    const middle: [number, number, number] = [
+      building.x,
+      building.baseY + building.height / 2,
+      building.z,
+    ];
+    let covered = 0;
+    for (const distance of [15, 25, 40]) {
+      for (let step = 0; step < 8; step += 1) {
+        const azimuth = step * 0.8;
+        const camera = perspective(
+          [
+            middle[0] + distance * Math.sin(0.9) * Math.sin(azimuth),
+            middle[1] + distance * Math.cos(0.9),
+            middle[2] + distance * Math.sin(0.9) * Math.cos(azimuth),
+          ],
+          middle,
+        );
+        const reserved = selectedSymbolLabelRects(entries, camera, null);
+        expect(reserved.length).toBeGreaterThan(0);
+        const overlaps = (view: DistrictLabelView) => {
+          const rect = screenRect(view, camera);
+          return rect !== null && reserved.some((area) => rectsOverlap(area, rect));
+        };
+        covered += views(camera).filter(overlaps).length;
+        expect(views(camera, { reserved }).filter(overlaps)).toEqual([]);
+      }
+    }
+    // Without the reservation, district labels do land on the symbol labels from some angles.
+    expect(covered).toBeGreaterThan(0);
+  });
+});
+
+describe("labelScreenRect", () => {
+  it("stands the label above its anchor, with its free gap around it", () => {
+    const rect = labelScreenRect({ x: 100, y: 200 }, { width: 60, height: 20 });
+    expect(rect.maxY).toBeGreaterThan(200 - BASELINE_LIFT_PX);
+    expect(rect.maxY).toBeLessThan(200 + BASELINE_LIFT_PX);
+    expect(rect.minY).toBeLessThan(200 - BASELINE_LIFT_PX - 20);
+    expect((rect.minX + rect.maxX) / 2).toBeCloseTo(100, 9);
+    expect(rect.maxX - rect.minX).toBeGreaterThan(60);
+  });
+
+  it("grows with a subline", () => {
+    const name = { text: "PAYMENTS", subline: null, pixelSize: 14, sublineScale: 0.8 };
+    const withSubline = labelExtent({ ...name, subline: "12 FILES · 4,281 LOC" });
+    expect(withSubline.height).toBeGreaterThan(labelExtent(name).height);
+    expect(withSubline.width).toBeGreaterThan(labelExtent(name).width);
   });
 });
 

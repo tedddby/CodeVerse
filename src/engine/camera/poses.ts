@@ -123,6 +123,7 @@ export function framePose(
   current: CameraPose | null,
   view: ViewSpec,
   minDistance = 0,
+  padding = FRAME_PADDING,
 ): CameraPose {
   const spherical = current ? sphericalOf(current) : null;
   const azimuth = spherical && spherical.distance > 0 ? spherical.azimuth : OVERVIEW_AZIMUTH;
@@ -130,8 +131,45 @@ export function framePose(
     spherical && spherical.distance > 0
       ? clamp(spherical.polar, FRAME_MIN_POLAR, FRAME_MAX_POLAR)
       : OVERVIEW_POLAR;
-  const distance = Math.max(minDistance, fitDistance(frame.radius, view, FRAME_PADDING));
+  const distance = Math.max(minDistance, fitDistance(frame.radius, view, padding));
   return poseFromSpherical(frame.center, { distance, polar, azimuth });
+}
+
+/**
+ * One sphere enclosing all `spheres`: centred on the box that bounds them,
+ * reaching out to the farthest one. Not the minimal enclosing sphere, but
+ * O(n), independent of the input order and exact for a single sphere (or two
+ * spheres of equal radius). Spheres with non-finite values are ignored; null
+ * when none is left.
+ */
+export function enclosingSphere(spheres: readonly FrameSphere[]): FrameSphere | null {
+  const valid = spheres.filter(
+    (sphere) => sphere.center.every((n) => Number.isFinite(n)) && Number.isFinite(sphere.radius),
+  );
+  if (valid.length === 0) return null;
+  let minX = Infinity;
+  let minY = Infinity;
+  let minZ = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  let maxZ = -Infinity;
+  for (const { center, radius } of valid) {
+    const r = Math.max(0, radius);
+    minX = Math.min(minX, center[0] - r);
+    minY = Math.min(minY, center[1] - r);
+    minZ = Math.min(minZ, center[2] - r);
+    maxX = Math.max(maxX, center[0] + r);
+    maxY = Math.max(maxY, center[1] + r);
+    maxZ = Math.max(maxZ, center[2] + r);
+  }
+  const center: Vec3 = [(minX + maxX) / 2, (minY + maxY) / 2, (minZ + maxZ) / 2];
+  let radius = 0;
+  for (const sphere of valid) {
+    const [x, y, z] = sphere.center;
+    const offset = Math.hypot(x - center[0], y - center[1], z - center[2]);
+    radius = Math.max(radius, offset + Math.max(0, sphere.radius));
+  }
+  return { center, radius };
 }
 
 /** Moves the target to a ground point while keeping the viewing angle and distance. */

@@ -9,16 +9,20 @@ import type { NodeRef } from "@/graph/model/types";
 import { useExplorerStore } from "@/state/explorer-store";
 import { getLayoutLookup } from "./layout-lookup-cache";
 import { HoverChannel, ThrottledValue, suspendHoverWhileDragging } from "./pointer";
+import { BandCache } from "./symbol-band-data";
 
 /**
  * Data shared by every layer of a rendered world: the layout, the graph index,
- * O(1) layout lookups and the (throttled) hover channel. Provided inside the
- * R3F canvas, so layers never prop-drill and never recompute lookups.
+ * O(1) layout lookups, lazily computed symbol bands and the (throttled) hover
+ * channel. Provided inside the R3F canvas, so layers never prop-drill and
+ * never recompute lookups.
  */
 export interface WorldContextValue {
   layout: WorldLayout;
   index: GraphIndex;
   lookup: LayoutLookup;
+  /** Symbol bands per file, shared by the band layer and the labels that keep clear of them. */
+  bands: BandCache;
   /** Hover updates from pickable layers; throttled into `store.hover`, silent while dragging. */
   hover: HoverChannel<NodeRef>;
   interactive: boolean;
@@ -51,6 +55,7 @@ export function WorldProvider({
   const eventSource = useThree((state) => state.events.connected as HTMLElement | null | undefined);
   const inputElement = eventSource ?? domElement;
   const lookup = useMemo(() => getLayoutLookup(layout), [layout]);
+  const bands = useMemo(() => new BandCache(index, lookup), [index, lookup]);
   const hover = useMemo(
     () =>
       new HoverChannel<NodeRef>(
@@ -81,8 +86,8 @@ export function WorldProvider({
   );
 
   const value = useMemo<WorldContextValue>(
-    () => ({ layout, index, lookup, hover, interactive }),
-    [layout, index, lookup, hover, interactive],
+    () => ({ layout, index, lookup, bands, hover, interactive }),
+    [layout, index, lookup, bands, hover, interactive],
   );
   return <WorldContext.Provider value={value}>{children}</WorldContext.Provider>;
 }

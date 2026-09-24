@@ -206,7 +206,8 @@ function SearchPaletteDialog({ index, onClose }: { index: GraphIndex; onClose: (
       initialFocusRef={inputRef}
       className="max-w-2xl! overflow-hidden"
     >
-      <div className="border-line/80 flex items-center gap-3 border-b px-4">
+      {/* The query field hides its own outline; this row shows keyboard focus instead. */}
+      <div className="border-line/80 focus-within:ring-signal/60 flex items-center gap-3 rounded-t-2xl border-b px-4 focus-within:ring-2 focus-within:ring-inset">
         <Search aria-hidden="true" className="text-ink-subtle size-4 shrink-0" />
         <input
           ref={inputRef}

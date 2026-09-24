@@ -4,8 +4,10 @@ import type { GraphIndex } from "@/graph/model/graph-index";
 import type { NodeRef } from "@/graph/model/types";
 import type { CameraCommand, CameraPose } from "@/state/explorer-store";
 import {
+  FRAME_PADDING,
   OVERVIEW_PADDING,
   OVERVIEW_POLAR,
+  enclosingSphere,
   fitDistance,
   focusPointPose,
   framePose,
@@ -39,6 +41,44 @@ export interface CommandContext {
 export interface ResolvedCommand {
   pose: CameraPose;
   animate: boolean;
+}
+
+/** Most nodes framed together by one focus-node command (bounds huge fan-ins). */
+export const MAX_FRAMED_NODES = 200;
+/**
+ * Fit padding when framing a node together with related ones: their
+ * enclosing sphere already leaves room around them, and the usual padding
+ * would pull a city-wide group out further than the overview.
+ */
+const GROUP_FRAME_PADDING = 1.1;
+
+/**
+ * Frames of `ref` and its related `include` nodes, `ref` first. At most
+ * MAX_FRAMED_NODES are considered: beyond that the related nodes are sampled
+ * evenly across the list (deterministically), so the frame still spans all of
+ * it. Nodes without geometry are skipped.
+ */
+export function nodeFrames(
+  ref: NodeRef,
+  include: readonly NodeRef[],
+  frame: (ref: NodeRef) => FrameSphere | null,
+): FrameSphere[] {
+  const slots = MAX_FRAMED_NODES - 1;
+  const refs = [ref];
+  if (include.length <= slots) {
+    refs.push(...include);
+  } else {
+    for (let i = 0; i < slots; i += 1) {
+      const sampled = include[Math.floor((i * include.length) / slots)];
+      if (sampled) refs.push(sampled);
+    }
+  }
+  const frames: FrameSphere[] = [];
+  for (const node of refs) {
+    const framed = frame(node);
+    if (framed) frames.push(framed);
+  }
+  return frames;
 }
 
 /** Comfortable elevation band when re-framing the whole repository. */
@@ -85,10 +125,21 @@ export function resolveCameraCommand(
         : null;
     }
     case "focus-node": {
-      const frame = context.frame(command.ref);
-      return frame
-        ? { pose: framePose(frame, current, view, context.minDistance), animate: true }
-        : null;
+      if (!command.include?.length) {
+        const frame = context.frame(command.ref);
+        return frame
+          ? { pose: framePose(frame, current, view, context.minDistance), animate: true }
+          : null;
+      }
+      // The node together with its related nodes (e.g. a file and its imports).
+      const frames = nodeFrames(command.ref, command.include, context.frame);
+      const frame = enclosingSphere(frames);
+      if (!frame) return null;
+      const padding = frames.length > 1 ? GROUP_FRAME_PADDING : FRAME_PADDING;
+      return {
+        pose: framePose(frame, current, view, context.minDistance, padding),
+        animate: true,
+      };
     }
     case "focus-point":
       if (!Number.isFinite(command.x) || !Number.isFinite(command.z)) return null;

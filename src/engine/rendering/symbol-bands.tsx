@@ -18,7 +18,7 @@ import { hexToLinear } from "./palette";
 import { isDragClick } from "./pointer";
 import { reportLayerCount } from "./render-stats";
 import { bandBox, symbolKindHex } from "./symbol-band-geometry";
-import { BandCache, bandPickRef, type BandEntry } from "./symbol-band-data";
+import { bandPickRef, type BandEntry } from "./symbol-band-data";
 import { SymbolLabels } from "./symbol-labels";
 import { useThrottledFrame } from "./use-throttled-frame";
 import { refFileId, useWorld, type WorldContextValue } from "./world-context";
@@ -90,7 +90,7 @@ function writeBandStates(runtime: BandRuntime, state: ExplorerState, index: Grap
 
 export function SymbolBands() {
   const world = useWorld();
-  const { layout, index, lookup } = world;
+  const { layout, index, bands } = world;
   const selection = useExplorerStore((state) => state.selection);
   const focusedId = useExplorerStore((state) => state.focusedDirectoryId);
   const selectedFileId = refFileId(selection, index);
@@ -102,7 +102,6 @@ export function SymbolBands() {
   const [buildingIds, setBuildingIds] = useState<string[]>([]);
   const signatureRef = useRef("");
 
-  const cache = useMemo(() => new BandCache(index, lookup), [index, lookup]);
   const material = useMemo(() => createBandMaterial(), []);
   useEffect(() => () => material.dispose(), [material]);
 
@@ -130,13 +129,13 @@ export function SymbolBands() {
   const entries = useMemo(() => {
     const collected: BandEntry[] = [];
     for (const id of buildingIds) {
-      for (const entry of cache.entriesFor(id)) {
+      for (const entry of bands.entriesFor(id)) {
         if (collected.length >= MAX_BANDS) break;
         collected.push(entry);
       }
     }
     return collected;
-  }, [buildingIds, cache]);
+  }, [buildingIds, bands]);
 
   const runtime = useMemo(() => createBandRuntime(entries, material), [entries, material]);
   useEffect(() => {
@@ -158,8 +157,8 @@ export function SymbolBands() {
   }, [runtime, index]);
 
   const labelEntries = useMemo(
-    () => (selectedFileId ? cache.entriesFor(selectedFileId) : []),
-    [cache, selectedFileId],
+    () => (selectedFileId ? bands.entriesFor(selectedFileId) : []),
+    [bands, selectedFileId],
   );
 
   return (

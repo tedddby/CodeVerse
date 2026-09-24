@@ -271,6 +271,31 @@ describe("computeBuildingVisuals", () => {
       const context = ctx({ visualMode: "contributors", activeContributorId: "user:nobody" });
       expect(visualsFor("src/auth/jwt.ts", context).emphasis).toBeGreaterThan(DIMMED_EMPHASIS);
     });
+
+    it("keeps the palette view for a contributor who touched no file in the analysed window", () => {
+      const idle = contributorIdFromLogin("octo-idle");
+      const graphIndex = buildGraphIndex({
+        ...mockRepositoryGraph,
+        contributors: [
+          ...mockRepositoryGraph.contributors,
+          {
+            id: idle,
+            login: "octo-idle",
+            name: "Idle Octo",
+            contributions: 3,
+            commitCount: 0,
+            fileIds: [],
+          },
+        ],
+      });
+      const palette = computeBuildingVisuals(ids, ctx({ visualMode: "contributors" }, graphIndex));
+      const active = computeBuildingVisuals(
+        ids,
+        ctx({ visualMode: "contributors", activeContributorId: idle }, graphIndex),
+      );
+      expect(active).toEqual(palette);
+      expect(Math.max(...active.emphasis)).toBeGreaterThan(DIMMED_EMPHASIS);
+    });
   });
 
   describe("complexity mode", () => {

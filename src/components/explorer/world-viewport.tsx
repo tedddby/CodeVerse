@@ -42,18 +42,26 @@ export const WorldViewport = memo(function WorldViewport({ phase, fullName }: Wo
       inert={!interactive}
       tabIndex={interactive ? 0 : -1}
       className={cn(
-        "absolute inset-0 z-0 transition-[opacity,transform,filter] duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline-offset-[-3px]",
+        "absolute inset-0 z-0 transition-[opacity,transform,filter] duration-[1400ms] ease-[cubic-bezier(0.16,1,0.3,1)]",
+        // The canvas's positioned wrappers paint over an outline, so the keyboard
+        // focus ring is drawn by an overlay above them instead.
+        "focus-visible:after:ring-signal after:pointer-events-none after:absolute after:inset-0 after:z-10 focus-visible:outline-none focus-visible:after:ring-2 focus-visible:after:ring-inset",
         interactive ? "scale-100 opacity-100" : "scale-[0.94] opacity-45 saturate-[0.6]",
         phase === "error" && "opacity-20 blur-[2px]",
       )}
     >
       {interactive ? (
         <p id={CANVAS_DESCRIPTION_ID} className="sr-only">
-          Drag to orbit, scroll to zoom and click a building to select a file. Press question mark for keyboard
-          shortcuts. The Text summary button in the toolbar opens a screen-reader friendly overview of the repository.
+          Drag to orbit, scroll to zoom and click a building to select a file. Press G to fly with
+          W, A, S, D or the arrow keys, and question mark for keyboard shortcuts. The Text summary
+          button in the toolbar opens a screen-reader friendly overview of the repository.
         </p>
       ) : null}
-      <UniverseCanvas className="size-full" interactive={interactive} autoRotate={!interactive && !reducedMotion} />
+      <UniverseCanvas
+        className="size-full"
+        interactive={interactive}
+        autoRotate={!interactive && !reducedMotion}
+      />
     </div>
   );
 });

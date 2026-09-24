@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useLayoutEffect, useRef, type ReactNode } from "react";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { Panel } from "@/components/ui/panel";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { NodeRef } from "@/graph/model/types";
@@ -27,14 +29,24 @@ function contentFor(selection: NodeRef, index: GraphIndex): PanelContent | null 
     case "file": {
       const file = index.filesById.get(selection.id);
       if (!file) return null;
-      return { eyebrow: "File", title: <span title={file.path}>{file.name}</span>, body: <FileDetails file={file} index={index} /> };
+      return {
+        eyebrow: "File",
+        title: (
+          <span title={escapeHiddenCharacters(file.path)}>{revealHiddenCharacters(file.name)}</span>
+        ),
+        body: <FileDetails file={file} index={index} />,
+      };
     }
     case "directory": {
       const directory = index.directoriesById.get(selection.id);
       if (!directory) return null;
       return {
         eyebrow: directory.path === "" ? "Repository root" : "Directory",
-        title: <span title={directory.path || "/"}>{directoryDisplayName(directory, index)}</span>,
+        title: (
+          <span title={escapeHiddenCharacters(directory.path || "/")}>
+            {revealHiddenCharacters(directoryDisplayName(directory, index))}
+          </span>
+        ),
         body: <DirectoryDetails directory={directory} index={index} />,
       };
     }
@@ -43,7 +55,7 @@ function contentFor(selection: NodeRef, index: GraphIndex): PanelContent | null 
       if (!symbol) return null;
       return {
         eyebrow: SYMBOL_KIND_LABELS[symbol.kind].singular,
-        title: <span className="font-mono">{symbol.name}</span>,
+        title: <span className="font-mono">{revealHiddenCharacters(symbol.name)}</span>,
         body: <SymbolDetails symbol={symbol} index={index} />,
       };
     }
@@ -59,11 +71,18 @@ function contentFor(selection: NodeRef, index: GraphIndex): PanelContent | null 
  * Keyboard focus survives both: when the panel is replaced while it holds
  * focus (a path, import or symbol link inside it), focus moves to the new
  * panel's title; when it closes, focus returns to the 3D map.
+ *
+ * On narrow screens the bottom sheet steps aside while the history timeline
+ * or a left-docked panel (statistics, contributors) is open, since they would
+ * cover each other; the selection is kept and the sheet returns when they close.
  */
 export function SelectionPanel({ className }: { className?: string }) {
   const selection = useExplorerStore((state) => state.selection);
   const index = useExplorerStore((state) => state.index);
   const select = useExplorerStore((state) => state.select);
+  const otherSurfaceOpen = useExplorerStore(
+    (state) => state.timeline.active || state.panels.analytics || state.panels.contributors,
+  );
   const titleRef = useRef<HTMLHeadingElement>(null);
   const focusLost = useRef(false);
   const onUnmountWithFocus = useCallback(() => {
@@ -83,7 +102,7 @@ export function SelectionPanel({ className }: { className?: string }) {
   if (!selection || !content) return null;
 
   return (
-    <div className={cn(PANEL_POSITION, className)}>
+    <div className={cn(PANEL_POSITION, otherSurfaceOpen && "max-md:hidden", className)}>
       <Panel
         key={selection.id}
         eyebrow={content.eyebrow}

@@ -4,7 +4,7 @@ import { IconButton } from "@/components/ui/icon-button";
 import { Badge, LanguageDot } from "@/components/ui/primitives";
 import type { FileNode } from "@/graph/model/types";
 import { getLanguage } from "@/lib/languages/registry";
-import { formatBytes, formatInteger } from "@/lib/utils/format";
+import { formatBytes, pluralize } from "@/lib/utils/format";
 import { escapeHiddenCharacters } from "./hidden-characters";
 import { revealHiddenCharacters } from "./revealed-text";
 import type { CopyState } from "./use-copy-to-clipboard";
@@ -66,7 +66,7 @@ export function CodeViewerHeader({
             <LanguageDot language={file.language} />
             {language.id === "unknown" ? "Plain text" : language.name}
           </span>
-          <span className="font-mono tabular-nums">{formatInteger(lineCount)} lines</span>
+          <span className="font-mono tabular-nums">{pluralize(lineCount, "line")}</span>
           <span className="font-mono tabular-nums">{formatBytes(size)}</span>
           <span className="font-mono" title={`Commit ${commitSha}`}>
             @{commitSha.slice(0, 7)}

@@ -2,12 +2,15 @@ import { ANALYSIS_STAGES, STAGE_LABELS } from "@/analysis/protocol";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type {
   AnalysisTier,
+  AnalysisWarning,
   ExternalPackage,
   FileNode,
+  HistorySummary,
   LanguageStat,
   RepositoryGraph,
 } from "@/graph/model/types";
 import { isParseableLanguage } from "@/lib/languages/registry";
+import { formatInteger } from "@/lib/utils/format";
 
 /** Pure derivations behind the analytics panel and the accessible summary. */
 
@@ -168,6 +171,51 @@ export const TIER_COPY: Record<AnalysisTier, { label: string; description: strin
     description: "Very large repository: structure first, with a small parsed sample.",
   },
 };
+
+/** Why the history stage limited commit history (`detail.reason` of a HISTORY_LIMITED warning). */
+export type HistoryLimitReason = "time-budget" | "low-quota" | "unauthenticated";
+
+const HISTORY_LIMIT_REASONS: Record<HistoryLimitReason, string> = {
+  unauthenticated: "no GitHub token configured",
+  "low-quota": "GitHub API quota running low",
+  "time-budget": "analysis time budget reached",
+};
+
+function isHistoryLimitReason(value: unknown): value is HistoryLimitReason {
+  return typeof value === "string" && Object.hasOwn(HISTORY_LIMIT_REASONS, value);
+}
+
+/** "the latest commit", "the latest 40 commits". */
+export function latestCommits(count: number): string {
+  return count === 1 ? "the latest commit" : `the latest ${formatInteger(count)} commits`;
+}
+
+/**
+ * Short account of a HISTORY_LIMITED warning: why history was limited, when
+ * the pipeline recorded a reason, and what the activity views cover, e.g.
+ * "History limited: no GitHub token configured. Activity covers the latest 100
+ * commits, with file changes from the latest 20 commits." Counts come from the
+ * warning's detail, falling back to the history summary.
+ */
+export function historyLimitExplanation(warning: AnalysisWarning, history: HistorySummary): string {
+  const detail = warning.detail ?? {};
+  const commits = typeof detail.commits === "number" ? detail.commits : history.commitsFetched;
+  const detailed =
+    typeof detail.commitsWithDetails === "number"
+      ? detail.commitsWithDetails
+      : history.commitsWithDetails;
+  const reason = isHistoryLimitReason(detail.reason)
+    ? `History limited: ${HISTORY_LIMIT_REASONS[detail.reason]}.`
+    : "History limited.";
+  if (commits === 0) return `${reason} No commits were read.`;
+  const files =
+    detailed >= commits
+      ? ""
+      : detailed === 0
+        ? ", without file changes"
+        : `, with file changes from ${latestCommits(detailed)}`;
+  return `${reason} Activity covers ${latestCommits(commits)}${files}.`;
+}
 
 export interface StageTiming {
   id: string;

@@ -1,8 +1,11 @@
 /**
  * Keyboard shortcuts. Single source of truth for the shortcuts overlay (`?`)
  * and the handlers:
- * - Continuous movement keys (WASD/QE/Shift) are handled by the camera rig.
- * - Discrete command keys are handled by the explorer shell.
+ * - Continuous movement keys (WASD/QE, arrow keys, Shift) are handled by the
+ *   camera rig (`MOVEMENT_KEY_CODES` in src/engine/camera/flight.ts).
+ * - Discrete command keys are handled by the explorer shell
+ *   (`handleExplorerShortcut`); a test checks that every one listed is bound.
+ * - Tab is never a shortcut: it always moves keyboard focus.
  * Handlers must ignore events while typing in inputs or when a modal is open.
  */
 
@@ -17,6 +20,11 @@ export interface KeyboardShortcut {
 
 export const KEYBOARD_SHORTCUTS: readonly KeyboardShortcut[] = [
   { keys: ["W", "A", "S", "D"], action: "Move (Explore mode)", group: "Navigation" },
+  {
+    keys: ["↑", "←", "↓", "→"],
+    action: "Move with the arrow keys (Explore mode)",
+    group: "Navigation",
+  },
   { keys: ["Q", "E"], action: "Move down / up (Explore mode)", group: "Navigation" },
   { keys: ["Shift"], action: "Move faster", group: "Navigation" },
   { keys: ["Drag"], action: "Look around / orbit", group: "Navigation" },
@@ -29,7 +37,7 @@ export const KEYBOARD_SHORTCUTS: readonly KeyboardShortcut[] = [
   { keys: ["F"], action: "Focus selected", group: "Selection" },
   { keys: ["Enter"], action: "Enter selected directory", group: "Selection" },
   { keys: ["Backspace"], action: "Go up one directory", group: "Selection" },
-  { keys: ["Esc"], action: "Deselect / close", group: "Selection" },
+  { keys: ["Esc"], action: "Close panel / deselect / leave directory", group: "Selection" },
   { keys: ["V"], action: "View source of selected file", group: "Selection" },
   { keys: ["1"], action: "Architecture mode", group: "View" },
   { keys: ["2"], action: "Dependencies mode", group: "View" },

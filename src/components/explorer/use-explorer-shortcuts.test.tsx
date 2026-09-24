@@ -1,17 +1,30 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, render, renderHook } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { MOVEMENT_KEY_CODES } from "@/engine/camera/flight";
+import { KEYBOARD_SHORTCUTS } from "@/lib/shortcuts";
 import { useExplorerStore } from "@/state/explorer-store";
 import { directoryRef, fileRef, loadMockGraph, selectNode, symbolRef } from "./test-utils";
-import { CANVAS_ATTRIBUTE, useExplorerShortcuts, type ExplorerShortcutOptions } from "./use-explorer-shortcuts";
+import {
+  CANVAS_ATTRIBUTE,
+  handleExplorerShortcut,
+  useExplorerShortcuts,
+  type ExplorerShortcutOptions,
+} from "./use-explorer-shortcuts";
 
 const onTogglePerf = vi.fn();
 
 function setup(options: Partial<ExplorerShortcutOptions> = {}) {
-  return renderHook(() => useExplorerShortcuts({ enabled: true, worldEnabled: true, onTogglePerf, ...options }));
+  return renderHook(() =>
+    useExplorerShortcuts({ enabled: true, worldEnabled: true, onTogglePerf, ...options }),
+  );
 }
 
-function press(key: string, init: Partial<KeyboardEventInit> = {}, target: Element = document.body) {
+function press(
+  key: string,
+  init: Partial<KeyboardEventInit> = {},
+  target: Element = document.body,
+) {
   return fireEvent.keyDown(target, { key, ...init });
 }
 
@@ -184,7 +197,9 @@ describe("useExplorerShortcuts", () => {
 
   it("never takes over Tab, so focus can always move past the canvas", () => {
     setup();
-    const { container } = render(<div {...{ [CANVAS_ATTRIBUTE]: "" }} tabIndex={0} data-testid="canvas" />);
+    const { container } = render(
+      <div {...{ [CANVAS_ATTRIBUTE]: "" }} tabIndex={0} data-testid="canvas" />,
+    );
     const canvas = container.firstElementChild as HTMLElement;
 
     // fireEvent returns false only when the default action was prevented.
@@ -222,8 +237,11 @@ describe("useExplorerShortcuts", () => {
   });
 
   it("does not listen while disabled and stops listening on unmount", () => {
-    const { rerender, unmount } = renderHook((props: { enabled: boolean }) =>
-      useExplorerShortcuts({ enabled: props.enabled, worldEnabled: true }), { initialProps: { enabled: false } });
+    const { rerender, unmount } = renderHook(
+      (props: { enabled: boolean }) =>
+        useExplorerShortcuts({ enabled: props.enabled, worldEnabled: true }),
+      { initialProps: { enabled: false } },
+    );
     press("2");
     expect(state().visualMode).toBe("architecture");
     rerender({ enabled: true });
@@ -232,5 +250,63 @@ describe("useExplorerShortcuts", () => {
     unmount();
     press("3");
     expect(state().visualMode).toBe("dependencies");
+  });
+});
+
+describe("KEYBOARD_SHORTCUTS", () => {
+  /** Display keys moved by the camera rig, with the `KeyboardEvent.code` it listens for. */
+  const RIG_KEYS: Record<string, string> = {
+    W: "KeyW",
+    A: "KeyA",
+    S: "KeyS",
+    D: "KeyD",
+    Q: "KeyQ",
+    E: "KeyE",
+    Shift: "ShiftLeft",
+    "↑": "ArrowUp",
+    "↓": "ArrowDown",
+    "←": "ArrowLeft",
+    "→": "ArrowRight",
+  };
+  const POINTER_GESTURES = new Set(["Drag", "Scroll", "Click", "Double-click"]);
+  const EVENT_KEYS: Record<string, string> = { Esc: "Escape" };
+
+  it("lists only keys that are really bound", () => {
+    for (const shortcut of KEYBOARD_SHORTCUTS) {
+      for (const key of shortcut.keys) {
+        if (POINTER_GESTURES.has(key)) continue;
+        const code = RIG_KEYS[key];
+        if (code) {
+          expect(MOVEMENT_KEY_CODES.has(code), `${key} (${shortcut.action})`).toBe(true);
+          continue;
+        }
+        // A state in which the key applies: a file (or, for Enter, a directory) selected inside a focused directory.
+        loadMockGraph();
+        state().focusDirectory("dir:src/auth");
+        selectNode(key === "Enter" ? directoryRef("src/auth") : fileRef("src/auth/auth.ts"));
+        const event = {
+          key: EVENT_KEYS[key] ?? key,
+          ctrlKey: false,
+          metaKey: false,
+          altKey: false,
+          shiftKey: false,
+          repeat: false,
+          target: document.body,
+          defaultPrevented: false,
+          preventDefault: vi.fn(),
+        };
+        expect(
+          handleExplorerShortcut(event, { worldEnabled: true, onTogglePerf }),
+          `${key} (${shortcut.action})`,
+        ).toBe(true);
+      }
+    }
+  });
+
+  it("names G, never Tab, for switching between Orbit and Explore mode", () => {
+    expect(KEYBOARD_SHORTCUTS.flatMap((shortcut) => shortcut.keys)).not.toContain("Tab");
+    expect(KEYBOARD_SHORTCUTS.find((shortcut) => shortcut.keys.includes("G"))?.action).toBe(
+      "Switch Orbit / Explore mode",
+    );
   });
 });

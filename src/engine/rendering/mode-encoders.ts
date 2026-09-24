@@ -115,11 +115,18 @@ function activityEncoder(ctx: EncodingContext): FileEncoder {
   };
 }
 
-/** Active contributor's files bright; otherwise last author in a categorical palette. */
+/**
+ * Active contributor's files bright; otherwise last author in a categorical
+ * palette. A contributor who touched no file in the analysed window keeps the
+ * palette view instead of dimming the whole city (as the minimap does).
+ */
 function contributorsEncoder(ctx: EncodingContext): FileEncoder {
   const { index, activeContributorId } = ctx;
-  if (activeContributorId && index.contributorsById.has(activeContributorId)) {
-    const touched = filesTouchedBy(index, activeContributorId);
+  const touched =
+    activeContributorId && index.contributorsById.has(activeContributorId)
+      ? filesTouchedBy(index, activeContributorId)
+      : null;
+  if (activeContributorId && touched && touched.size > 0) {
     const color = hexToLinear(contributorColor(index, activeContributorId) ?? SCENE_HEX.signal);
     return (file) => {
       if (!touched.has(file.id)) return { color: NEUTRAL, emphasis: DIMMED_EMPHASIS, glow: 0 };

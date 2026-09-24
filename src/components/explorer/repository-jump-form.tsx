@@ -71,7 +71,7 @@ export function RepositoryJumpForm({
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? errorId : undefined}
           className={cn(
-            "h-10 min-w-0 flex-1 rounded-lg border bg-abyss px-3 font-mono text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus-visible:border-signal/60",
+            "h-10 min-w-0 flex-1 rounded-lg border bg-abyss px-3 font-mono text-sm text-ink placeholder:text-ink-subtle focus:outline-none focus-visible:border-signal focus-visible:ring-2 focus-visible:ring-signal/40",
             error ? "border-danger/60" : "border-line-strong",
           )}
         />

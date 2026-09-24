@@ -3,13 +3,21 @@
 import { Code, FileCode } from "lucide-react";
 import { useMemo } from "react";
 import { githubBlobUrl } from "@/analysis/source-protocol";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { Badge, LanguageDot } from "@/components/ui/primitives";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { SymbolNode } from "@/graph/model/types";
 import { useExplorerStore } from "@/state/explorer-store";
 import { GitHubMark } from "@/components/brand/github-mark";
 import { SYMBOL_KIND_LABELS, lineRangeLabel } from "./node-descriptions";
-import { ActionButton, ActionLink, ExpandableList, NodeLink, PanelSection, PathBreadcrumb } from "./selection-parts";
+import {
+  ActionButton,
+  ActionLink,
+  ExpandableList,
+  NodeLink,
+  PanelSection,
+  PathBreadcrumb,
+} from "./selection-parts";
 
 export function SymbolDetails({ symbol, index }: { symbol: SymbolNode; index: GraphIndex }) {
   const openCodeViewer = useExplorerStore((state) => state.openCodeViewer);
@@ -30,22 +38,26 @@ export function SymbolDetails({ symbol, index }: { symbol: SymbolNode; index: Gr
       {file ? <PathBreadcrumb path={file.path} index={index} includeLast={false} /> : null}
 
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
-        <span className="text-xs text-ink-muted">{lineRangeLabel(symbol)}</span>
+        <span className="text-ink-muted text-xs">{lineRangeLabel(symbol)}</span>
         {symbol.exported ? <Badge tone="signal">exported</Badge> : null}
       </div>
 
       {file ? (
-        <p className="mt-2 flex min-w-0 items-center gap-2 text-xs text-ink-subtle">
+        <p className="text-ink-subtle mt-2 flex min-w-0 items-center gap-2 text-xs">
           <LanguageDot language={file.language} />
           <span className="shrink-0">in</span>
-          <NodeLink nodeRef={{ kind: "file", id: file.id }} className="font-mono text-xs" title={file.path}>
+          <NodeLink
+            nodeRef={{ kind: "file", id: file.id }}
+            className="font-mono text-xs"
+            title={file.path}
+          >
             {file.path}
           </NodeLink>
         </p>
       ) : null}
 
       {parent ? (
-        <p className="mt-1 flex min-w-0 items-center gap-2 text-xs text-ink-subtle">
+        <p className="text-ink-subtle mt-1 flex min-w-0 items-center gap-2 text-xs">
           <span className="shrink-0">member of</span>
           <NodeLink nodeRef={{ kind: "symbol", id: parent.id }} className="font-mono text-xs">
             {parent.name}
@@ -54,15 +66,21 @@ export function SymbolDetails({ symbol, index }: { symbol: SymbolNode; index: Gr
       ) : null}
 
       {symbol.signature ? (
-        <pre className="mt-3 overflow-x-auto whitespace-pre-wrap break-words rounded-lg border border-line/80 bg-abyss/70 p-2.5 font-mono text-[11.5px] leading-relaxed text-ink">
-          {symbol.signature}
+        <pre className="border-line/80 bg-abyss/70 text-ink mt-3 overflow-x-auto rounded-lg border p-2.5 font-mono text-[11.5px] leading-relaxed break-words whitespace-pre-wrap">
+          {revealHiddenCharacters(symbol.signature)}
         </pre>
       ) : null}
 
       <div className="mt-3 flex flex-wrap gap-1.5">
         <ActionButton
           icon={<Code />}
-          onClick={() => openCodeViewer({ fileId: symbol.fileId, line: symbol.startLine, endLine: symbol.endLine })}
+          onClick={() =>
+            openCodeViewer({
+              fileId: symbol.fileId,
+              line: symbol.startLine,
+              endLine: symbol.endLine,
+            })
+          }
           disabled={!file}
           title="Shortcut: V"
         >
@@ -71,7 +89,14 @@ export function SymbolDetails({ symbol, index }: { symbol: SymbolNode; index: Gr
         {file ? (
           <ActionLink
             icon={<GitHubMark />}
-            href={githubBlobUrl(repository.owner, repository.name, repository.commitSha, file.path, symbol.startLine, symbol.endLine)}
+            href={githubBlobUrl(
+              repository.owner,
+              repository.name,
+              repository.commitSha,
+              file.path,
+              symbol.startLine,
+              symbol.endLine,
+            )}
             label="Open on GitHub"
           />
         ) : null}
@@ -89,10 +114,16 @@ export function SymbolDetails({ symbol, index }: { symbol: SymbolNode; index: Gr
             getKey={(member) => member.id}
             renderItem={(member) => (
               <span className="flex min-w-0 items-center gap-2">
-                <NodeLink nodeRef={{ kind: "symbol", id: member.id }} className="font-mono text-xs text-ink" title={member.signature}>
+                <NodeLink
+                  nodeRef={{ kind: "symbol", id: member.id }}
+                  className="text-ink font-mono text-xs"
+                  title={member.signature}
+                >
                   {member.name}
                 </NodeLink>
-                <span className="ml-auto shrink-0 text-[10.5px] text-ink-subtle">{SYMBOL_KIND_LABELS[member.kind].singular}</span>
+                <span className="text-ink-subtle ml-auto shrink-0 text-[10.5px]">
+                  {SYMBOL_KIND_LABELS[member.kind].singular}
+                </span>
               </span>
             )}
           />

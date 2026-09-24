@@ -109,10 +109,21 @@ Every response carries security headers (see `next.config.ts`):
 
 ## Operator responsibilities
 
-- **Run behind a reverse proxy that overwrites `X-Forwarded-For`** (Vercel, nginx, Caddy, a cloud load
-  balancer). Rate limiting trusts that header; a server exposed directly lets clients choose their own identity.
+- **Always run behind a reverse proxy, and tell CodeVerse how many there are.** Proxies such as nginx
+  (`$proxy_add_x_forwarded_for`), cloud load balancers and Vercel *append* the client address to
+  `X-Forwarded-For`, and whatever a client sends ends up at the left of that list. Rate limiting therefore reads
+  the address `CODEVERSE_TRUSTED_PROXY_HOPS` entries from the right (default `1`), or a header your platform
+  overwrites on every request (`CODEVERSE_CLIENT_IP_HEADER`, e.g. `x-real-ip`). Next.js only fills
+  `X-Forwarded-For` when it is missing, so a server exposed directly cannot tell its clients apart.
 - Give the token the least privilege possible: public repository read access only.
 - Keep the deployment updated; dependency updates are automated with Dependabot and verified by CI.
+
+## Known limitations
+
+- The Content Security Policy allows `'unsafe-inline'` scripts, because Next.js injects inline bootstrap
+  scripts and the static landing page cannot carry a per-request nonce. Every other directive is strict (no
+  third-party origins, `frame-ancestors 'none'`, `object-src 'none'`), and repository data is only ever
+  rendered as text. A nonce-based policy for the dynamic `/explore` routes is a planned hardening step.
 
 ## Out of scope
 

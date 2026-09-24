@@ -1,6 +1,6 @@
 import { Kbd } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils/cn";
-import { formatInteger } from "@/lib/utils/format";
+import { pluralize } from "@/lib/utils/format";
 import { SEARCH_FILTERS, type SearchFilterId } from "./search-palette-model";
 
 /**
@@ -72,7 +72,7 @@ export function SearchPaletteFooter({
         <Kbd>↵</Kbd> view source
       </span>
       <span className="ml-auto hidden font-mono sm:inline">
-        {formatInteger(files)} files · {formatInteger(symbols)} symbols
+        {pluralize(files, "file")} · {pluralize(symbols, "symbol")}
       </span>
     </div>
   );

@@ -129,7 +129,8 @@ function SummaryOverlay({ index }: { index: GraphIndex }) {
       aria-labelledby={titleId}
       tabIndex={-1}
       className={cn(
-        "glass fixed inset-2 z-[35] flex flex-col overflow-hidden rounded-2xl shadow-2xl outline-none sm:inset-6",
+        // Focused on open: a signal border, not the global outline, shows keyboard focus.
+        "glass focus-visible:border-signal/60 fixed inset-2 z-[35] flex flex-col overflow-hidden rounded-2xl shadow-2xl outline-none sm:inset-6",
         "lg:inset-x-[max(1.5rem,calc((100vw-80rem)/2))]",
         !reducedMotion && "animate-fade-in",
       )}

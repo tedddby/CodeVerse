@@ -9,6 +9,7 @@ import {
   OVERVIEW_POLAR,
   clippingPlanes,
   distanceLimits,
+  enclosingSphere,
   establishingPose,
   fitDistance,
   focusPointPose,
@@ -99,6 +100,67 @@ describe("framePose", () => {
   it("falls back to the overview angle without a current pose", () => {
     const s = sphericalOf(framePose({ center: [0, 0, 0], radius: 10 }, null, view));
     expect(s.polar).toBeCloseTo(OVERVIEW_POLAR, 9);
+  });
+
+  it("fits with the given padding", () => {
+    const sphere: FrameSphere = { center: [0, 0, 0], radius: 10 };
+    const tight = sphericalOf(framePose(sphere, current, view, 0, 1.1)).distance;
+    expect(tight).toBeCloseTo(fitDistance(10, view, 1.1), 9);
+    expect(tight).toBeLessThan(sphericalOf(framePose(sphere, current, view)).distance);
+  });
+});
+
+describe("enclosingSphere", () => {
+  const encloses = (outer: FrameSphere, inner: FrameSphere) => {
+    const [x, y, z] = inner.center;
+    const offset = Math.hypot(x - outer.center[0], y - outer.center[1], z - outer.center[2]);
+    return offset + inner.radius <= outer.radius + 1e-9;
+  };
+
+  it("returns a single sphere unchanged and null for none", () => {
+    expect(enclosingSphere([{ center: [1, 2, 3], radius: 4 }])).toEqual({
+      center: [1, 2, 3],
+      radius: 4,
+    });
+    expect(enclosingSphere([])).toBeNull();
+  });
+
+  it("is exact for two spheres of equal radius", () => {
+    expect(
+      enclosingSphere([
+        { center: [0, 0, 0], radius: 1 },
+        { center: [10, 0, 0], radius: 1 },
+      ]),
+    ).toEqual({ center: [5, 0, 0], radius: 6 });
+  });
+
+  it("encloses every sphere, whatever their order", () => {
+    const spheres: FrameSphere[] = [
+      { center: [0, 2, 0], radius: 3 },
+      { center: [40, 1, -12], radius: 1.5 },
+      { center: [-8, 20, 30], radius: 6 },
+      { center: [5, 0, 5], radius: 0.5 },
+      { center: [3, 1, 2], radius: 40 },
+    ];
+    const merged = enclosingSphere(spheres);
+    expect(merged).not.toBeNull();
+    if (!merged) return;
+    for (const sphere of spheres) expect(encloses(merged, sphere)).toBe(true);
+    expect(enclosingSphere([...spheres].reverse())).toEqual(merged);
+    // A sphere containing the others is (nearly) the answer: no needless growth.
+    expect(merged.radius).toBeLessThan(40 * 1.35);
+  });
+
+  it("ignores non-finite spheres and treats negative radii as points", () => {
+    expect(
+      enclosingSphere([
+        { center: [Number.NaN, 0, 0], radius: 1 },
+        { center: [0, 0, 0], radius: Number.POSITIVE_INFINITY },
+        { center: [2, 0, 0], radius: -5 },
+        { center: [4, 0, 0], radius: 0 },
+      ]),
+    ).toEqual({ center: [3, 0, 0], radius: 1 });
+    expect(enclosingSphere([{ center: [0, Number.NaN, 0], radius: 1 }])).toBeNull();
   });
 });
 

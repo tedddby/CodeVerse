@@ -200,7 +200,7 @@ function FileItem({ child, level, posinset, setsize }: ItemProps) {
         {file && file.status !== "binary" ? (
           <span aria-hidden="true" className="text-ink-subtle shrink-0 font-mono text-[11px]">
             {file.linesEstimated ? "~" : ""}
-            {formatInteger(file.lines)} lines
+            {pluralize(file.lines, "line")}
           </span>
         ) : null}
       </div>

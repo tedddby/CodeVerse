@@ -33,9 +33,43 @@ describe("RepositorySummary", () => {
     const { container } = render(<RepositorySummary />);
     expect(container).toBeEmptyDOMElement();
     act(() => useExplorerStore.getState().setPanel("summary", true));
-    expect(
-      screen.getByRole("dialog", { name: "codeverse-demo/acme-platform" }),
-    ).toBeInTheDocument();
+    const dialog = screen.getByRole("dialog", { name: "codeverse-demo/acme-platform" });
+    // Focused on open without the global outline: a signal border shows keyboard focus.
+    expect(dialog).toHaveFocus();
+    expect(dialog).toHaveClass("outline-none", "focus-visible:border-signal/60");
+  });
+
+  it("counts the lines of one-line files in the singular", () => {
+    load({
+      ...githubGraph,
+      files: githubGraph.files.map((file) =>
+        file.id === "file:tsconfig.json" ? { ...file, lines: 1 } : file,
+      ),
+    });
+    render(<RepositorySummary standalone />);
+    expect(treeItem("tsconfig.json")).toHaveTextContent(/1 line$/);
+  });
+
+  it("explains a history limit in the coverage section", () => {
+    load({
+      ...githubGraph,
+      analysis: {
+        ...githubGraph.analysis,
+        warnings: [
+          {
+            code: "HISTORY_LIMITED",
+            message:
+              "Activity is based on the latest 300 commits (file changes from the latest 40) to conserve GitHub API quota. Configure a GitHub token for deeper history.",
+            detail: { commits: 300, commitsWithDetails: 40, reason: "low-quota" },
+          },
+        ],
+      },
+    });
+    render(<RepositorySummary standalone />);
+    const coverage = screen.getByRole("region", { name: "Analysis coverage" });
+    expect(within(coverage).getByRole("list", { name: "Analysis warnings" })).toHaveTextContent(
+      "History limited: GitHub API quota running low. Activity covers the latest 300 commits, with file changes from the latest 40 commits.",
+    );
   });
 
   it("renders standalone page content with a heading, stats, languages and coverage", () => {

@@ -212,7 +212,8 @@ function CodeViewerPanel({
       aria-labelledby={titleId}
       tabIndex={-1}
       className={cn(
-        "border-line-strong bg-abyss fixed inset-0 z-40 flex flex-col overflow-hidden border shadow-2xl outline-none",
+        // Focused on open: a signal border, not the global outline, shows keyboard focus.
+        "border-line-strong bg-abyss focus-visible:border-signal/60 fixed inset-0 z-40 flex flex-col overflow-hidden border shadow-2xl outline-none",
         "md:inset-y-3 md:right-3 md:left-auto md:w-[min(58vw,72rem)] md:rounded-2xl",
         !reducedMotion && "animate-slide-in-right",
       )}

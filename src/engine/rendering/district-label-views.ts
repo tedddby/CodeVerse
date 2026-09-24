@@ -22,7 +22,8 @@ import { formatInteger, pluralize } from "@/lib/utils/format";
  * too close to the top of the view): then it sits just inside the slab's near
  * (camera-facing) edge, slid along that edge to stay on screen, so a parent's
  * name never lands in the middle of a child's area. Districts without an
- * on-screen anchor are dropped before the label budget is applied.
+ * on-screen anchor are dropped before the label budget is applied; after it,
+ * so are labels overlapping a higher-priority label or a reserved screen area.
  */
 
 export interface ScreenPoint {
@@ -79,6 +80,12 @@ export interface DistrictLabelInput {
   /** Ids labelled in the previous pass (hysteresis). */
   previous: ReadonlySet<string>;
   isVisible?: (candidate: LabelCandidate, radius: number) => boolean;
+  /**
+   * Screen areas (pixels, y down) of other annotations that district labels
+   * must keep clear of, such as the selected file's symbol labels: a district
+   * label overlapping one is dropped, even the pinned one.
+   */
+  reserved?: readonly Rect2[];
 }
 
 /** Minimum on-screen district size (px) for a label, and for its statistics subline. */
@@ -123,6 +130,34 @@ export function sublineScaleFor(pixelSize: number): number {
 /** Vertical offset (in name-size units) of the name above the anchor when a subline sits below it. */
 export function nameOffset(view: Pick<DistrictLabelView, "subline" | "sublineScale">): number {
   return view.subline !== null ? view.sublineScale * NAME_LINE_HEIGHT : 0;
+}
+
+/** On-screen size (px) of a label's text: its name, and the subline below it when shown. */
+export function labelExtent(
+  view: Pick<DistrictLabelView, "text" | "subline" | "pixelSize" | "sublineScale">,
+): { width: number; height: number } {
+  const { text, subline, pixelSize, sublineScale } = view;
+  return {
+    width: Math.max(
+      estimateLabelWidth(text, pixelSize),
+      subline ? estimateLabelWidth(subline, pixelSize * sublineScale) : 0,
+    ),
+    height: pixelSize * NAME_LINE_HEIGHT * (1 + (subline ? sublineScale : 0)),
+  };
+}
+
+/** Screen area of a label standing above `anchor`, including the gap kept free around it. */
+export function labelScreenRect(
+  anchor: ScreenPoint,
+  extent: { width: number; height: number },
+): Rect2 {
+  const bottom = anchor.y - BASELINE_LIFT_PX;
+  return {
+    minX: anchor.x - extent.width / 2 - LABEL_GAP_PX,
+    maxX: anchor.x + extent.width / 2 + LABEL_GAP_PX,
+    minY: bottom - extent.height - LABEL_GAP_PX,
+    maxY: bottom + LABEL_GAP_PX,
+  };
 }
 
 /** Where anchors may sit: inside the viewport, with room above for a label `headroom` px tall. */
@@ -330,6 +365,7 @@ export function computeDistrictLabelViews(input: DistrictLabelInput): DistrictLa
   }
 
   const inFocusById = new Map(candidates.map((c) => [c.id, c.inFocus] as const));
+  const reserved = input.reserved ?? [];
   const taken: Rect2[] = [];
   const views: DistrictLabelView[] = [];
 
@@ -341,11 +377,8 @@ export function computeDistrictLabelViews(input: DistrictLabelInput): DistrictLa
     const subline = pick.subline && directory ? districtSubline(directory) : null;
     const pixelSize = labelPixelSize(district.level, pick.id === focusedId);
     const sublineScale = sublineScaleFor(pixelSize);
-    const width = Math.max(
-      estimateLabelWidth(text, pixelSize),
-      subline ? estimateLabelWidth(subline, pixelSize * sublineScale) : 0,
-    );
-    const height = pixelSize * NAME_LINE_HEIGHT * (1 + (subline ? sublineScale : 0));
+    const extent = labelExtent({ text, subline, pixelSize, sublineScale });
+    const { width, height } = extent;
     const headroom = BASELINE_LIFT_PX + height;
 
     const top = district.baseY + district.height;
@@ -367,13 +400,8 @@ export function computeDistrictLabelViews(input: DistrictLabelInput): DistrictLa
       };
     }
 
-    const bottom = anchor.screen.y - BASELINE_LIFT_PX;
-    const rect: Rect2 = {
-      minX: anchor.screen.x - width / 2 - LABEL_GAP_PX,
-      maxX: anchor.screen.x + width / 2 + LABEL_GAP_PX,
-      minY: bottom - height - LABEL_GAP_PX,
-      maxY: bottom + LABEL_GAP_PX,
-    };
+    const rect = labelScreenRect(anchor.screen, extent);
+    if (reserved.some((area) => rectsOverlap(area, rect))) continue;
     const pinned = pick.id === focusedId;
     if (!pinned && taken.some((other) => rectsOverlap(other, rect))) continue;
     taken.push(rect);

@@ -1,8 +1,14 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { ExplorerApp } from "@/components/explorer/explorer-app";
 import { siteConfig } from "@/config/site";
-import { describeRepositoryForMetadata, genericRepositoryDescription, withTimeout } from "@/lib/share/metadata";
+import {
+  describeRepositoryForMetadata,
+  genericRepositoryDescription,
+  withTimeout,
+} from "@/lib/share/metadata";
+import { takeSummaryLookup } from "@/lib/share/summary-lookup";
 import { decodeShareState, searchParamsFromRecord } from "@/lib/share/url-state";
 import { explorePath } from "@/lib/validation/repository-url";
 import { fetchRepositorySummary } from "@/sources/github";
@@ -23,8 +29,16 @@ export async function generateMetadata({ params }: ExplorePageProps): Promise<Me
   const title = `Explore ${fullName} in 3D`;
   const canonical = explorePath(owner, repo);
 
-  const summary = await withTimeout((signal) => fetchRepositorySummary(owner, repo, signal), METADATA_TIMEOUT_MS);
-  const description = summary ? describeRepositoryForMetadata(summary) : genericRepositoryDescription(fullName);
+  // Clients over their summary budget get the generic description, without a GitHub lookup.
+  const summary = takeSummaryLookup(await headers(), "metadata")
+    ? await withTimeout(
+        (signal) => fetchRepositorySummary(owner, repo, signal),
+        METADATA_TIMEOUT_MS,
+      )
+    : null;
+  const description = summary
+    ? describeRepositoryForMetadata(summary)
+    : genericRepositoryDescription(fullName);
 
   return {
     title,
@@ -51,5 +65,12 @@ export default async function ExplorePage({ params, searchParams }: ExplorePageP
   const initialShareState = decodeShareState(searchParamsFromRecord(await searchParams));
   // Keyed so navigating between repositories (or refs) starts from a clean slate.
   const key = `${parsed.owner}/${parsed.repo}@${initialShareState.ref ?? ""}`;
-  return <ExplorerApp key={key} owner={parsed.owner} repo={parsed.repo} initialShareState={initialShareState} />;
+  return (
+    <ExplorerApp
+      key={key}
+      owner={parsed.owner}
+      repo={parsed.repo}
+      initialShareState={initialShareState}
+    />
+  );
 }

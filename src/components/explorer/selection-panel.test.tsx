@@ -41,12 +41,15 @@ describe("SelectionPanel", () => {
       expect(details.getByText("auth.ts")).toBeInTheDocument();
       expect(details.getByText("TypeScript · 842 lines")).toBeInTheDocument();
       expect(details.queryByText("estimated")).not.toBeInTheDocument();
-      const stat = (label: string) => details.getByText(label, { selector: "dt" }).nextElementSibling?.textContent;
+      const stat = (label: string) =>
+        details.getByText(label, { selector: "dt" }).nextElementSibling?.textContent;
       expect(stat("Functions")).toBe("6");
       expect(stat("Classes")).toBe("1");
       expect(stat("Imports")).toBe("4");
       expect(stat("Dependents")).toBe("3");
-      expect(details.getByText("Last modified").nextElementSibling?.textContent).toBe("7 months ago");
+      expect(details.getByText("Last modified").nextElementSibling?.textContent).toBe(
+        "7 months ago",
+      );
       expect(details.getByText("octo-ada")).toBeInTheDocument();
       // Parsed files carry no status warning.
       expect(details.queryByText("Metadata only")).not.toBeInTheDocument();
@@ -56,19 +59,35 @@ describe("SelectionPanel", () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       render(<SelectionPanel />);
       const details = within(panel());
-      const groupLabels = details.getAllByText(/^(Classes|Interfaces|Functions|Methods)/, { selector: "p" });
-      expect(groupLabels.map((label) => label.textContent)).toEqual(["Classes 1", "Interfaces 1", "Functions 2", "Methods 4"]);
+      const groupLabels = details.getAllByText(/^(Classes|Interfaces|Functions|Methods)/, {
+        selector: "p",
+      });
+      expect(groupLabels.map((label) => label.textContent)).toEqual([
+        "Classes 1",
+        "Interfaces 1",
+        "Functions 2",
+        "Methods 4",
+      ]);
       await user.click(details.getByRole("button", { name: "hashPassword" }));
       const state = useExplorerStore.getState();
       expect(state.selection).toEqual(symbolRef("src/auth/auth.ts", "hashPassword", 620));
-      expect(state.cameraCommand).toMatchObject({ type: "focus-node", ref: symbolRef("src/auth/auth.ts", "hashPassword", 620) });
+      expect(state.cameraCommand).toMatchObject({
+        type: "focus-node",
+        ref: symbolRef("src/auth/auth.ts", "hashPassword", 620),
+      });
     });
 
     it("opens the code viewer at a symbol's line", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       render(<SelectionPanel />);
-      await user.click(screen.getByRole("button", { name: "View source of revoke, lines 194–260" }));
-      expect(useExplorerStore.getState().codeViewer).toEqual({ fileId: "file:src/auth/auth.ts", line: 194, endLine: 260 });
+      await user.click(
+        screen.getByRole("button", { name: "View source of revoke, lines 194–260" }),
+      );
+      expect(useExplorerStore.getState().codeViewer).toEqual({
+        fileId: "file:src/auth/auth.ts",
+        line: 194,
+        endLine: 260,
+      });
     });
 
     it("links resolved imports, dependents and breadcrumb directories", async () => {
@@ -80,7 +99,11 @@ describe("SelectionPanel", () => {
       expect(useExplorerStore.getState().selection).toEqual(fileRef("src/auth/jwt.ts"));
 
       act(() => selectNode(fileRef("src/auth/auth.ts")));
-      await user.click(within(screen.getByRole("navigation", { name: "Path" })).getByRole("button", { name: "src" }));
+      await user.click(
+        within(screen.getByRole("navigation", { name: "Path" })).getByRole("button", {
+          name: "src",
+        }),
+      );
       expect(useExplorerStore.getState().selection).toEqual(directoryRef("src"));
     });
 
@@ -93,7 +116,10 @@ describe("SelectionPanel", () => {
       expect(details.getByText("external")).toBeInTheDocument();
 
       const github = details.getByRole("link", { name: /Open on GitHub/ });
-      expect(github).toHaveAttribute("href", `https://github.com/codeverse-demo/acme-platform/blob/${SHA}/src/auth/jwt.ts`);
+      expect(github).toHaveAttribute(
+        "href",
+        `https://github.com/codeverse-demo/acme-platform/blob/${SHA}/src/auth/jwt.ts`,
+      );
       expect(github).toHaveAttribute("target", "_blank");
       expect(github).toHaveAttribute("rel", "noopener noreferrer");
 
@@ -105,10 +131,16 @@ describe("SelectionPanel", () => {
       expect(state.visualMode).toBe("dependencies");
       expect(state.showDependencies).toBe(true);
       expect(state.dependencyDirection).toBe("incoming");
-      expect(state.cameraCommand).toMatchObject({ type: "focus-node", ref: fileRef("src/auth/jwt.ts") });
-      const framedDependents = state.cameraCommand?.type === "focus-node" ? (state.cameraCommand.include ?? []) : [];
+      expect(state.cameraCommand).toMatchObject({
+        type: "focus-node",
+        ref: fileRef("src/auth/jwt.ts"),
+      });
+      const framedDependents =
+        state.cameraCommand?.type === "focus-node" ? (state.cameraCommand.include ?? []) : [];
       expect(framedDependents.map((ref) => ref.id).sort()).toEqual(
-        ["src/api/handlers/auth.ts", "src/auth/auth.ts", "tests/auth.test.ts"].map((path) => fileRef(path).id),
+        ["src/api/handlers/auth.ts", "src/auth/auth.ts", "tests/auth.test.ts"].map(
+          (path) => fileRef(path).id,
+        ),
       );
     });
 
@@ -149,7 +181,12 @@ describe("SelectionPanel", () => {
       ...mockRepositoryGraph,
       files: mockRepositoryGraph.files.map((file) =>
         file.path === "src/users/service.ts"
-          ? { ...file, status: "metadata-only", linesEstimated: true, statusReason: "Skipped: parse limit of 1,500 files reached." }
+          ? {
+              ...file,
+              status: "metadata-only",
+              linesEstimated: true,
+              statusReason: "Skipped: parse limit of 1,500 files reached.",
+            }
           : file,
       ),
     };
@@ -168,12 +205,18 @@ describe("SelectionPanel", () => {
     render(<SelectionPanel />);
     const details = within(panel());
     const src = mockRepositoryGraph.directories.find((directory) => directory.path === "src");
-    expect(details.getByText(`${src?.stats.fileCount} files · ${src?.stats.totalLines.toLocaleString("en")} LOC`)).toBeInTheDocument();
+    expect(
+      details.getByText(
+        `${src?.stats.fileCount} files · ${src?.stats.totalLines.toLocaleString("en")} LOC`,
+      ),
+    ).toBeInTheDocument();
     for (const name of ["auth", "payments", "users", "lib", "api"]) {
       expect(details.getByRole("button", { name })).toBeInTheDocument();
     }
     expect(details.getByRole("img", { name: /TypeScript 100%/ })).toBeInTheDocument();
-    const largest = within(details.getByText("Largest files").closest("section") as HTMLElement).getAllByRole("button");
+    const largest = within(
+      details.getByText("Largest files").closest("section") as HTMLElement,
+    ).getAllByRole("button");
     expect(largest[0]).toHaveTextContent("auth/auth.ts");
     expect(details.getByRole("link", { name: /Open on GitHub/ })).toHaveAttribute(
       "href",
@@ -202,13 +245,17 @@ describe("SelectionPanel", () => {
     const graph: RepositoryGraph = {
       ...mockRepositoryGraph,
       directories: mockRepositoryGraph.directories.map((directory) =>
-        directory.path === "src/lib" ? { ...directory, stats: { ...directory.stats, omittedFileCount: 12 } } : directory,
+        directory.path === "src/lib"
+          ? { ...directory, stats: { ...directory.stats, omittedFileCount: 12 } }
+          : directory,
       ),
     };
     loadMockGraph(graph);
     selectNode(directoryRef("src/lib"));
     render(<SelectionPanel />);
-    expect(screen.getByText(/12 files in this directory were not included in the 3D world/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/12 files in this directory were not included in the 3D world/),
+    ).toBeInTheDocument();
   });
 
   it("describes the repository root by the repository name", () => {
@@ -232,14 +279,18 @@ describe("SelectionPanel", () => {
     it("names the panel with a heading for the selected node", () => {
       selectNode(fileRef("src/auth/jwt.ts"));
       render(<SelectionPanel />);
-      expect(within(panel()).getByRole("heading", { level: 2, name: "jwt.ts" })).toBeInTheDocument();
+      expect(
+        within(panel()).getByRole("heading", { level: 2, name: "jwt.ts" }),
+      ).toBeInTheDocument();
     });
 
     it("moves focus to the new panel's title after navigating from inside the panel", async () => {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
       selectNode(fileRef("src/auth/jwt.ts"));
       renderWithCanvas();
-      within(screen.getByRole("navigation", { name: "Path" })).getByRole("button", { name: "auth" }).focus();
+      within(screen.getByRole("navigation", { name: "Path" }))
+        .getByRole("button", { name: "auth" })
+        .focus();
       await user.keyboard("{Enter}");
       expect(useExplorerStore.getState().selection).toEqual(directoryRef("src/auth"));
       expect(within(panel()).getByRole("heading", { level: 2, name: "auth" })).toHaveFocus();
@@ -289,8 +340,65 @@ describe("SelectionPanel", () => {
       `https://github.com/codeverse-demo/acme-platform/blob/${SHA}/src/auth/auth.ts#L30-L610`,
     );
     await user.click(details.getByRole("button", { name: "View source" }));
-    expect(useExplorerStore.getState().codeViewer).toEqual({ fileId: "file:src/auth/auth.ts", line: 30, endLine: 610 });
+    expect(useExplorerStore.getState().codeViewer).toEqual({
+      fileId: "file:src/auth/auth.ts",
+      line: 30,
+      endLine: 610,
+    });
     await user.click(details.getByRole("button", { name: "Select file" }));
     expect(useExplorerStore.getState().selection).toEqual(fileRef("src/auth/auth.ts"));
+  });
+});
+
+describe("SelectionPanel on narrow screens", () => {
+  it("steps aside while the timeline or a left-docked panel is open, keeping the selection", () => {
+    selectNode(fileRef("src/auth/auth.ts"));
+    render(<SelectionPanel />);
+    const sheet = () => panel().parentElement;
+    expect(sheet()).not.toHaveClass("max-md:hidden");
+
+    for (const open of [
+      () => useExplorerStore.getState().setTimeline({ active: true }),
+      () => useExplorerStore.getState().setPanel("analytics", true),
+      () => useExplorerStore.getState().setPanel("contributors", true),
+    ]) {
+      act(open);
+      expect(sheet()).toHaveClass("max-md:hidden");
+      // Only hidden below md: the desktop panel docks on the other side.
+      expect(sheet()).toHaveClass("md:right-4");
+      expect(useExplorerStore.getState().selection).toEqual(fileRef("src/auth/auth.ts"));
+      act(() => {
+        const store = useExplorerStore.getState();
+        store.setTimeline({ active: false });
+        store.setPanel("analytics", false);
+        store.setPanel("contributors", false);
+      });
+      expect(sheet()).not.toHaveClass("max-md:hidden");
+    }
+  });
+});
+
+describe("SelectionPanel with hidden characters", () => {
+  it("reveals bidi controls in names, paths and tooltips", () => {
+    const path = "src/au\u202Eth/st\u202Eeg.ts";
+    const graph: RepositoryGraph = {
+      ...mockRepositoryGraph,
+      files: mockRepositoryGraph.files.map((file) =>
+        file.path === "src/auth/auth.ts" ? { ...file, path, name: "st\u202Eeg.ts" } : file,
+      ),
+    };
+    loadMockGraph(graph);
+    selectNode(fileRef("src/auth/auth.ts"));
+    render(<SelectionPanel />);
+    const heading = within(panel()).getByRole("heading", { level: 2 });
+    expect(heading).toHaveTextContent("stU+202Eeg.ts");
+    expect(heading.querySelector('[data-hidden-character="U+202E"]')).not.toBeNull();
+    expect(heading.querySelector("[title]")).toHaveAttribute(
+      "title",
+      "src/au[U+202E]th/st[U+202E]eg.ts",
+    );
+    const breadcrumb = within(panel()).getByRole("navigation", { name: "Path" });
+    expect(breadcrumb).toHaveTextContent("auU+202Eth");
+    expect(breadcrumb.querySelector('[data-hidden-character="U+202E"]')).not.toBeNull();
   });
 });

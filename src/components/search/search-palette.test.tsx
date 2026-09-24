@@ -2,6 +2,7 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { buildFixtureGraph } from "@/fixtures/fixture-builder";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import { useExplorerStore } from "@/state/explorer-store";
 import { SearchPalette } from "./search-palette";
@@ -49,6 +50,40 @@ describe("SearchPalette", () => {
     expect(screen.getByText("Largest directories")).toBeInTheDocument();
     expect(options().length).toBeGreaterThan(0);
     expect(input.getAttribute("aria-activedescendant")).toBe(options()[0]?.id);
+  });
+
+  it("rings the query row while the field has focus, since the field drops its own outline", () => {
+    openPalette();
+    render(<SearchPalette />);
+    const input = screen.getByRole("combobox", { name: "Search repository" });
+    expect(input).toHaveClass("outline-none");
+    expect(input.parentElement).toHaveClass(
+      "focus-within:ring-2",
+      "focus-within:ring-inset",
+      "focus-within:ring-signal/60",
+    );
+  });
+
+  it("counts indexed files and symbols in the singular", () => {
+    act(() => {
+      useExplorerStore.getState().loadGraph(
+        buildFixtureGraph({
+          owner: "o",
+          name: "r",
+          referenceDate: "2026-01-01T00:00:00.000Z",
+          files: [
+            {
+              path: "main.ts",
+              lines: 3,
+              symbols: [{ kind: "function", name: "main", start: 1, end: 3 }],
+            },
+          ],
+        }),
+      );
+      useExplorerStore.getState().setPanel("search", true);
+    });
+    render(<SearchPalette />);
+    expect(screen.getByText("1 file · 1 symbol")).toBeInTheDocument();
   });
 
   it("navigates with the arrow keys (wrapping) and selects with Enter", async () => {

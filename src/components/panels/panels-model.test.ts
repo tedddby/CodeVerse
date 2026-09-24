@@ -2,9 +2,16 @@ import { describe, expect, it } from "vitest";
 import { buildGraphIndex } from "@/graph/model/graph-index";
 import { buildFixtureGraph } from "@/fixtures/fixture-builder";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
-import type { LanguageStat, RepositoryGraph } from "@/graph/model/types";
+import type {
+  AnalysisWarning,
+  CommitNode,
+  ContributorNode,
+  LanguageStat,
+  RepositoryGraph,
+} from "@/graph/model/types";
 import {
   formatDuration,
+  historyLimitExplanation,
   languageSegments,
   largestFiles,
   mostConnectedFiles,
@@ -19,6 +26,7 @@ import {
   initials,
   isSafeAvatarUrl,
   mostActiveAreas,
+  noFileChangesNote,
   partitionByWindowActivity,
   recentCommits,
   sortContributors,
@@ -116,6 +124,81 @@ describe("analytics model", () => {
     expect(safeHttpsUrl("http://example.com")).toBeUndefined();
     expect(safeHttpsUrl("not a url")).toBeUndefined();
     expect(safeHttpsUrl(undefined)).toBeUndefined();
+  });
+
+  describe("historyLimitExplanation", () => {
+    const history = mockRepositoryGraph.analysis.history;
+    const limited = (detail?: AnalysisWarning["detail"]): AnalysisWarning => ({
+      code: "HISTORY_LIMITED",
+      message: "Activity is based on the latest 1 commits.",
+      ...(detail ? { detail } : {}),
+    });
+
+    it("names each reason the history stage records", () => {
+      expect(
+        historyLimitExplanation(
+          limited({ commits: 100, commitsWithDetails: 20, reason: "unauthenticated" }),
+          history,
+        ),
+      ).toBe(
+        "History limited: no GitHub token configured. Activity covers the latest 100 commits, with file changes from the latest 20 commits.",
+      );
+      expect(
+        historyLimitExplanation(
+          limited({ commits: 300, commitsWithDetails: 300, reason: "low-quota" }),
+          history,
+        ),
+      ).toBe(
+        "History limited: GitHub API quota running low. Activity covers the latest 300 commits.",
+      );
+      expect(
+        historyLimitExplanation(
+          limited({ commits: 300, commitsWithDetails: 0, reason: "time-budget" }),
+          history,
+        ),
+      ).toBe(
+        "History limited: analysis time budget reached. Activity covers the latest 300 commits, without file changes.",
+      );
+    });
+
+    it("uses the singular for a single commit", () => {
+      expect(
+        historyLimitExplanation(
+          limited({ commits: 2, commitsWithDetails: 1, reason: "low-quota" }),
+          history,
+        ),
+      ).toBe(
+        "History limited: GitHub API quota running low. Activity covers the latest 2 commits, with file changes from the latest commit.",
+      );
+      expect(
+        historyLimitExplanation(
+          limited({ commits: 1, commitsWithDetails: 1, reason: "time-budget" }),
+          history,
+        ),
+      ).toBe("History limited: analysis time budget reached. Activity covers the latest commit.");
+      expect(
+        historyLimitExplanation(
+          limited({ commits: 0, commitsWithDetails: 0, reason: "time-budget" }),
+          history,
+        ),
+      ).toBe("History limited: analysis time budget reached. No commits were read.");
+    });
+
+    it("falls back to the history summary without a (known) reason or counts", () => {
+      // Derived from the configured limits: no reason recorded.
+      expect(historyLimitExplanation(limited(), history)).toBe(
+        "History limited. Activity covers the latest 16 commits.",
+      );
+      expect(
+        historyLimitExplanation(limited({ reason: "cosmic-rays" }), {
+          ...history,
+          commitsFetched: 300,
+          commitsWithDetails: 40,
+        }),
+      ).toBe(
+        "History limited. Activity covers the latest 300 commits, with file changes from the latest 40 commits.",
+      );
+    });
   });
 });
 
@@ -266,5 +349,116 @@ describe("contributors model", () => {
       },
     };
     expect(historyWindowDescription(none)).toBeNull();
+  });
+
+  describe("noFileChangesNote", () => {
+    const quiet: ContributorNode = {
+      id: "user:quiet",
+      name: "Quiet Person",
+      login: "quiet",
+      contributions: 50,
+      commitCount: 0,
+      fileIds: [],
+    };
+    const commitByQuiet = (sha: string, fileIds?: string[]): CommitNode => ({
+      sha,
+      message: "chore: tidy",
+      authorId: quiet.id,
+      authorName: quiet.name,
+      date: "2026-08-20T00:00:00.000Z",
+      url: `https://github.com/codeverse-demo/acme-platform/commit/${sha}`,
+      ...(fileIds ? { fileIds } : {}),
+    });
+    const graphWith = ({
+      commitsFetched = mockRepositoryGraph.analysis.history.commitsFetched,
+      commitsWithDetails = mockRepositoryGraph.analysis.history.commitsWithDetails,
+      limited = false,
+      extraCommits = [],
+    }: {
+      commitsFetched?: number;
+      commitsWithDetails?: number;
+      /** Adds a HISTORY_LIMITED warning: older commits were not read. */
+      limited?: boolean;
+      extraCommits?: CommitNode[];
+    }): RepositoryGraph => ({
+      ...mockRepositoryGraph,
+      commits: [...extraCommits, ...mockRepositoryGraph.commits],
+      analysis: {
+        ...mockRepositoryGraph.analysis,
+        warnings: limited
+          ? [{ code: "HISTORY_LIMITED", message: "Activity is based on the latest commits." }]
+          : [],
+        history: { ...mockRepositoryGraph.analysis.history, commitsFetched, commitsWithDetails },
+      },
+    });
+
+    it("says nothing for contributors with files, or when no history was analysed", () => {
+      const ada = index.contributorsById.get("user:octo-ada");
+      if (!ada) throw new Error("fixture has Ada");
+      expect(noFileChangesNote(mockRepositoryGraph, ada)).toBeNull();
+      expect(
+        noFileChangesNote(graphWith({ commitsFetched: 0, commitsWithDetails: 0 }), quiet),
+      ).toBeNull();
+    });
+
+    it("says how many of the latest commits were examined when history was limited", () => {
+      expect(noFileChangesNote(graphWith({ limited: true }), quiet)).toBe(
+        "No file changes in the analysed window — only the latest 16 commits were examined.",
+      );
+      // Reaching the commit limit also means older commits were not read.
+      expect(
+        noFileChangesNote(graphWith({ commitsFetched: 300, commitsWithDetails: 40 }), quiet),
+      ).toBe("No file changes in the analysed window — only the latest 300 commits were examined.");
+      expect(
+        noFileChangesNote(
+          graphWith({ commitsFetched: 1, commitsWithDetails: 1, limited: true }),
+          quiet,
+        ),
+      ).toBe("No file changes in the analysed window — only the latest commit was examined.");
+    });
+
+    it("does not call a complete history a window", () => {
+      expect(noFileChangesNote(mockRepositoryGraph, quiet)).toBe(
+        "No file changes in the analysed history — none of its 16 commits are theirs.",
+      );
+      expect(
+        noFileChangesNote(graphWith({ commitsFetched: 1, commitsWithDetails: 1 }), quiet),
+      ).toBe("No file changes in the analysed history — its only commit is not theirs.");
+    });
+
+    it("explains commits in the window whose files were not fetched or are not shown", () => {
+      const author = { ...quiet, commitCount: 2 };
+      const undetailed = [commitByQuiet("q1"), commitByQuiet("q2")];
+      expect(
+        noFileChangesNote(graphWith({ limited: true, extraCommits: undetailed }), author),
+      ).toBe(
+        "No file changes in the analysed window — file details were fetched for only the latest 16 commits, and none are theirs.",
+      );
+      expect(
+        noFileChangesNote(
+          graphWith({ commitsWithDetails: 1, limited: true, extraCommits: undetailed }),
+          author,
+        ),
+      ).toBe(
+        "No file changes in the analysed window — file details were fetched for only the latest commit, which is not theirs.",
+      );
+      expect(
+        noFileChangesNote(
+          graphWith({ commitsWithDetails: 0, limited: true, extraCommits: undetailed }),
+          author,
+        ),
+      ).toBe(
+        "No file changes in the analysed window — file details were not fetched for any commit.",
+      );
+      // Details were fetched, but every file they changed is gone from the tree.
+      expect(
+        noFileChangesNote(
+          graphWith({ extraCommits: [commitByQuiet("q1", []), commitByQuiet("q2")] }),
+          author,
+        ),
+      ).toBe(
+        "No changes to files in this view — the files their commits in the analysed window changed were deleted or are not shown.",
+      );
+    });
   });
 });

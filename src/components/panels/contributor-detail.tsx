@@ -12,8 +12,8 @@ import { ContributorAvatar } from "./contributor-avatar";
 import {
   historyWindowDescription,
   mostActiveAreas,
+  noFileChangesNote,
   recentCommits,
-  touchedFilesInWindow,
 } from "./contributors-model";
 
 export interface ContributorDetailProps {
@@ -34,7 +34,7 @@ export function ContributorDetail({
   const areas = mostActiveAreas(index, contributor, 3);
   const commits = recentCommits(index.graph, contributor.id, 6);
   const windowText = historyWindowDescription(index.graph);
-  const touchedFiles = touchedFilesInWindow(contributor);
+  const noFilesNote = noFileChangesNote(index.graph, contributor);
 
   return (
     <section
@@ -93,12 +93,8 @@ export function ContributorDetail({
           : "No commit history was available for this analysis."}
       </p>
 
-      {!touchedFiles && windowText ? (
-        <p className="text-warn mt-2 text-[11px] leading-relaxed">
-          {contributor.commitCount > 0
-            ? "None of their commits in the analysed window has file details, so no files are highlighted."
-            : "No files touched in the analysed window, so no files are highlighted."}
-        </p>
+      {noFilesNote ? (
+        <p className="text-warn mt-2 text-[11px] leading-relaxed">{noFilesNote}</p>
       ) : null}
 
       {areas.length > 0 ? (

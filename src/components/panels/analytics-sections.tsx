@@ -16,6 +16,7 @@ import {
 } from "@/lib/utils/format";
 import {
   formatDuration,
+  historyLimitExplanation,
   languageSegments,
   largestFiles,
   mostConnectedFiles,
@@ -203,7 +204,7 @@ export function FileHighlightsSection({
                 value={
                   <span
                     className="flex items-center gap-1.5"
-                    aria-label={`${incoming} importers, ${outgoing} imports`}
+                    aria-label={`${pluralize(incoming, "importer")}, ${pluralize(outgoing, "import")}`}
                   >
                     <span className="flex items-center" title="Imported by">
                       <ArrowDownLeft aria-hidden="true" className="size-3" />
@@ -264,7 +265,11 @@ export function CoverageSection({ index }: { index: GraphIndex }) {
               className="border-warn/25 bg-warn/5 text-ink-muted flex gap-2 rounded-md border px-2 py-1.5 text-[11.5px]"
             >
               <TriangleAlert aria-hidden="true" className="text-warn mt-0.5 size-3.5 shrink-0" />
-              <span>{revealHiddenCharacters(warning.message)}</span>
+              <span>
+                {warning.code === "HISTORY_LIMITED"
+                  ? historyLimitExplanation(warning, analysis.history)
+                  : revealHiddenCharacters(warning.message)}
+              </span>
             </li>
           ))}
         </ul>

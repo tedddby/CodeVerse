@@ -141,7 +141,11 @@ all limits fall back to their defaults and a warning is logged.
 | `CODEVERSE_CACHE_MAX_MB`          | `256`                                        | In-memory cache budget for analyzed graphs.                                                         |
 | `CODEVERSE_CACHE_DIR`             | –                                            | Directory for a persistent on-disk graph cache (e.g. `.codeverse-cache`). No source code is stored. |
 | `CODEVERSE_RATE_LIMIT_PER_MINUTE` | `12`                                         | Analyses per client IP per minute; `0` disables the limiter.                                        |
-| `CODEVERSE_LOG_LEVEL`             | `info`                                       | Structured log level: `debug`, `info`, `warn` or `error`.                                           |
+| `CODEVERSE_TRUSTED_PROXY_HOPS` | `1` | Reverse proxies in front of the server that append to `X-Forwarded-For`; the client address is read that many entries from the right. |
+| `CODEVERSE_CLIENT_IP_HEADER` | – | A header your platform overwrites with the client address (e.g. `x-real-ip`); takes precedence. |
+| `CODEVERSE_MAX_CONCURRENT_ANALYSES` | `4` | Analyses running at the same time on one server instance. |
+| `CODEVERSE_LOG_LEVEL`             | `info`                                       | Structured log level: `debug`, `info`, `warn`, `error` or `silent`.                                 |
+| `CODEVERSE_METRICS` | `log` | Metrics sink: `log` (debug-level log lines), `info` or `off`. |
 | `CODEVERSE_GRAMMAR_DIR`           | –                                            | Directory with the tree-sitter `.wasm` files (defaults to `public/grammars`, then `node_modules`).  |
 | `NEXT_OUTPUT`                     | –                                            | Set to `standalone` at build time for the Docker image.                                             |
 

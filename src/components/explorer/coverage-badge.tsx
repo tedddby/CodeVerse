@@ -1,10 +1,33 @@
 "use client";
 
-import { ChevronDown, ShieldAlert, ShieldCheck } from "lucide-react";
+import { ChevronDown, History, ShieldAlert, ShieldCheck } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils/cn";
 import { useExplorerStore } from "@/state/explorer-store";
-import { buildCoverageSummary } from "./coverage-model";
+import { buildCoverageSummary, staleAnalysisNotice } from "./coverage-model";
+
+/**
+ * One calm line under the coverage badge when an earlier analysis is shown
+ * because GitHub could not confirm the latest commit (STALE_ANALYSIS). The
+ * badge's popover repeats it with the reason.
+ */
+export function StaleAnalysisNotice({ className }: { className?: string }) {
+  const analysis = useExplorerStore((state) => state.graph?.analysis ?? null);
+  const notice = useMemo(() => (analysis ? staleAnalysisNotice(analysis) : null), [analysis]);
+  if (!notice) return null;
+  return (
+    <p
+      role="status"
+      className={cn(
+        "glass text-ink-muted animate-fade-in flex max-w-full items-start gap-2 rounded-lg px-2.5 py-1.5 text-xs leading-snug",
+        className,
+      )}
+    >
+      <History aria-hidden="true" className="text-signal mt-px size-3.5 shrink-0" />
+      <span>{notice}</span>
+    </p>
+  );
+}
 
 /**
  * Honest analysis coverage ("Parsed 1,500 of 12,482 files") with a popover
@@ -21,7 +44,12 @@ export function CoverageBadge({ className }: { className?: string }) {
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: PointerEvent) => {
-      if (containerRef.current && event.target instanceof Node && !containerRef.current.contains(event.target)) setOpen(false);
+      if (
+        containerRef.current &&
+        event.target instanceof Node &&
+        !containerRef.current.contains(event.target)
+      )
+        setOpen(false);
     };
     window.addEventListener("pointerdown", onPointerDown, true);
     return () => window.removeEventListener("pointerdown", onPointerDown, true);
@@ -51,14 +79,17 @@ export function CoverageBadge({ className }: { className?: string }) {
         aria-controls={panelId}
         onClick={() => setOpen((value) => !value)}
         className={cn(
-          "glass inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs transition-colors hover:border-line-strong",
+          "glass hover:border-line-strong inline-flex h-8 items-center gap-2 rounded-lg px-2.5 text-xs transition-colors",
           summary.complete ? "text-ok" : "text-warn",
         )}
       >
         <Icon aria-hidden="true" className="size-3.5" />
         <span className="text-ink">{summary.headline}</span>
         <span className="text-ink-subtle max-sm:hidden">· {summary.tierLabel}</span>
-        <ChevronDown aria-hidden="true" className={cn("size-3 text-ink-subtle transition-transform", open && "rotate-180")} />
+        <ChevronDown
+          aria-hidden="true"
+          className={cn("text-ink-subtle size-3 transition-transform", open && "rotate-180")}
+        />
       </button>
 
       {open ? (
@@ -66,22 +97,35 @@ export function CoverageBadge({ className }: { className?: string }) {
           id={panelId}
           role="region"
           aria-label="Analysis coverage"
-          className="glass absolute left-0 top-full z-40 mt-2 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl p-4 shadow-2xl animate-slide-up"
+          className="glass animate-slide-up absolute top-full left-0 z-40 mt-2 w-[min(22rem,calc(100vw-1.5rem))] rounded-xl p-4 shadow-2xl"
         >
-          <p className="text-sm font-semibold text-ink">{summary.tierLabel}</p>
-          <p className="mt-1 text-xs leading-relaxed text-ink-muted">{summary.tierDescription}</p>
+          <p className="text-ink text-sm font-semibold">{summary.tierLabel}</p>
+          <p className="text-ink-muted mt-1 text-xs leading-relaxed">{summary.tierDescription}</p>
+          {summary.freshness ? (
+            <div className="border-line-strong bg-abyss/60 mt-3 rounded-lg border p-2.5 text-xs leading-relaxed">
+              <p className="text-ink flex gap-2">
+                <History aria-hidden="true" className="text-signal mt-0.5 size-3.5 shrink-0" />
+                {summary.freshness.notice}
+              </p>
+              {summary.freshness.details.map((detail) => (
+                <p key={detail} className="text-ink-muted mt-1">
+                  {detail}
+                </p>
+              ))}
+            </div>
+          ) : null}
           <dl className="mt-3 space-y-1">
             {summary.rows.map((row) => (
               <div key={row.label} className="flex items-baseline justify-between gap-4 text-xs">
                 <dt className="text-ink-subtle">{row.label}</dt>
-                <dd className="text-right font-mono tabular-nums text-ink">{row.value}</dd>
+                <dd className="text-ink text-right font-mono tabular-nums">{row.value}</dd>
               </div>
             ))}
           </dl>
           {summary.notices.length > 0 ? (
-            <ul className="mt-3 space-y-1.5 border-t border-line/80 pt-3">
+            <ul className="border-line/80 mt-3 space-y-1.5 border-t pt-3">
               {summary.notices.map((notice) => (
-                <li key={notice} className="flex gap-2 text-xs leading-relaxed text-ink-muted">
+                <li key={notice} className="text-ink-muted flex gap-2 text-xs leading-relaxed">
                   <span aria-hidden="true" className="text-warn">
                     !
                   </span>
@@ -90,7 +134,9 @@ export function CoverageBadge({ className }: { className?: string }) {
               ))}
             </ul>
           ) : (
-            <p className="mt-3 border-t border-line/80 pt-3 text-xs text-ok">Nothing was left out.</p>
+            <p className="border-line/80 text-ok mt-3 border-t pt-3 text-xs">
+              Nothing was left out.
+            </p>
           )}
         </div>
       ) : null}

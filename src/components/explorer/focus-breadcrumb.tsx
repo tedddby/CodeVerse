@@ -1,6 +1,7 @@
 "use client";
 
 import { ChevronRight, CornerLeftUp, LogOut } from "lucide-react";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { Kbd } from "@/components/ui/primitives";
 import { ROOT_DIRECTORY_ID } from "@/graph/model/ids";
 import { cn } from "@/lib/utils/cn";
@@ -26,25 +27,41 @@ export function FocusBreadcrumb({ className }: { className?: string }) {
   return (
     <nav
       aria-label="Focused directory"
-      className={cn("glass pointer-events-auto flex h-8 min-w-0 max-w-full items-center gap-1 rounded-lg pl-2.5 pr-1 text-xs animate-fade-in", className)}
+      className={cn(
+        "glass animate-fade-in pointer-events-auto flex h-8 max-w-full min-w-0 items-center gap-1 rounded-lg pr-1 pl-2.5 text-xs",
+        className,
+      )}
     >
-      <span className="shrink-0 text-ink-subtle max-sm:hidden">Inside</span>
+      <span className="text-ink-subtle shrink-0 max-sm:hidden">Inside</span>
       <ol className="flex min-w-0 items-center gap-1 font-mono">
         {chain.map((directory, position) => {
           const isCurrent = position === chain.length - 1;
-          const label = directory.id === ROOT_DIRECTORY_ID ? index.graph.repository.name : directory.name;
+          // Directory names come from the repository: hidden characters show as markers.
+          const label = revealHiddenCharacters(
+            directory.id === ROOT_DIRECTORY_ID ? index.graph.repository.name : directory.name,
+          );
           return (
-            <li key={directory.id} className={cn("flex min-w-0 items-center gap-1", !isCurrent && position > 0 && "max-sm:hidden")}>
-              {position > 0 ? <ChevronRight aria-hidden="true" className="size-3 shrink-0 text-ink-subtle" /> : null}
+            <li
+              key={directory.id}
+              className={cn(
+                "flex min-w-0 items-center gap-1",
+                !isCurrent && position > 0 && "max-sm:hidden",
+              )}
+            >
+              {position > 0 ? (
+                <ChevronRight aria-hidden="true" className="text-ink-subtle size-3 shrink-0" />
+              ) : null}
               {isCurrent ? (
-                <span aria-current="location" className="truncate text-flare">
+                <span aria-current="location" className="text-flare truncate">
                   {label}
                 </span>
               ) : (
                 <button
                   type="button"
-                  onClick={() => focusDirectory(directory.id === ROOT_DIRECTORY_ID ? null : directory.id)}
-                  className="truncate rounded text-ink-muted transition-colors hover:text-ink"
+                  onClick={() =>
+                    focusDirectory(directory.id === ROOT_DIRECTORY_ID ? null : directory.id)
+                  }
+                  className="text-ink-muted hover:text-ink truncate rounded transition-colors"
                 >
                   {label}
                 </button>
@@ -53,11 +70,11 @@ export function FocusBreadcrumb({ className }: { className?: string }) {
           );
         })}
       </ol>
-      <span aria-hidden="true" className="mx-1 h-4 w-px shrink-0 bg-line-strong" />
+      <span aria-hidden="true" className="bg-line-strong mx-1 h-4 w-px shrink-0" />
       <button
         type="button"
         onClick={() => focusDirectory(parent && parent.id !== ROOT_DIRECTORY_ID ? parent.id : null)}
-        className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-ink-muted transition-colors hover:bg-panel-raised hover:text-ink"
+        className="text-ink-muted hover:bg-panel-raised hover:text-ink inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 transition-colors"
         aria-label="Up one directory (Backspace)"
       >
         <CornerLeftUp aria-hidden="true" className="size-3.5" />
@@ -66,7 +83,7 @@ export function FocusBreadcrumb({ className }: { className?: string }) {
       <button
         type="button"
         onClick={() => focusDirectory(null)}
-        className="inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 text-ink-muted transition-colors hover:bg-panel-raised hover:text-ink"
+        className="text-ink-muted hover:bg-panel-raised hover:text-ink inline-flex h-6 shrink-0 items-center gap-1 rounded-md px-1.5 transition-colors"
       >
         <LogOut aria-hidden="true" className="size-3.5" />
         <span>Exit directory</span>

@@ -20,8 +20,9 @@ import { createOverlayLabelMaterial } from "./materials/label-materials";
 import { SCENE_HEX } from "./palette";
 import { reportLayerCount } from "./render-stats";
 import { applyScreenScale } from "./screen-size";
+import { selectedSymbolLabelRects } from "./symbol-label-views";
 import { useThrottledFrame } from "./use-throttled-frame";
-import { useWorld } from "./world-context";
+import { refFileId, useWorld } from "./world-context";
 
 /**
  * District labels as map annotations: uppercase, letter-spaced names that
@@ -30,14 +31,15 @@ import { useWorld } from "./world-context";
  * viewer, keep a constant on-screen size (larger for top-level districts) and
  * draw over the city with a dark halo that keeps them legible over bright
  * buildings. Which districts get a label is re-evaluated at most 4×/s
- * (projected size, hierarchy, budget ≤ 40, no on-screen overlaps).
+ * (projected size, hierarchy, budget ≤ 40, no on-screen overlaps), and none
+ * may cover the selected file's symbol labels.
  */
 
 const LABEL_HZ = 4;
 const RENDER_ORDER = 20;
 
 export function DistrictLabels() {
-  const { layout, index } = useWorld();
+  const { layout, index, bands } = useWorld();
   const focusedId = useExplorerStore((state) => state.focusedDirectoryId);
   const hoveredId = useExplorerStore((state) =>
     state.hovered?.kind === "directory" ? state.hovered.id : null,
@@ -45,10 +47,20 @@ export function DistrictLabels() {
   const selectedId = useExplorerStore((state) =>
     state.selection?.kind === "directory" ? state.selection.id : null,
   );
+  const selectedFileId = useExplorerStore((state) => refFileId(state.selection, index));
+  const selectedSymbolId = useExplorerStore((state) =>
+    state.selection?.kind === "symbol" ? state.selection.id : null,
+  );
+  // The selected building's symbol bands: district labels keep clear of their labels.
+  const symbolEntries = useMemo(
+    () => (selectedFileId ? bands.entriesFor(selectedFileId) : []),
+    [bands, selectedFileId],
+  );
   const [views, setViews] = useState<DistrictLabelView[]>([]);
   const signatureRef = useRef("");
 
-  useThrottledFrame(LABEL_HZ, `${layout.key}|${focusedId ?? ""}`, (state) => {
+  const version = [layout.key, focusedId, selectedFileId, selectedSymbolId].join("|");
+  useThrottledFrame(LABEL_HZ, version, (state) => {
     const camera = snapshotCamera(state);
     const next = computeDistrictLabelViews({
       layout,
@@ -58,6 +70,7 @@ export function DistrictLabels() {
       previous: new Set(views.map((view) => view.id)),
       isVisible: (candidate, radius) =>
         camera.sphereVisible(candidate.x, candidate.topY, candidate.z, radius),
+      reserved: selectedSymbolLabelRects(symbolEntries, camera, selectedSymbolId),
     });
     const signature = labelViewsSignature(next);
     if (signature === signatureRef.current) return;

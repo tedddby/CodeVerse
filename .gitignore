@@ -44,3 +44,7 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# Temporary scripts written by local tooling and agents
+/tmp-*.mjs
+/undefined/

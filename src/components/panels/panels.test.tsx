@@ -2,6 +2,7 @@
 import { act, cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { buildFixtureGraph } from "@/fixtures/fixture-builder";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import type { RepositoryGraph } from "@/graph/model/types";
 import { useExplorerStore } from "@/state/explorer-store";
@@ -73,6 +74,52 @@ describe("AnalyticsPanel", () => {
     await user.click(screen.getByRole("button", { name: "Close panel" }));
     expect(useExplorerStore.getState().panels.analytics).toBe(false);
   });
+
+  it("explains why history was limited instead of repeating the pipeline's message", () => {
+    load({
+      ...mockRepositoryGraph,
+      analysis: {
+        ...mockRepositoryGraph.analysis,
+        warnings: [
+          {
+            code: "HISTORY_LIMITED",
+            message:
+              "Activity is based on the latest 100 commits (file changes from the latest 20) to conserve GitHub API quota. Configure a GitHub token for deeper history.",
+            detail: { commits: 100, commitsWithDetails: 20, reason: "unauthenticated" },
+          },
+          { code: "PARSE_LIMIT", message: "Only the 1,500 most important files were parsed." },
+        ],
+      },
+    });
+    openPanel("analytics");
+    render(<AnalyticsPanel />);
+    const items = within(screen.getByRole("list", { name: "Analysis warnings" })).getAllByRole(
+      "listitem",
+    );
+    expect(items.map((item) => item.textContent)).toEqual([
+      "History limited: no GitHub token configured. Activity covers the latest 100 commits, with file changes from the latest 20 commits.",
+      "Only the 1,500 most important files were parsed.",
+    ]);
+  });
+
+  it("counts importers and imports of the most-connected files in the singular", () => {
+    load(
+      buildFixtureGraph({
+        owner: "o",
+        name: "r",
+        referenceDate: "2026-01-01T00:00:00.000Z",
+        files: [
+          { path: "src/a.ts", lines: 10, imports: ["src/b.ts"] },
+          { path: "src/b.ts", lines: 10 },
+        ],
+      }),
+    );
+    openPanel("analytics");
+    render(<AnalyticsPanel />);
+    const connected = screen.getByRole("region", { name: "Most-connected files" });
+    expect(within(connected).getByLabelText("0 importers, 1 import")).toBeInTheDocument();
+    expect(within(connected).getByLabelText("1 importer, 0 imports")).toBeInTheDocument();
+  });
 });
 
 describe("ContributorsPanel", () => {
@@ -81,8 +128,12 @@ describe("ContributorsPanel", () => {
     load();
     openPanel("contributors");
     render(<ContributorsPanel />);
-    const list = screen.getByRole("list", { name: "Contributors" });
+    const list = screen.getByRole("list", { name: "Touched files in the analysed window" });
     expect(within(list).getAllByRole("button")).toHaveLength(4);
+    // Rows with analysed activity show what selecting them highlights.
+    expect(within(list).getByRole("button", { name: /Ada Octo/ })).toHaveTextContent(
+      "12 files · 6 commits",
+    );
 
     await user.click(within(list).getByRole("button", { name: /Ada Octo/ }));
     const state = useExplorerStore.getState();
@@ -170,42 +221,98 @@ describe("ContributorsPanel", () => {
       login: "renovate[bot]",
       commitCount: 2,
     };
+    // Two recent bot commits whose changed files were not fetched.
+    const botCommits = ["b1", "b2"].map((sha) => ({
+      sha,
+      message: "chore(deps): update dependencies",
+      authorId: bot.id,
+      authorName: bot.name,
+      date: "2026-08-31T00:00:00.000Z",
+      url: `https://github.com/codeverse-demo/acme-platform/commit/${sha}`,
+    }));
+    const { analysis } = mockRepositoryGraph;
     load({
       ...mockRepositoryGraph,
       contributors: [founder, bot, ...mockRepositoryGraph.contributors],
+      commits: [...botCommits, ...mockRepositoryGraph.commits],
+      analysis: {
+        ...analysis,
+        warnings: [
+          {
+            code: "HISTORY_LIMITED",
+            message: "Activity is based on the latest 18 commits.",
+            detail: { commits: 18, commitsWithDetails: 16, reason: "time-budget" },
+          },
+        ],
+        history: { ...analysis.history, commitsFetched: 18, commitsWithDetails: 16 },
+      },
     });
     openPanel("contributors");
     render(<ContributorsPanel />);
 
     // The founder has the most all-time contributions but touched nothing in the window.
-    const withFiles = screen.getByRole("list", { name: "Contributors" });
+    const withFiles = screen.getByRole("list", { name: "Touched files in the analysed window" });
     expect(within(withFiles).getAllByRole("button")[0]).toHaveAccessibleName(/Ada Octo/);
     expect(within(withFiles).queryByRole("button", { name: /Founder/ })).not.toBeInTheDocument();
     const quiet = screen.getByRole("list", { name: "No files touched in the analysed window" });
-    expect(
-      within(quiet)
-        .getAllByRole("button")
-        .map((button) => button.textContent),
-    ).toEqual([
+    const quietRows = within(quiet).getAllByRole("button");
+    expect(quietRows.map((button) => button.textContent)).toEqual([
       expect.stringContaining("renovate[bot]"),
       expect.stringContaining("Founder Person"),
     ]);
+    // Muted rows have no file count.
+    expect(quietRows[0]).toHaveTextContent(/2 commits$/);
+    expect(quietRows[0]).not.toHaveTextContent("files");
 
     await user.click(within(quiet).getByRole("button", { name: /Founder Person/ }));
     const detail = screen.getByRole("region", { name: "Contributor details: Founder Person" });
     expect(
       within(detail).getByText(
-        "No files touched in the analysed window, so no files are highlighted.",
+        "No file changes in the analysed window — only the latest 18 commits were examined.",
       ),
     ).toBeInTheDocument();
     expect(within(detail).queryByText("Most active areas")).not.toBeInTheDocument();
+    expect(within(detail).queryByText("Recent commits")).not.toBeInTheDocument();
 
     await user.click(within(quiet).getByRole("button", { name: /renovate/ }));
+    const botDetail = screen.getByRole("region", { name: /Contributor details/ });
     expect(
-      within(screen.getByRole("region", { name: /Contributor details/ })).getByText(
-        "None of their commits in the analysed window has file details, so no files are highlighted.",
+      within(botDetail).getByText(
+        "No file changes in the analysed window — file details were fetched for only the latest 16 commits, and none are theirs.",
       ),
     ).toBeInTheDocument();
+    expect(within(botDetail).getAllByText("chore(deps): update dependencies")).toHaveLength(2);
+  });
+
+  it("shows a filter box with a visible focus ring once the list is long", async () => {
+    const user = userEvent.setup();
+    const [ada] = mockRepositoryGraph.contributors;
+    if (!ada) throw new Error("fixture has contributors");
+    const many = Array.from({ length: 11 }, (_, i) => ({
+      ...ada,
+      id: `user:dev-${i}`,
+      name: `Developer ${i}`,
+      login: `dev-${i}`,
+    }));
+    load({ ...mockRepositoryGraph, contributors: many });
+    openPanel("contributors");
+    render(<ContributorsPanel />);
+
+    const field = screen.getByRole("searchbox", { name: "Filter contributors" });
+    // The field drops its own outline; the surrounding box draws the focus ring.
+    expect(field).toHaveClass("outline-none");
+    expect(field.closest("label")).toHaveClass(
+      "focus-within:ring-2",
+      "focus-within:ring-signal/60",
+    );
+
+    await user.type(field, "developer 1");
+    const list = screen.getByRole("list", { name: "Touched files in the analysed window" });
+    expect(
+      within(list)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual([expect.stringContaining("Developer 1"), expect.stringContaining("Developer 10")]);
   });
 
   it("explains when there is no contributor data", () => {

@@ -142,7 +142,7 @@ function ShareDialogContent({
           readOnly
           value={url}
           onFocus={(event) => event.currentTarget.select()}
-          className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-abyss px-3 font-mono text-xs text-ink focus:outline-none focus-visible:border-signal/60"
+          className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-abyss px-3 font-mono text-xs text-ink focus:outline-none focus-visible:border-signal focus-visible:ring-2 focus-visible:ring-signal/40"
         />
         <Button ref={copyButtonRef} variant="primary" onClick={() => void onCopy()} className="shrink-0">
           {copied === "copied" ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}

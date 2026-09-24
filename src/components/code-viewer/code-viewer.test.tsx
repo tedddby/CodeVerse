@@ -120,6 +120,17 @@ describe("CodeViewer", () => {
     expect(screen.getByText("Lines 5–7")).toBeInTheDocument();
   });
 
+  it("counts a one-line file in the singular and shows keyboard focus on the viewer itself", async () => {
+    fetchMock.mockResolvedValue(jsonResponse(sourceBody("const a = 1;")));
+    open({ fileId: "file:src/auth/jwt.ts" });
+    render(<CodeViewer loadHighlighter={loadFake} />);
+    const dialog = screen.getByRole("dialog", { name: /jwt\.ts/ });
+    expect(await within(dialog).findByText("1 line")).toBeInTheDocument();
+    // Focused on open without the global outline: a signal border shows keyboard focus.
+    expect(dialog).toHaveFocus();
+    expect(dialog).toHaveClass("outline-none", "focus-visible:border-signal/60");
+  });
+
   it("virtualizes long files", async () => {
     const content = Array.from({ length: 20_000 }, (_, i) => `line ${i + 1}`).join("\n");
     fetchMock.mockResolvedValue(jsonResponse(sourceBody(content)));

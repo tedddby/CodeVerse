@@ -1,7 +1,7 @@
 import type { FileAnalysisResult, HistoryInput } from "@/graph/builders/assemble";
 import type { InventoryFile } from "@/graph/builders/inventory";
 import type { RateLimitSnapshot } from "@/graph/model/types";
-import { formatInteger } from "@/lib/utils/format";
+import { formatInteger, pluralize } from "@/lib/utils/format";
 import {
   isSourceError,
   type RepositorySource,
@@ -96,6 +96,11 @@ export interface CommitHistory {
   quotaLimited: boolean;
   /** ... because the remaining quota was low (see `HistoryBudget.lowQuota`). */
   lowQuota: boolean;
+}
+
+/** Whether the source is using credentials (GitHub: a token enables the per-file history capability). */
+function authenticated(source: RepositorySource): boolean {
+  return source.getRateLimit()?.authenticated ?? source.capabilities.fileHistory;
 }
 
 function isRateLimited(error: unknown): boolean {
@@ -284,8 +289,9 @@ export async function runHistoryStage(
     } else if (history.unavailableBecause === "quota-reserved") {
       context.addWarning({
         code: "HISTORY_UNAVAILABLE",
-        message:
-          "Commit history was skipped because the server's GitHub API quota is nearly used up. Configure a GitHub token for full history.",
+        message: `Commit history was skipped because the server's GitHub API quota is nearly used up.${
+          authenticated(input.source) ? " It resets within the hour." : " Configure a GitHub token for full history."
+        }`,
       });
     }
     stage.finish("warning", "Commit history unavailable");
@@ -323,7 +329,7 @@ export async function runHistoryStage(
   if (history.trimmed) {
     context.addWarning({
       code: "HISTORY_LIMITED",
-      message: `Activity is based on the latest ${formatInteger(history.commits.length)} commits; some history lookups were skipped to keep the analysis within its time budget.`,
+      message: `Activity is based on the latest ${pluralize(history.commits.length, "commit")}; some history lookups were skipped to keep the analysis within its time budget.`,
       detail: {
         commits: history.commits.length,
         commitsWithDetails: history.details.length,
@@ -334,7 +340,11 @@ export async function runHistoryStage(
   } else if (history.quotaLimited) {
     context.addWarning({
       code: "HISTORY_LIMITED",
-      message: `Activity is based on the latest ${formatInteger(history.commits.length)} commits (file changes from the latest ${formatInteger(history.details.length)}) to conserve GitHub API quota. Configure a GitHub token for deeper history.`,
+      message: `Activity is based on the latest ${pluralize(history.commits.length, "commit")} (file changes from the latest ${formatInteger(history.details.length)}) to conserve GitHub API quota.${
+        authenticated(input.source)
+          ? " The quota resets within the hour."
+          : " Configure a GitHub token for deeper history."
+      }`,
       detail: {
         commits: history.commits.length,
         commitsWithDetails: history.details.length,
