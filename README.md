@@ -13,7 +13,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/tedddby/CodeVerse/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/tedddby/CodeVerse/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-4de2ff"></a>
   <img alt="Languages parsed" src="https://img.shields.io/badge/parses-TS%20%C2%B7%20JS%20%C2%B7%20Python%20%C2%B7%20Java%20%C2%B7%20Go%20%C2%B7%20Rust-9b8cff">
 </p>
