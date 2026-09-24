@@ -13,12 +13,17 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/codeverse-oss/codeverse/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/codeverse-oss/codeverse/actions/workflows/ci.yml/badge.svg"></a>
+  <a href="https://github.com/tedddby/CodeVerse/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/tedddby/CodeVerse/actions/workflows/ci.yml/badge.svg"></a>
   <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-4de2ff"></a>
   <img alt="Languages parsed" src="https://img.shields.io/badge/parses-TS%20%C2%B7%20JS%20%C2%B7%20Python%20%C2%B7%20Java%20%C2%B7%20Go%20%C2%B7%20Rust-9b8cff">
 </p>
 
 <p align="center">
+  <a href="https://codeverse.awab.tech"><strong>Try it live → codeverse.awab.tech</strong></a>
+</p>
+
+<p align="center">
+  <a href="https://codeverse.awab.tech/explore/facebook/react">Explore facebook/react</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/ARCHITECTURE.md">Architecture</a> ·
   <a href="#deployment">Deploy</a> ·
@@ -78,8 +83,8 @@ city you can fly through. Nothing is cloned, installed or executed.
 Requirements: Node.js 20.9+ (22 LTS recommended) and pnpm 11 (`corepack enable`).
 
 ```bash
-git clone https://github.com/codeverse-oss/codeverse.git
-cd codeverse
+git clone https://github.com/tedddby/CodeVerse.git
+cd CodeVerse
 pnpm install          # also copies the tree-sitter grammars into public/grammars
 cp .env.example .env.local   # optional: add a GITHUB_TOKEN (see below)
 pnpm dev              # http://localhost:3000
@@ -121,33 +126,33 @@ GITHUB_TOKEN=github_pat_...
 Every variable is optional. Analysis limits are validated at startup; if any `CODEVERSE_*` limit is invalid,
 all limits fall back to their defaults and a warning is logged.
 
-| Variable                            | Default                                      | Purpose                                                                                                                               |
-| ----------------------------------- | -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
-| `GITHUB_TOKEN`                      | –                                            | Server-side GitHub token: higher rate limits and GraphQL history (see above).                                                         |
-| `NEXT_PUBLIC_SITE_URL`              | `http://localhost:3000`                      | Public URL of the deployment, used for Open Graph images, canonical links and the sitemap.                                            |
-| `NEXT_PUBLIC_REPOSITORY_URL`        | `https://github.com/codeverse-oss/codeverse` | Where "View on GitHub" and documentation links point.                                                                                 |
-| `NEXT_PUBLIC_LABEL_FONT_URL`        | `/fonts/GeistMono-Medium.ttf`                | Label font (`.ttf`/`.otf`/`.woff`); the default is self-hosted (see [Privacy](docs/PRIVACY.md)).                                      |
-| `CODEVERSE_MAX_FILES`               | `25000`                                      | Maximum files kept as buildings. Beyond it, the most meaningful files per directory are kept.                                         |
-| `CODEVERSE_MAX_PARSED_FILES`        | `1500`                                       | Maximum files downloaded and AST-parsed per analysis.                                                                                 |
-| `CODEVERSE_MAX_FILE_BYTES`          | `524288` (512 KB)                            | Largest single file downloaded (hard ceiling 2 MB).                                                                                   |
-| `CODEVERSE_MAX_TOTAL_BYTES`         | `41943040` (40 MB)                           | Total bytes downloaded per analysis.                                                                                                  |
-| `CODEVERSE_MAX_PARSE_BYTES`         | `262144` (256 KB)                            | Larger files are counted but not parsed.                                                                                              |
-| `CODEVERSE_PARSE_TIMEOUT_MS`        | `2000`                                       | Per-file parse timeout.                                                                                                               |
-| `CODEVERSE_FETCH_CONCURRENCY`       | `16`                                         | Concurrent file downloads (max 64).                                                                                                   |
-| `CODEVERSE_MAX_COMMITS`             | `300`                                        | Commits listed for history (max 5,000; at most 100 without a `GITHUB_TOKEN`).                                                         |
-| `CODEVERSE_MAX_COMMIT_DETAILS`      | `40`                                         | Commits whose changed files are fetched (max 500, at most `MAX_COMMITS`; 6 without a token).                                          |
-| `CODEVERSE_TIER_FULL_MAX`           | `1000`                                       | Up to this many files, everything eligible is parsed.                                                                                 |
-| `CODEVERSE_TIER_PROGRESSIVE_MAX`    | `10000`                                      | Above this many files, directory-first mode is used.                                                                                  |
-| `CODEVERSE_CACHE_MAX_MB`            | `256`                                        | In-memory cache budget for analyzed graphs.                                                                                           |
-| `CODEVERSE_CACHE_DIR`               | –                                            | Directory for a persistent on-disk graph cache (e.g. `.codeverse-cache`). No source code is stored.                                   |
-| `CODEVERSE_RATE_LIMIT_PER_MINUTE`   | `12`                                         | Analyses per client IP per minute; `0` disables the limiter.                                                                          |
-| `CODEVERSE_TRUSTED_PROXY_HOPS`      | `1`                                          | Reverse proxies in front of the server that append to `X-Forwarded-For`; the client address is read that many entries from the right. |
-| `CODEVERSE_CLIENT_IP_HEADER`        | –                                            | A header your platform overwrites with the client address (e.g. `x-real-ip`); takes precedence.                                       |
-| `CODEVERSE_MAX_CONCURRENT_ANALYSES` | `4`                                          | Analyses running at the same time on one server instance.                                                                             |
-| `CODEVERSE_LOG_LEVEL`               | `info`                                       | Structured log level: `debug`, `info`, `warn`, `error` or `silent`.                                                                   |
-| `CODEVERSE_METRICS`                 | `log`                                        | Metrics sink: `log` (debug-level log lines), `info` or `off`.                                                                         |
-| `CODEVERSE_GRAMMAR_DIR`             | –                                            | Directory with the tree-sitter `.wasm` files (defaults to `public/grammars`, then `node_modules`).                                    |
-| `NEXT_OUTPUT`                       | –                                            | Set to `standalone` at build time for the Docker image.                                                                               |
+| Variable                            | Default                                                                                                   | Purpose                                                                                                                               |
+| ----------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| `GITHUB_TOKEN`                      | –                                                                                                         | Server-side GitHub token: higher rate limits and GraphQL history (see above).                                                         |
+| `NEXT_PUBLIC_SITE_URL`              | Vercel production domain, else `https://codeverse.awab.tech` (production) / `http://localhost:3000` (dev) | Public URL of the deployment, used for Open Graph images, canonical links and the sitemap. Set it when self-hosting.                  |
+| `NEXT_PUBLIC_REPOSITORY_URL`        | `https://github.com/tedddby/CodeVerse`                                                                    | Where "View on GitHub" and documentation links point.                                                                                 |
+| `NEXT_PUBLIC_LABEL_FONT_URL`        | `/fonts/GeistMono-Medium.ttf`                                                                             | Label font (`.ttf`/`.otf`/`.woff`); the default is self-hosted (see [Privacy](docs/PRIVACY.md)).                                      |
+| `CODEVERSE_MAX_FILES`               | `25000`                                                                                                   | Maximum files kept as buildings. Beyond it, the most meaningful files per directory are kept.                                         |
+| `CODEVERSE_MAX_PARSED_FILES`        | `1500`                                                                                                    | Maximum files downloaded and AST-parsed per analysis.                                                                                 |
+| `CODEVERSE_MAX_FILE_BYTES`          | `524288` (512 KB)                                                                                         | Largest single file downloaded (hard ceiling 2 MB).                                                                                   |
+| `CODEVERSE_MAX_TOTAL_BYTES`         | `41943040` (40 MB)                                                                                        | Total bytes downloaded per analysis.                                                                                                  |
+| `CODEVERSE_MAX_PARSE_BYTES`         | `262144` (256 KB)                                                                                         | Larger files are counted but not parsed.                                                                                              |
+| `CODEVERSE_PARSE_TIMEOUT_MS`        | `2000`                                                                                                    | Per-file parse timeout.                                                                                                               |
+| `CODEVERSE_FETCH_CONCURRENCY`       | `16`                                                                                                      | Concurrent file downloads (max 64).                                                                                                   |
+| `CODEVERSE_MAX_COMMITS`             | `300`                                                                                                     | Commits listed for history (max 5,000; at most 100 without a `GITHUB_TOKEN`).                                                         |
+| `CODEVERSE_MAX_COMMIT_DETAILS`      | `40`                                                                                                      | Commits whose changed files are fetched (max 500, at most `MAX_COMMITS`; 6 without a token).                                          |
+| `CODEVERSE_TIER_FULL_MAX`           | `1000`                                                                                                    | Up to this many files, everything eligible is parsed.                                                                                 |
+| `CODEVERSE_TIER_PROGRESSIVE_MAX`    | `10000`                                                                                                   | Above this many files, directory-first mode is used.                                                                                  |
+| `CODEVERSE_CACHE_MAX_MB`            | `256`                                                                                                     | In-memory cache budget for analyzed graphs.                                                                                           |
+| `CODEVERSE_CACHE_DIR`               | –                                                                                                         | Directory for a persistent on-disk graph cache (e.g. `.codeverse-cache`). No source code is stored.                                   |
+| `CODEVERSE_RATE_LIMIT_PER_MINUTE`   | `12`                                                                                                      | Analyses per client IP per minute; `0` disables the limiter.                                                                          |
+| `CODEVERSE_TRUSTED_PROXY_HOPS`      | `1`                                                                                                       | Reverse proxies in front of the server that append to `X-Forwarded-For`; the client address is read that many entries from the right. |
+| `CODEVERSE_CLIENT_IP_HEADER`        | –                                                                                                         | A header your platform overwrites with the client address (e.g. `x-real-ip`); takes precedence.                                       |
+| `CODEVERSE_MAX_CONCURRENT_ANALYSES` | `4`                                                                                                       | Analyses running at the same time on one server instance.                                                                             |
+| `CODEVERSE_LOG_LEVEL`               | `info`                                                                                                    | Structured log level: `debug`, `info`, `warn`, `error` or `silent`.                                                                   |
+| `CODEVERSE_METRICS`                 | `log`                                                                                                     | Metrics sink: `log` (debug-level log lines), `info` or `off`.                                                                         |
+| `CODEVERSE_GRAMMAR_DIR`             | –                                                                                                         | Directory with the tree-sitter `.wasm` files (defaults to `public/grammars`, then `node_modules`).                                    |
+| `NEXT_OUTPUT`                       | –                                                                                                         | Set to `standalone` at build time for the Docker image.                                                                               |
 
 ## Architecture
 
@@ -267,7 +272,7 @@ Details: [docs/PRIVACY.md](docs/PRIVACY.md) and [SECURITY.md](SECURITY.md) (incl
 ### Vercel
 
 1. Import the repository in Vercel (framework preset: Next.js, install command `pnpm install`).
-2. Add `GITHUB_TOKEN` as an environment variable and set `NEXT_PUBLIC_SITE_URL` to your production URL.
+2. Add `GITHUB_TOKEN` as an environment variable. `NEXT_PUBLIC_SITE_URL` is optional on Vercel: it defaults to the project's production domain.
 3. Deploy. The `postinstall` script copies the grammars; `next.config.ts` traces them into the API functions.
 
 Analyses of large repositories can take a while: use a plan whose function duration allows at least 120 seconds.

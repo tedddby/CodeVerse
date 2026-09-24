@@ -34,8 +34,9 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store \
 
 # ── Build ───────────────────────────────────────────────────────────────────
 FROM base AS builder
+# Public origin of your deployment (canonical links, Open Graph images, sitemap).
 ARG NEXT_PUBLIC_SITE_URL=http://localhost:3000
-ARG NEXT_PUBLIC_REPOSITORY_URL=https://github.com/codeverse-oss/codeverse
+ARG NEXT_PUBLIC_REPOSITORY_URL=https://github.com/tedddby/CodeVerse
 ARG NEXT_PUBLIC_LABEL_FONT_URL=
 ENV NEXT_PUBLIC_SITE_URL=${NEXT_PUBLIC_SITE_URL} \
     NEXT_PUBLIC_REPOSITORY_URL=${NEXT_PUBLIC_REPOSITORY_URL} \

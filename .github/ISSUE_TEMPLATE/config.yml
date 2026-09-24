@@ -1,8 +1,8 @@
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/codeverse-oss/codeverse/security/advisories/new
+    url: https://github.com/tedddby/CodeVerse/security/advisories/new
     about: Please report vulnerabilities privately, not as public issues.
   - name: Architecture and contribution guide
-    url: https://github.com/codeverse-oss/codeverse/blob/main/docs/ARCHITECTURE.md
+    url: https://github.com/tedddby/CodeVerse/blob/main/docs/ARCHITECTURE.md
     about: How CodeVerse works, and how to add a language or a repository source.

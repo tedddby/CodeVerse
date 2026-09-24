@@ -8,7 +8,7 @@ describes the threat model, the controls that address it, and how to report a vu
 Please **do not open a public issue** for security problems.
 
 Report privately through GitHub's
-[private vulnerability reporting](https://github.com/codeverse-oss/codeverse/security/advisories/new)
+[private vulnerability reporting](https://github.com/tedddby/CodeVerse/security/advisories/new)
 (Security tab → "Report a vulnerability"). Include:
 
 - a description of the issue and its impact;
