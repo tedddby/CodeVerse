@@ -13,7 +13,9 @@ const FOOTER_LINKS = [
 export function SiteFooter() {
   return (
     <footer className="bg-white">
-      <div className={`${CONTAINER} flex flex-col gap-8 py-12 md:flex-row md:items-center md:justify-between`}>
+      <div
+        className={`${CONTAINER} flex flex-col gap-8 py-12 md:flex-row md:items-center md:justify-between`}
+      >
         <div>
           <BrandLockup surface="light" maskId="lc-mark-footer" />
           <p className="mt-3 text-[14px] text-(--lc-muted)">{siteConfig.tagline}</p>

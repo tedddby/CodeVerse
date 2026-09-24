@@ -23,14 +23,17 @@ export function HoverArrow({ solid = false, className }: { solid?: boolean; clas
         d="M0.5 5h7"
         className={cn(
           "transition-opacity duration-150",
-          solid ? "opacity-100" : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
+          solid
+            ? "opacity-100"
+            : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100",
         )}
       />
       <path
         d="M4 1.5 7.5 5 4 8.5"
         className={cn(
           "transition-transform duration-150",
-          !solid && "-translate-x-[3px] group-hover:translate-x-0 group-focus-visible:translate-x-0",
+          !solid &&
+            "-translate-x-[3px] group-hover:translate-x-0 group-focus-visible:translate-x-0",
         )}
       />
     </svg>

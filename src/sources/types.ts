@@ -110,13 +110,21 @@ export interface RepositorySource {
   listTree(snapshot: SourceSnapshot, signal?: AbortSignal): Promise<SourceTree>;
 
   /** Reads a file's content with a hard byte cap. Never throws for missing/binary files. */
-  readFile(snapshot: SourceSnapshot, path: string, options: ReadFileOptions): Promise<SourceFileResult>;
+  readFile(
+    snapshot: SourceSnapshot,
+    path: string,
+    options: ReadFileOptions,
+  ): Promise<SourceFileResult>;
 
   /** Most recent commits on the analysed ref, newest first. */
   listCommits(snapshot: SourceSnapshot, options: HistoryOptions): Promise<SourceCommit[]>;
 
   /** Details (changed files) for one commit. */
-  getCommitDetails(snapshot: SourceSnapshot, sha: string, signal?: AbortSignal): Promise<SourceCommitDetails>;
+  getCommitDetails(
+    snapshot: SourceSnapshot,
+    sha: string,
+    signal?: AbortSignal,
+  ): Promise<SourceCommitDetails>;
 
   /** Top contributors, most contributions first. */
   listContributors(snapshot: SourceSnapshot, signal?: AbortSignal): Promise<SourceContributor[]>;
@@ -170,7 +178,11 @@ export class SourceError extends Error {
   /** When the caller may retry (rate limits), ISO date. */
   readonly retryAt?: string;
 
-  constructor(code: SourceErrorCode, message: string, options?: { status?: number; retryAt?: string; cause?: unknown }) {
+  constructor(
+    code: SourceErrorCode,
+    message: string,
+    options?: { status?: number; retryAt?: string; cause?: unknown },
+  ) {
     super(message, options?.cause !== undefined ? { cause: options.cause } : undefined);
     this.name = "SourceError";
     this.code = code;

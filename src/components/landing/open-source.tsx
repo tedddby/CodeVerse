@@ -64,8 +64,8 @@ export function OpenSource() {
               title="Open source, private by default."
             >
               <p>
-                CodeVerse analyzes public repositories on demand and keeps nothing it does not
-                need. Read how it works, run it yourself, or teach it a new language.
+                CodeVerse analyzes public repositories on demand and keeps nothing it does not need.
+                Read how it works, run it yourself, or teach it a new language.
               </p>
             </SectionHeading>
             <div className="mt-9 flex flex-wrap gap-3">

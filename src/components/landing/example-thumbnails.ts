@@ -107,7 +107,15 @@ function nextScene(): PosterScene {
     // packages/next: a dense block with tall towers.
     { x: 0, z: 0, width: 5, depth: 5, grid: 3, color: TS, heights: [2.5, 7.5] },
     // test/: sprawling and low.
-    { x: 7.2, z: 0.6, width: 6.4, depth: 7.4, grid: 6, color: desaturateHex(TS, 0.35), heights: [0.4, 1.3] },
+    {
+      x: 7.2,
+      z: 0.6,
+      width: 6.4,
+      depth: 7.4,
+      grid: 6,
+      color: desaturateHex(TS, 0.35),
+      heights: [0.4, 1.3],
+    },
     { x: 0.4, z: 6.4, width: 4.2, depth: 3.4, grid: 3, color: TS, heights: [0.5, 1.8] },
   ]);
 }
@@ -119,7 +127,15 @@ function nodeScene(): PosterScene {
     // src/: C++ runtime, sized but not parsed.
     { x: 6.6, z: 0, width: 4.6, depth: 5.2, grid: 3, color: CPP, heights: [1, 4.4] },
     // deps/: vendored, muted.
-    { x: 0.6, z: 6.8, width: 11.4, depth: 4.2, grid: 5, color: desaturateHex(C, 0.7), heights: [0.4, 2.2] },
+    {
+      x: 0.6,
+      z: 6.8,
+      width: 11.4,
+      depth: 4.2,
+      grid: 5,
+      color: desaturateHex(C, 0.7),
+      heights: [0.4, 2.2],
+    },
   ]);
 }
 

@@ -36,12 +36,16 @@ afterEach(() => {
 });
 
 function renderAnalysis(input: AnalysisProps = { owner: "codeverse-demo", repo: "acme-platform" }) {
-  return renderHook((props: AnalysisProps) => useRepositoryAnalysis(props), { initialProps: input });
+  return renderHook((props: AnalysisProps) => useRepositoryAnalysis(props), {
+    initialProps: input,
+  });
 }
 
 describe("useRepositoryAnalysis", () => {
   it("requests the analysis stream for the repository and ref", async () => {
-    fetchMock.mockResolvedValue(createChunkedResponse([encodeEvent({ type: "complete", graph: mockRepositoryGraph })]));
+    fetchMock.mockResolvedValue(
+      createChunkedResponse([encodeEvent({ type: "complete", graph: mockRepositoryGraph })]),
+    );
     renderAnalysis({ owner: "facebook", repo: "react", ref: "v18.2.0" });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1));
     const [url, init] = fetchMock.mock.calls[0] ?? [];
@@ -58,12 +62,25 @@ describe("useRepositoryAnalysis", () => {
     expect(result.current.stages.connect.status).toBe("pending");
 
     act(() => {
-      control.pushEvent({ type: "stage", stage: "connect", status: "done", message: "Repository found" });
-      control.pushEvent({ type: "stage", stage: "tree", status: "warning", message: "Large repository: structure first." });
+      control.pushEvent({
+        type: "stage",
+        stage: "connect",
+        status: "done",
+        message: "Repository found",
+      });
+      control.pushEvent({
+        type: "stage",
+        stage: "tree",
+        status: "warning",
+        message: "Large repository: structure first.",
+      });
       control.pushEvent({ type: "stage", stage: "parse", status: "progress", progress: 0.71 });
     });
     await waitFor(() => expect(result.current.stages.parse.progress).toBe(0.71));
-    expect(result.current.stages.connect).toMatchObject({ status: "done", message: "Repository found" });
+    expect(result.current.stages.connect).toMatchObject({
+      status: "done",
+      message: "Repository found",
+    });
     expect(result.current.warnings).toEqual(["Large repository: structure first."]);
 
     act(() => control.pushEvent({ type: "preview", graph: previewGraph }));
@@ -77,8 +94,12 @@ describe("useRepositoryAnalysis", () => {
     });
     await waitFor(() => expect(result.current.status).toBe("complete"));
     expect(result.current.graph?.symbols.length).toBeGreaterThan(0);
-    expect(useExplorerStore.getState().graph?.symbols).toHaveLength(mockRepositoryGraph.symbols.length);
-    expect(useExplorerStore.getState().index?.filesById.size).toBe(mockRepositoryGraph.files.length);
+    expect(useExplorerStore.getState().graph?.symbols).toHaveLength(
+      mockRepositoryGraph.symbols.length,
+    );
+    expect(useExplorerStore.getState().index?.filesById.size).toBe(
+      mockRepositoryGraph.files.length,
+    );
     expect(result.current.error).toBeNull();
   });
 
@@ -86,32 +107,56 @@ describe("useRepositoryAnalysis", () => {
     fetchMock.mockResolvedValue(
       createChunkedResponse([
         encodeEvent({ type: "stage", stage: "connect", status: "start" }),
-        encodeEvent({ type: "error", error: { code: "EMPTY_REPOSITORY", ...ERROR_COPY.EMPTY_REPOSITORY } }),
+        encodeEvent({
+          type: "error",
+          error: { code: "EMPTY_REPOSITORY", ...ERROR_COPY.EMPTY_REPOSITORY },
+        }),
       ]),
     );
     const { result } = renderAnalysis();
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.error).toEqual({ code: "EMPTY_REPOSITORY", ...ERROR_COPY.EMPTY_REPOSITORY });
+    expect(result.current.error).toEqual({
+      code: "EMPTY_REPOSITORY",
+      ...ERROR_COPY.EMPTY_REPOSITORY,
+    });
     expect(useExplorerStore.getState().graph).toBeNull();
   });
 
   it("reads the error payload from an HTTP error response body", async () => {
     fetchMock.mockResolvedValue(
       createChunkedResponse(
-        [encodeEvent({ type: "error", error: { code: "NOT_FOUND", title: "Repository not found.", message: "No repository named acme/nope." } })],
+        [
+          encodeEvent({
+            type: "error",
+            error: {
+              code: "NOT_FOUND",
+              title: "Repository not found.",
+              message: "No repository named acme/nope.",
+            },
+          }),
+        ],
         { status: 404 },
       ),
     );
     const { result } = renderAnalysis();
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.error).toEqual({ code: "NOT_FOUND", title: "Repository not found.", message: "No repository named acme/nope." });
+    expect(result.current.error).toEqual({
+      code: "NOT_FOUND",
+      title: "Repository not found.",
+      message: "No repository named acme/nope.",
+    });
   });
 
   it("falls back to the HTTP status when the error body is unusable", async () => {
-    fetchMock.mockResolvedValue(new Response("<html>Bad gateway</html>", { status: 502, headers: { "retry-after": "30" } }));
+    fetchMock.mockResolvedValue(
+      new Response("<html>Bad gateway</html>", { status: 502, headers: { "retry-after": "30" } }),
+    );
     const { result } = renderAnalysis();
     await waitFor(() => expect(result.current.status).toBe("error"));
-    expect(result.current.error).toMatchObject({ code: "UPSTREAM_ERROR", title: ERROR_COPY.UPSTREAM_ERROR.title });
+    expect(result.current.error).toMatchObject({
+      code: "UPSTREAM_ERROR",
+      title: ERROR_COPY.UPSTREAM_ERROR.title,
+    });
     expect(result.current.error?.retryAt).toBeDefined();
   });
 
@@ -123,7 +168,9 @@ describe("useRepositoryAnalysis", () => {
   });
 
   it("treats a stream that ends without a terminal event as an error", async () => {
-    fetchMock.mockResolvedValue(createChunkedResponse([encodeEvent({ type: "stage", stage: "connect", status: "done" })]));
+    fetchMock.mockResolvedValue(
+      createChunkedResponse([encodeEvent({ type: "stage", stage: "connect", status: "done" })]),
+    );
     const { result } = renderAnalysis();
     await waitFor(() => expect(result.current.status).toBe("error"));
     expect(result.current.error).toEqual(STREAM_INTERRUPTED_ERROR);
@@ -156,7 +203,11 @@ describe("useRepositoryAnalysis", () => {
 
   it("restarts with a fresh state when the repository changes", async () => {
     const first = createControlledResponse();
-    fetchMock.mockResolvedValueOnce(first.response).mockResolvedValueOnce(createChunkedResponse([encodeEvent({ type: "complete", graph: mockRepositoryGraph })]));
+    fetchMock
+      .mockResolvedValueOnce(first.response)
+      .mockResolvedValueOnce(
+        createChunkedResponse([encodeEvent({ type: "complete", graph: mockRepositoryGraph })]),
+      );
     const { result, rerender } = renderAnalysis();
     act(() => first.pushEvent({ type: "stage", stage: "connect", status: "done" }));
     await waitFor(() => expect(result.current.stages.connect.status).toBe("done"));
@@ -173,7 +224,9 @@ describe("useRepositoryAnalysis", () => {
   it("retry starts a new request after an error", async () => {
     fetchMock
       .mockRejectedValueOnce(new TypeError("offline"))
-      .mockResolvedValueOnce(createChunkedResponse([encodeEvent({ type: "complete", graph: mockRepositoryGraph })]));
+      .mockResolvedValueOnce(
+        createChunkedResponse([encodeEvent({ type: "complete", graph: mockRepositoryGraph })]),
+      );
     const { result } = renderAnalysis();
     await waitFor(() => expect(result.current.status).toBe("error"));
     act(() => result.current.retry());
@@ -187,7 +240,9 @@ describe("useRepositoryAnalysis", () => {
     const control = createControlledResponse();
     fetchMock.mockResolvedValue(control.response);
     const { result } = renderAnalysis();
-    await waitFor(() => expect(result.current.elapsedMs).toBeGreaterThanOrEqual(100), { timeout: 2_000 });
+    await waitFor(() => expect(result.current.elapsedMs).toBeGreaterThanOrEqual(100), {
+      timeout: 2_000,
+    });
     act(() => {
       control.pushEvent({ type: "complete", graph: mockRepositoryGraph });
       control.close();

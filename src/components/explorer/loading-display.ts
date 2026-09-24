@@ -59,13 +59,23 @@ export interface StageRowContext {
   layoutPending: boolean;
 }
 
-export function buildStageRow(id: AnalysisStageId, stage: StageProgress, context: StageRowContext): StageRowModel {
+export function buildStageRow(
+  id: AnalysisStageId,
+  stage: StageProgress,
+  context: StageRowContext,
+): StageRowModel {
   const label = `${STAGE_LABELS[id]}...`;
   const base = { id, label, durationLabel: durationLabel(stage) };
 
   if (id === "construct" && context.status === "complete") {
     return context.layoutPending
-      ? { ...base, tone: "running", detail: "Laying out districts", progress: null, durationLabel: null }
+      ? {
+          ...base,
+          tone: "running",
+          detail: "Laying out districts",
+          progress: null,
+          durationLabel: null,
+        }
       : { ...base, tone: "done", detail: "Complete", progress: null };
   }
 
@@ -73,19 +83,37 @@ export function buildStageRow(id: AnalysisStageId, stage: StageProgress, context
     case "pending":
       return { ...base, tone: "pending", detail: "", progress: null };
     case "start":
-      return { ...base, tone: "running", detail: stage.message ?? "", progress: stage.progress ?? null };
+      return {
+        ...base,
+        tone: "running",
+        detail: stage.message ?? "",
+        progress: stage.progress ?? null,
+      };
     case "progress":
-      return { ...base, tone: "running", detail: stage.message ?? "", progress: stage.progress ?? null };
+      return {
+        ...base,
+        tone: "running",
+        detail: stage.message ?? "",
+        progress: stage.progress ?? null,
+      };
     case "done":
       return { ...base, tone: "done", detail: stage.message ?? "Done", progress: null };
     case "skipped":
       return { ...base, tone: "skipped", detail: stage.message ?? "Skipped", progress: null };
     case "warning":
-      return { ...base, tone: "warning", detail: stage.message ?? "Completed with warnings", progress: null };
+      return {
+        ...base,
+        tone: "warning",
+        detail: stage.message ?? "Completed with warnings",
+        progress: null,
+      };
   }
 }
 
-export function buildStageRows(stages: Record<AnalysisStageId, StageProgress>, context: StageRowContext): StageRowModel[] {
+export function buildStageRows(
+  stages: Record<AnalysisStageId, StageProgress>,
+  context: StageRowContext,
+): StageRowModel[] {
   return ANALYSIS_STAGES.map((id) => buildStageRow(id, stages[id], context));
 }
 

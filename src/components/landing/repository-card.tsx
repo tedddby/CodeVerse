@@ -41,7 +41,7 @@ export function RepositoryCard({ className }: { className?: string }) {
       noValidate
       onSubmit={handleSubmit}
       className={cn(
-        "rounded-[20px] bg-white p-1.5 ring-1 sm:p-2 ring-[rgb(15_28_63/0.06)]",
+        "rounded-[20px] bg-white p-1.5 ring-1 ring-[rgb(15_28_63/0.06)] sm:p-2",
         "shadow-[0_1px_1px_rgb(15_28_63/0.04),0_14px_28px_-10px_rgb(15_28_63/0.18),0_48px_96px_-28px_rgb(36_18_130/0.5)]",
         className,
       )}
@@ -57,7 +57,7 @@ export function RepositoryCard({ className }: { className?: string }) {
       <div className="flex flex-col gap-2 sm:flex-row">
         <div
           className={cn(
-            "flex h-14 min-w-0 items-center sm:flex-1 rounded-[14px] bg-(--lc-mist) ring-1 transition-[box-shadow,background-color] duration-150 ring-inset",
+            "flex h-14 min-w-0 items-center rounded-[14px] bg-(--lc-mist) ring-1 transition-[box-shadow,background-color] duration-150 ring-inset sm:flex-1",
             error
               ? "bg-[#fff6f7] ring-2 ring-[#c8243d]"
               : "ring-(--lc-line) focus-within:bg-white focus-within:shadow-[0_0_0_4px_rgb(91_71_235/0.16)] focus-within:ring-2 focus-within:ring-(--lc-accent)",

@@ -31,7 +31,14 @@ const alignClasses: Record<TooltipAlign, string> = {
  * CSS-only tooltip shown on hover and keyboard focus. Decorative: the wrapped
  * control must carry its own accessible name (aria-label), so the tooltip is aria-hidden.
  */
-export function Tooltip({ content, shortcut, side = "bottom", align = "center", children, className }: TooltipProps) {
+export function Tooltip({
+  content,
+  shortcut,
+  side = "bottom",
+  align = "center",
+  children,
+  className,
+}: TooltipProps) {
   const vertical = side === "top" || side === "bottom";
   return (
     <span className={cn("group/tooltip relative inline-flex", className)}>
@@ -39,7 +46,7 @@ export function Tooltip({ content, shortcut, side = "bottom", align = "center", 
       <span
         aria-hidden="true"
         className={cn(
-          "pointer-events-none absolute z-50 flex items-center gap-2 whitespace-nowrap rounded-md border border-line-strong bg-panel-raised px-2 py-1 text-xs text-ink opacity-0 shadow-lg transition-opacity delay-300 duration-150 group-focus-within/tooltip:opacity-100 group-hover/tooltip:opacity-100",
+          "border-line-strong bg-panel-raised text-ink pointer-events-none absolute z-50 flex items-center gap-2 rounded-md border px-2 py-1 text-xs whitespace-nowrap opacity-0 shadow-lg transition-opacity delay-300 duration-150 group-focus-within/tooltip:opacity-100 group-hover/tooltip:opacity-100",
           sideClasses[side],
           vertical && alignClasses[align],
         )}

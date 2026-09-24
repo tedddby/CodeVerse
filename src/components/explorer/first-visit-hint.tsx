@@ -61,13 +61,15 @@ export function FirstVisitHint({ className }: { className?: string }) {
       role="note"
       aria-label="How to navigate"
       className={cn(
-        "glass pointer-events-auto flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl py-2 pl-3 pr-1.5 text-xs text-ink-muted shadow-2xl animate-slide-up [animation-delay:900ms]",
+        "glass text-ink-muted animate-slide-up pointer-events-auto flex max-w-[calc(100vw-2rem)] items-center gap-3 rounded-xl py-2 pr-1.5 pl-3 text-xs shadow-2xl [animation-delay:900ms]",
         className,
       )}
     >
-      <MousePointerClick aria-hidden="true" className="size-4 shrink-0 text-signal" />
+      <MousePointerClick aria-hidden="true" className="text-signal size-4 shrink-0" />
       <p className="min-w-0">
-        <span className="max-md:hidden">Drag to orbit · Scroll to zoom · Click a building · Press </span>
+        <span className="max-md:hidden">
+          Drag to orbit · Scroll to zoom · Click a building · Press{" "}
+        </span>
         <span className="md:hidden">Drag to orbit · Pinch to zoom · Tap a building · Press </span>
         <kbd className="kbd">?</kbd> for shortcuts
       </p>
@@ -75,7 +77,7 @@ export function FirstVisitHint({ className }: { className?: string }) {
         type="button"
         onClick={dismissExplorerHint}
         aria-label="Dismiss navigation hint"
-        className="shrink-0 rounded-md p-1 text-ink-subtle transition-colors hover:bg-panel-raised hover:text-ink"
+        className="text-ink-subtle hover:bg-panel-raised hover:text-ink shrink-0 rounded-md p-1 transition-colors"
       >
         <X aria-hidden="true" className="size-3.5" />
       </button>

@@ -18,11 +18,16 @@ const badgeTones: Record<BadgeTone, string> = {
   danger: "border-danger/40 bg-danger/10 text-danger",
 };
 
-export function Badge({ tone = "neutral", children, className, ...props }: HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) {
+export function Badge({
+  tone = "neutral",
+  children,
+  className,
+  ...props
+}: HTMLAttributes<HTMLSpanElement> & { tone?: BadgeTone }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10.5px] uppercase leading-none tracking-wider",
+        "inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 font-mono text-[10.5px] leading-none tracking-wider uppercase",
         badgeTones[tone],
         className,
       )}
@@ -55,10 +60,10 @@ export interface StatProps {
 export function Stat({ label, value, hint, className }: StatProps) {
   return (
     <div className={cn("flex items-baseline justify-between gap-4", className)}>
-      <dt className="text-xs text-ink-subtle">{label}</dt>
-      <dd className="text-right font-mono text-sm tabular-nums text-ink">
+      <dt className="text-ink-subtle text-xs">{label}</dt>
+      <dd className="text-ink text-right font-mono text-sm tabular-nums">
         {value}
-        {hint ? <span className="ml-1.5 text-[11px] text-ink-subtle">{hint}</span> : null}
+        {hint ? <span className="text-ink-subtle ml-1.5 text-[11px]">{hint}</span> : null}
       </dd>
     </div>
   );
@@ -82,9 +87,12 @@ export function ProgressBar({ value, label, tone = "signal", className }: Progre
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={Math.round(clamped * 100)}
-      className={cn("h-1.5 w-full overflow-hidden rounded-full bg-line", className)}
+      className={cn("bg-line h-1.5 w-full overflow-hidden rounded-full", className)}
     >
-      <div className={cn("h-full rounded-full transition-[width] duration-300", toneClass)} style={{ width: `${clamped * 100}%` }} />
+      <div
+        className={cn("h-full rounded-full transition-[width] duration-300", toneClass)}
+        style={{ width: `${clamped * 100}%` }}
+      />
     </div>
   );
 }
@@ -92,6 +100,13 @@ export function ProgressBar({ value, label, tone = "signal", className }: Progre
 /** Uppercase, letter-spaced section label used across panels. */
 export function SectionLabel({ children, className }: { children: ReactNode; className?: string }) {
   return (
-    <h3 className={cn("font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-subtle", className)}>{children}</h3>
+    <h3
+      className={cn(
+        "text-ink-subtle font-mono text-[10.5px] tracking-[0.18em] uppercase",
+        className,
+      )}
+    >
+      {children}
+    </h3>
   );
 }

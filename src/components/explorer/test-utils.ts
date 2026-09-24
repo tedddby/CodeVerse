@@ -12,7 +12,11 @@ import { useExplorerStore } from "@/state/explorer-store";
 export function resetExplorerStore(): void {
   const store = useExplorerStore.getState();
   store.reset();
-  useExplorerStore.setState({ navigationMode: "orbit", reducedMotion: false, webglAvailable: null });
+  useExplorerStore.setState({
+    navigationMode: "orbit",
+    reducedMotion: false,
+    webglAvailable: null,
+  });
 }
 
 /** Resets the store and loads a graph (the mock repository by default). Returns its index. */

@@ -31,7 +31,15 @@ export const CANVAS_ATTRIBUTE = "data-explorer-canvas";
 
 export type ShortcutKeyEvent = Pick<
   KeyboardEvent,
-  "key" | "ctrlKey" | "metaKey" | "altKey" | "shiftKey" | "repeat" | "target" | "defaultPrevented" | "preventDefault"
+  | "key"
+  | "ctrlKey"
+  | "metaKey"
+  | "altKey"
+  | "shiftKey"
+  | "repeat"
+  | "target"
+  | "defaultPrevented"
+  | "preventDefault"
 >;
 
 export interface ShortcutContext {
@@ -52,7 +60,18 @@ export function isInsideCanvas(target: EventTarget | null): boolean {
 }
 
 /** Composite widgets that own printable/navigation keys (type-ahead trees, listboxes, sliders, ...). */
-const COMPOSITE_WIDGETS = ["tree", "treegrid", "grid", "listbox", "menu", "menubar", "radiogroup", "slider", "spinbutton", "tablist"]
+const COMPOSITE_WIDGETS = [
+  "tree",
+  "treegrid",
+  "grid",
+  "listbox",
+  "menu",
+  "menubar",
+  "radiogroup",
+  "slider",
+  "spinbutton",
+  "tablist",
+]
   .map((role) => `[role="${role}"]`)
   .join(",");
 
@@ -104,7 +123,9 @@ export function handleExplorerShortcut(event: ShortcutKeyEvent, context: Shortcu
       const focused = store.focusedDirectoryId;
       if (!focused) return false;
       const parentId = store.index?.directoriesById.get(focused)?.parentId ?? null;
-      return consume(() => store.focusDirectory(parentId && parentId !== ROOT_DIRECTORY_ID ? parentId : null));
+      return consume(() =>
+        store.focusDirectory(parentId && parentId !== ROOT_DIRECTORY_ID ? parentId : null),
+      );
     }
     case "Enter": {
       if (!neutralTarget || store.selection?.kind !== "directory") return false;
@@ -122,7 +143,11 @@ export function handleExplorerShortcut(event: ShortcutKeyEvent, context: Shortcu
         const symbol = store.index?.symbolsById.get(selection.id);
         if (!symbol) return false;
         return consume(() =>
-          store.openCodeViewer({ fileId: symbol.fileId, line: symbol.startLine, endLine: symbol.endLine }),
+          store.openCodeViewer({
+            fileId: symbol.fileId,
+            line: symbol.startLine,
+            endLine: symbol.endLine,
+          }),
         );
       }
       return false;
@@ -151,7 +176,9 @@ export function handleExplorerShortcut(event: ShortcutKeyEvent, context: Shortcu
       return consume(context.onTogglePerf);
     }
     case "g":
-      return consume(() => store.setNavigationMode(store.navigationMode === "orbit" ? "explore" : "orbit"));
+      return consume(() =>
+        store.setNavigationMode(store.navigationMode === "orbit" ? "explore" : "orbit"),
+      );
   }
 
   const modeIndex = /^[1-9]$/.test(key) ? Number(key) - 1 : -1;
@@ -169,7 +196,11 @@ export interface ExplorerShortcutOptions {
 }
 
 /** Binds the explorer's global keyboard shortcuts to `window`. */
-export function useExplorerShortcuts({ enabled, worldEnabled, onTogglePerf }: ExplorerShortcutOptions): void {
+export function useExplorerShortcuts({
+  enabled,
+  worldEnabled,
+  onTogglePerf,
+}: ExplorerShortcutOptions): void {
   useEffect(() => {
     if (!enabled) return;
     const onKeyDown = (event: KeyboardEvent) => {

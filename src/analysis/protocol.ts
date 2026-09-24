@@ -114,7 +114,8 @@ export const ERROR_COPY: Record<AnalysisErrorCode, { title: string; message: str
   },
   RATE_LIMITED: {
     title: "GitHub API rate limit reached.",
-    message: "Add a GitHub token to continue with higher limits, or try again when the limit resets.",
+    message:
+      "Add a GitHub token to continue with higher limits, or try again when the limit resets.",
   },
   CLIENT_RATE_LIMITED: {
     title: "Too many analyses in a short time.",

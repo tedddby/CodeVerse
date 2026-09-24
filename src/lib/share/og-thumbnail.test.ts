@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { LAYOUT_VERSION, type WorldLayout } from "@/engine/layout/types";
-import { generateAbstractMap, hashString, projectCityMap, seededRandom, shadeColor, type OgThumbnail } from "./og-thumbnail";
+import {
+  generateAbstractMap,
+  hashString,
+  projectCityMap,
+  seededRandom,
+  shadeColor,
+  type OgThumbnail,
+} from "./og-thumbnail";
 import { svgDataUri, thumbnailToSvg } from "./og-thumbnail-svg";
 
 const BOX = { width: 560, height: 460, padding: 12 };
@@ -21,9 +28,39 @@ function layoutFixture(buildingCount: number): WorldLayout {
     key: "fixture",
     bounds: { minX: -102, maxX: 102, minZ: -52, maxZ: 52, maxY: 18, size: 204 },
     districts: [
-      { id: "dir:", x: 0, z: 0, width: 204, depth: 104, baseY: 0, height: 0.5, level: 0, labelSize: 4 },
-      { id: "dir:src", x: -50, z: 0, width: 80, depth: 60, baseY: 0.5, height: 0.5, level: 1, labelSize: 2 },
-      { id: "dir:tiny", x: 90, z: 40, width: 0.01, depth: 0.01, baseY: 0.5, height: 0.5, level: 1, labelSize: 1 },
+      {
+        id: "dir:",
+        x: 0,
+        z: 0,
+        width: 204,
+        depth: 104,
+        baseY: 0,
+        height: 0.5,
+        level: 0,
+        labelSize: 4,
+      },
+      {
+        id: "dir:src",
+        x: -50,
+        z: 0,
+        width: 80,
+        depth: 60,
+        baseY: 0.5,
+        height: 0.5,
+        level: 1,
+        labelSize: 2,
+      },
+      {
+        id: "dir:tiny",
+        x: 90,
+        z: 40,
+        width: 0.01,
+        depth: 0.01,
+        baseY: 0.5,
+        height: 0.5,
+        level: 1,
+        labelSize: 1,
+      },
     ],
     buildings,
     durationMs: 1,
@@ -59,7 +96,10 @@ describe("projectCityMap", () => {
   });
 
   it("caps the number of buildings, keeping the most prominent ones", () => {
-    const thumbnail = projectCityMap(layoutFixture(3_000), () => "#fff", { ...BOX, maxBuildings: 1_500 });
+    const thumbnail = projectCityMap(layoutFixture(3_000), () => "#fff", {
+      ...BOX,
+      maxBuildings: 1_500,
+    });
     expect(thumbnail.buildings).toHaveLength(1_500);
     expect(thumbnail.totalBuildings).toBe(3_000);
     // Tallest buildings (height 17 → opacity 1) survive the cap.
@@ -82,7 +122,11 @@ describe("projectCityMap", () => {
       BOX,
     );
     expectInsideBox(thumbnail);
-    expect(thumbnail.buildings.every((building) => Number.isFinite(building.x) && Number.isFinite(building.y))).toBe(true);
+    expect(
+      thumbnail.buildings.every(
+        (building) => Number.isFinite(building.x) && Number.isFinite(building.y),
+      ),
+    ).toBe(true);
   });
 });
 
@@ -108,9 +152,13 @@ describe("thumbnailToSvg", () => {
   it("serializes every district and building as a rect", () => {
     const thumbnail = projectCityMap(layoutFixture(25), () => "#3b8eea", BOX);
     const svg = thumbnailToSvg(thumbnail);
-    expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="560" height="460"')).toBe(true);
+    expect(svg.startsWith('<svg xmlns="http://www.w3.org/2000/svg" width="560" height="460"')).toBe(
+      true,
+    );
     // Background grid + districts + buildings.
-    expect(svg.match(/<rect /g)).toHaveLength(1 + thumbnail.districts.length + thumbnail.buildings.length);
+    expect(svg.match(/<rect /g)).toHaveLength(
+      1 + thumbnail.districts.length + thumbnail.buildings.length,
+    );
     expect(svg).toContain('fill="#3b8eea"');
   });
 
@@ -121,7 +169,14 @@ describe("thumbnailToSvg", () => {
       height: 100,
       districts: [{ x: Number.NaN, y: 0, width: 10, height: 10, level: 99 }],
       buildings: [
-        { x: 1, y: 1, width: 2, height: 2, color: '"/><script>alert(1)</script><rect fill="', opacity: 5 },
+        {
+          x: 1,
+          y: 1,
+          width: 2,
+          height: 2,
+          color: '"/><script>alert(1)</script><rect fill="',
+          opacity: 5,
+        },
         { x: 1, y: 1, width: 2, height: 2, color: "#ABCDEF", opacity: -1 },
       ],
       totalBuildings: 2,

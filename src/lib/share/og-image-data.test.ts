@@ -1,7 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import { getLanguageColor } from "@/lib/languages/registry";
-import { buildRepositoryCardData, cityThumbnail, languageForProviderName, siteHost } from "./og-image-data";
+import {
+  buildRepositoryCardData,
+  cityThumbnail,
+  languageForProviderName,
+  siteHost,
+} from "./og-image-data";
 
 const base = { host: "codeverse.dev", siteName: "CodeVerse" };
 
@@ -26,15 +31,29 @@ describe("buildRepositoryCardData", () => {
       ...base,
       owner: "Facebook",
       repo: "React",
-      summary: { fullName: "facebook/react", stars: 238_000, forks: 49_000, language: "JavaScript", description: "UI library" },
+      summary: {
+        fullName: "facebook/react",
+        stars: 238_000,
+        forks: 49_000,
+        language: "JavaScript",
+        description: "UI library",
+      },
       graph: null,
     };
     const data = buildRepositoryCardData(input);
     expect(data.thumbnail.kind).toBe("abstract");
-    expect(data).toMatchObject({ owner: "facebook", repo: "react", stars: 238_000, forks: 49_000, description: "UI library" });
+    expect(data).toMatchObject({
+      owner: "facebook",
+      repo: "react",
+      stars: 238_000,
+      forks: 49_000,
+      description: "UI library",
+    });
     expect(data.language).toEqual({ name: "JavaScript", color: getLanguageColor("javascript") });
     // Same repository, different URL casing -> same artwork.
-    expect(buildRepositoryCardData({ ...input, owner: "facebook", repo: "react" }).thumbnail).toEqual(data.thumbnail);
+    expect(
+      buildRepositoryCardData({ ...input, owner: "facebook", repo: "react" }).thumbnail,
+    ).toEqual(data.thumbnail);
   });
 
   it("does not adopt canonical names that do not match the requested repository", () => {
@@ -52,11 +71,16 @@ describe("buildRepositoryCardData", () => {
 
 describe("helpers", () => {
   it("returns a city thumbnail for the mock graph", () => {
-    expect(cityThumbnail(mockRepositoryGraph)?.buildings.length).toBe(mockRepositoryGraph.files.length);
+    expect(cityThumbnail(mockRepositoryGraph)?.buildings.length).toBe(
+      mockRepositoryGraph.files.length,
+    );
   });
 
   it("maps provider language names to registry colors", () => {
-    expect(languageForProviderName("typescript")).toEqual({ name: "TypeScript", color: getLanguageColor("typescript") });
+    expect(languageForProviderName("typescript")).toEqual({
+      name: "TypeScript",
+      color: getLanguageColor("typescript"),
+    });
     expect(languageForProviderName("Brainfuck")).toEqual({ name: "Brainfuck", color: "#4de2ff" });
     expect(languageForProviderName(undefined)).toBeNull();
   });

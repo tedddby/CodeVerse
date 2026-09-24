@@ -30,8 +30,14 @@ describe("share URL state", () => {
   });
 
   it("round-trips directory (including the root) and symbol selections", () => {
-    expect(roundTrip({ selection: { kind: "directory", id: "dir:src/auth" } }).selection).toEqual({ kind: "directory", id: "dir:src/auth" });
-    expect(roundTrip({ selection: { kind: "directory", id: "dir:" } }).selection).toEqual({ kind: "directory", id: "dir:" });
+    expect(roundTrip({ selection: { kind: "directory", id: "dir:src/auth" } }).selection).toEqual({
+      kind: "directory",
+      id: "dir:src/auth",
+    });
+    expect(roundTrip({ selection: { kind: "directory", id: "dir:" } }).selection).toEqual({
+      kind: "directory",
+      id: "dir:",
+    });
     const symbol = { kind: "symbol", id: "sym:src/auth/auth.ts#authenticate@704" } as const;
     expect(roundTrip({ selection: symbol }).selection).toEqual(symbol);
   });
@@ -42,7 +48,10 @@ describe("share URL state", () => {
   });
 
   it("encodes the camera compactly with two decimals and no negative zero", () => {
-    const camera = { position: [1.23456, -0.001, 99.999] as [number, number, number], target: [-5.555, 0, 1e-9] as [number, number, number] };
+    const camera = {
+      position: [1.23456, -0.001, 99.999] as [number, number, number],
+      target: [-5.555, 0, 1e-9] as [number, number, number],
+    };
     expect(encodeCamera(camera)).toBe("1.23,0,100,-5.55,0,0");
     expect(encodeShareState({ camera }).get("cam")).toBe("1.23,0,100,-5.55,0,0");
   });
@@ -53,7 +62,9 @@ describe("share URL state", () => {
   });
 
   it("builds absolute explorer URLs", () => {
-    expect(buildShareUrl("https://codeverse.dev/", "facebook", "react", {})).toBe("https://codeverse.dev/explore/facebook/react");
+    expect(buildShareUrl("https://codeverse.dev/", "facebook", "react", {})).toBe(
+      "https://codeverse.dev/explore/facebook/react",
+    );
     expect(buildShareUrl("https://codeverse.dev", "vercel", "next.js", { mode: "activity" })).toBe(
       "https://codeverse.dev/explore/vercel/next.js?mode=activity",
     );
@@ -66,7 +77,11 @@ describe("share URL state", () => {
   });
 
   it("converts Next.js searchParams records, taking the first of repeated values", () => {
-    const params = searchParamsFromRecord({ mode: ["activity", "complexity"], ref: "main", missing: undefined });
+    const params = searchParamsFromRecord({
+      mode: ["activity", "complexity"],
+      ref: "main",
+      missing: undefined,
+    });
     expect(decodeShareState(params)).toEqual({ mode: "activity", ref: "main" });
   });
 });
@@ -98,7 +113,10 @@ describe("decodeShareState rejects malicious or malformed values", () => {
     expect(decode("cam=1,2,3,4,5,2000000").camera).toBeUndefined();
     expect(decode("cam=0x10,2,3,4,5,6").camera).toBeUndefined();
     expect(decode(`cam=${"1".repeat(200)},2,3,4,5,6`).camera).toBeUndefined();
-    expect(decode("cam=-1.5,2,3e2,4,5,6").camera).toEqual({ position: [-1.5, 2, 300], target: [4, 5, 6] });
+    expect(decode("cam=-1.5,2,3e2,4,5,6").camera).toEqual({
+      position: [-1.5, 2, 300],
+      target: [4, 5, 6],
+    });
   });
 
   it("validates refs with the repository ref rules", () => {
@@ -120,7 +138,10 @@ describe("decodeShareState rejects malicious or malformed values", () => {
   });
 
   it("keeps the valid parts of a partially tampered link", () => {
-    expect(decode("mode=activity&sel=evil&cam=oops&deps=1")).toEqual({ mode: "activity", deps: true });
+    expect(decode("mode=activity&sel=evil&cam=oops&deps=1")).toEqual({
+      mode: "activity",
+      deps: true,
+    });
   });
 
   it("never encodes invalid values", () => {

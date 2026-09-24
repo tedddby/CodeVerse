@@ -4,7 +4,11 @@ import { Check, Copy, Share2 } from "lucide-react";
 import { useId, useMemo, useRef, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Dialog } from "@/components/ui/dialog";
-import { captureShareState, socialImagePath, type ShareCaptureOptions } from "@/lib/share/explorer-share-state";
+import {
+  captureShareState,
+  socialImagePath,
+  type ShareCaptureOptions,
+} from "@/lib/share/explorer-share-state";
 import { buildShareUrl } from "@/lib/share/url-state";
 import { useExplorerStore } from "@/state/explorer-store";
 import { copyText } from "./clipboard";
@@ -38,7 +42,7 @@ function OptionRow({ checked, disabled, onChange, label, hint }: OptionRowProps)
       />
       <label htmlFor={id} className={disabled ? "text-ink-subtle" : "text-ink"}>
         <span className="block text-sm">{label}</span>
-        <span id={`${id}-hint`} className="block text-xs text-ink-subtle">
+        <span id={`${id}-hint`} className="text-ink-subtle block text-xs">
           {hint}
         </span>
       </label>
@@ -62,9 +66,11 @@ function SocialPreview({ src, alt }: { src: string; alt: string }) {
         loading="lazy"
         decoding="async"
         onError={() => setFailed(true)}
-        className="aspect-[1200/630] w-full rounded-lg border border-line-strong bg-abyss object-cover"
+        className="border-line-strong bg-abyss aspect-[1200/630] w-full rounded-lg border object-cover"
       />
-      <figcaption className="mt-1.5 text-[11px] text-ink-subtle">Link preview on social networks and chats</figcaption>
+      <figcaption className="text-ink-subtle mt-1.5 text-[11px]">
+        Link preview on social networks and chats
+      </figcaption>
     </figure>
   );
 }
@@ -102,7 +108,12 @@ function ShareDialogContent({
 
   const url = useMemo(() => {
     if (!repository) return "";
-    return buildShareUrl(origin, repository.owner, repository.name, captureShareState(state, options));
+    return buildShareUrl(
+      origin,
+      repository.owner,
+      repository.name,
+      captureShareState(state, options),
+    );
   }, [origin, repository, state, options]);
 
   if (!repository) return null;
@@ -129,10 +140,16 @@ function ShareDialogContent({
   };
 
   return (
-    <div className="px-5 pb-5 pt-4">
-      <SocialPreview src={socialImagePath(repository.owner, repository.name)} alt={`Social preview card for ${repository.fullName}`} />
+    <div className="px-5 pt-4 pb-5">
+      <SocialPreview
+        src={socialImagePath(repository.owner, repository.name)}
+        alt={`Social preview card for ${repository.fullName}`}
+      />
 
-      <label htmlFor="share-url" className="mb-1.5 block font-mono text-[10.5px] uppercase tracking-[0.18em] text-ink-subtle">
+      <label
+        htmlFor="share-url"
+        className="text-ink-subtle mb-1.5 block font-mono text-[10.5px] tracking-[0.18em] uppercase"
+      >
         Link
       </label>
       <div className="flex gap-2">
@@ -142,26 +159,45 @@ function ShareDialogContent({
           readOnly
           value={url}
           onFocus={(event) => event.currentTarget.select()}
-          className="h-10 min-w-0 flex-1 rounded-lg border border-line-strong bg-abyss px-3 font-mono text-xs text-ink focus:outline-none focus-visible:border-signal focus-visible:ring-2 focus-visible:ring-signal/40"
+          className="border-line-strong bg-abyss text-ink focus-visible:border-signal focus-visible:ring-signal/40 h-10 min-w-0 flex-1 rounded-lg border px-3 font-mono text-xs focus:outline-none focus-visible:ring-2"
         />
-        <Button ref={copyButtonRef} variant="primary" onClick={() => void onCopy()} className="shrink-0">
-          {copied === "copied" ? <Check aria-hidden="true" className="size-4" /> : <Copy aria-hidden="true" className="size-4" />}
+        <Button
+          ref={copyButtonRef}
+          variant="primary"
+          onClick={() => void onCopy()}
+          className="shrink-0"
+        >
+          {copied === "copied" ? (
+            <Check aria-hidden="true" className="size-4" />
+          ) : (
+            <Copy aria-hidden="true" className="size-4" />
+          )}
           {copied === "copied" ? "Copied" : "Copy link"}
         </Button>
       </div>
       <p aria-live="polite" className="mt-1.5 min-h-4 text-xs">
-        {copied === "copied" ? <span className="text-ok">Link copied to the clipboard.</span> : null}
-        {copied === "failed" ? <span className="text-warn">Copy was blocked by the browser. The link is selected so you can copy it manually.</span> : null}
+        {copied === "copied" ? (
+          <span className="text-ok">Link copied to the clipboard.</span>
+        ) : null}
+        {copied === "failed" ? (
+          <span className="text-warn">
+            Copy was blocked by the browser. The link is selected so you can copy it manually.
+          </span>
+        ) : null}
       </p>
 
-      <fieldset className="mt-2 border-t border-line/80 pt-3">
+      <fieldset className="border-line/80 mt-2 border-t pt-3">
         <legend className="sr-only">Include in the link</legend>
         <OptionRow
           checked={options.includeCamera && hasCamera}
           disabled={!hasCamera}
           onChange={(checked) => update({ includeCamera: checked })}
           label="Camera position"
-          hint={hasCamera ? "Opens at your current viewpoint instead of the intro flight." : "Move the camera to capture a viewpoint."}
+          hint={
+            hasCamera
+              ? "Opens at your current viewpoint instead of the intro flight."
+              : "Move the camera to capture a viewpoint."
+          }
         />
         <OptionRow
           checked={options.includeSelection && hasSelection}
@@ -197,7 +233,9 @@ function ShareDialogContent({
 export function ShareDialog({ requestedRef }: ShareDialogProps) {
   const open = useExplorerStore((state) => state.panels.share);
   const setPanel = useExplorerStore((state) => state.setPanel);
-  const fullName = useExplorerStore((state) => state.graph?.repository.fullName ?? "this repository");
+  const fullName = useExplorerStore(
+    (state) => state.graph?.repository.fullName ?? "this repository",
+  );
   const copyButtonRef = useRef<HTMLButtonElement>(null);
   const close = () => setPanel("share", false);
   return (
@@ -205,8 +243,16 @@ export function ShareDialog({ requestedRef }: ShareDialogProps) {
       open={open}
       onClose={close}
       initialFocusRef={copyButtonRef}
-      title="Share this view" description={`Anyone with the link opens ${fullName} the way you see it now.`}>
-      {open ? <ShareDialogContent requestedRef={requestedRef} onClose={close} copyButtonRef={copyButtonRef} /> : null}
+      title="Share this view"
+      description={`Anyone with the link opens ${fullName} the way you see it now.`}
+    >
+      {open ? (
+        <ShareDialogContent
+          requestedRef={requestedRef}
+          onClose={close}
+          copyButtonRef={copyButtonRef}
+        />
+      ) : null}
     </Dialog>
   );
 }

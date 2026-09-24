@@ -11,11 +11,30 @@ function formatMs(ms: number | undefined): string {
   return ms >= 1000 ? `${(ms / 1000).toFixed(2)}s` : `${Math.round(ms)}ms`;
 }
 
-function Row({ label, value, tone }: { label: string; value: string; tone?: "ok" | "warn" | "danger" }) {
+function Row({
+  label,
+  value,
+  tone,
+}: {
+  label: string;
+  value: string;
+  tone?: "ok" | "warn" | "danger";
+}) {
   return (
     <div className="flex items-baseline justify-between gap-6">
       <dt className="text-ink-subtle">{label}</dt>
-      <dd className={cn("tabular-nums", tone === "ok" ? "text-ok" : tone === "warn" ? "text-warn" : tone === "danger" ? "text-danger" : "text-ink")}>
+      <dd
+        className={cn(
+          "tabular-nums",
+          tone === "ok"
+            ? "text-ok"
+            : tone === "warn"
+              ? "text-warn"
+              : tone === "danger"
+                ? "text-danger"
+                : "text-ink",
+        )}
+      >
         {value}
       </dd>
     </div>
@@ -33,15 +52,19 @@ export function PerfOverlay({ className }: { className?: string }) {
     <aside
       aria-label="Performance statistics"
       className={cn(
-        "glass pointer-events-auto w-60 rounded-xl p-3 font-mono text-[11px] leading-5 shadow-2xl animate-fade-in",
+        "glass animate-fade-in pointer-events-auto w-60 rounded-xl p-3 font-mono text-[11px] leading-5 shadow-2xl",
         className,
       )}
     >
-      <p className="mb-1.5 flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-ink-subtle">
+      <p className="text-ink-subtle mb-1.5 flex items-center justify-between text-[10px] tracking-[0.2em] uppercase">
         Performance <kbd className="kbd">`</kbd>
       </p>
       <dl>
-        <Row label="FPS" value={stats.fps > 0 ? formatInteger(stats.fps) : "—"} tone={stats.fps > 0 ? fpsTone : undefined} />
+        <Row
+          label="FPS"
+          value={stats.fps > 0 ? formatInteger(stats.fps) : "—"}
+          tone={stats.fps > 0 ? fpsTone : undefined}
+        />
         <Row label="Draw calls" value={formatInteger(stats.drawCalls)} />
         <Row label="Triangles" value={formatCompact(stats.triangles)} />
         <Row label="Instances" value={formatInteger(stats.instances)} />
@@ -50,10 +73,17 @@ export function PerfOverlay({ className }: { className?: string }) {
         <Row label="Layout" value={layout ? formatMs(layout.durationMs) : "—"} />
       </dl>
       {analysis ? (
-        <dl className="mt-2 border-t border-line/80 pt-2">
-          <Row label={analysis.cached ? "Analysis (cached)" : "Analysis"} value={formatMs(analysis.durationMs)} />
+        <dl className="border-line/80 mt-2 border-t pt-2">
+          <Row
+            label={analysis.cached ? "Analysis (cached)" : "Analysis"}
+            value={formatMs(analysis.durationMs)}
+          />
           {ANALYSIS_STAGES.filter((stage) => analysis.timings[stage] !== undefined).map((stage) => (
-            <Row key={stage} label={STAGE_LABELS[stage]} value={formatMs(analysis.timings[stage])} />
+            <Row
+              key={stage}
+              label={STAGE_LABELS[stage]}
+              value={formatMs(analysis.timings[stage])}
+            />
           ))}
         </dl>
       ) : null}

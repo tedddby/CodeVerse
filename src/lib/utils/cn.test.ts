@@ -8,12 +8,19 @@ describe("cn", () => {
 
   it("lets a later display class override an earlier one", () => {
     // IconButton's base `inline-flex` must not beat an override `hidden`.
-    expect(cn("inline-flex items-center", "hidden lg:inline-flex")).toBe("items-center hidden lg:inline-flex");
+    expect(cn("inline-flex items-center", "hidden lg:inline-flex")).toBe(
+      "items-center hidden lg:inline-flex",
+    );
     expect(cn("flex flex-col", "grid")).toBe("flex-col grid");
   });
 
   it("lets a later size constraint override an earlier one under the same variants", () => {
-    expect(cn("glass flex max-h-full flex-col", "fixed max-h-[calc(100dvh-8.5rem)] md:max-h-[max(18rem,calc(100dvh-24rem))]")).toBe(
+    expect(
+      cn(
+        "glass flex max-h-full flex-col",
+        "fixed max-h-[calc(100dvh-8.5rem)] md:max-h-[max(18rem,calc(100dvh-24rem))]",
+      ),
+    ).toBe(
       "glass flex flex-col fixed max-h-[calc(100dvh-8.5rem)] md:max-h-[max(18rem,calc(100dvh-24rem))]",
     );
     expect(cn("w-9 h-9 min-w-0", "w-full min-h-0")).toBe("h-9 min-w-0 w-full min-h-0");

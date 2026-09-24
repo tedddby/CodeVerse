@@ -36,7 +36,11 @@ export function IsoArt({ geometry, label, className, ground = LIGHT_GROUND }: Is
             return (
               <g key={face.id} stroke={ground.edge}>
                 <polygon points={face.left} fill={ground.left} vectorEffect="non-scaling-stroke" />
-                <polygon points={face.right} fill={ground.right} vectorEffect="non-scaling-stroke" />
+                <polygon
+                  points={face.right}
+                  fill={ground.right}
+                  vectorEffect="non-scaling-stroke"
+                />
                 <polygon points={face.top} fill={ground.top} vectorEffect="non-scaling-stroke" />
               </g>
             );
@@ -44,8 +48,16 @@ export function IsoArt({ geometry, label, className, ground = LIGHT_GROUND }: Is
           const color = face.color ?? "#8a94ad";
           return (
             <g key={face.id} stroke={shadeHex(color, 0.55)} strokeOpacity={0.55}>
-              <polygon points={face.left} fill={shadeHex(color, 0.82)} vectorEffect="non-scaling-stroke" />
-              <polygon points={face.right} fill={shadeHex(color, 0.66)} vectorEffect="non-scaling-stroke" />
+              <polygon
+                points={face.left}
+                fill={shadeHex(color, 0.82)}
+                vectorEffect="non-scaling-stroke"
+              />
+              <polygon
+                points={face.right}
+                fill={shadeHex(color, 0.66)}
+                vectorEffect="non-scaling-stroke"
+              />
               <polygon points={face.top} fill={color} vectorEffect="non-scaling-stroke" />
             </g>
           );

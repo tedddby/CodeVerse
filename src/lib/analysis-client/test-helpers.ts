@@ -42,10 +42,14 @@ export function createControlledResponse(init: ResponseInit = {}): StreamControl
 }
 
 /** A response whose body is the given chunks (already split as desired), then closes. */
-export function createChunkedResponse(chunks: Array<string | Uint8Array>, init: ResponseInit = {}): Response {
+export function createChunkedResponse(
+  chunks: Array<string | Uint8Array>,
+  init: ResponseInit = {},
+): Response {
   const stream = new ReadableStream<Uint8Array>({
     start(controller) {
-      for (const chunk of chunks) controller.enqueue(typeof chunk === "string" ? encoder.encode(chunk) : chunk);
+      for (const chunk of chunks)
+        controller.enqueue(typeof chunk === "string" ? encoder.encode(chunk) : chunk);
       controller.close();
     },
   });
@@ -57,7 +61,9 @@ export function createChunkedResponse(chunks: Array<string | Uint8Array>, init: 
 }
 
 /** Collects every event (and the summary) from an async generator. */
-export async function collect<T, R>(generator: AsyncGenerator<T, R, undefined>): Promise<{ items: T[]; result: R }> {
+export async function collect<T, R>(
+  generator: AsyncGenerator<T, R, undefined>,
+): Promise<{ items: T[]; result: R }> {
   const items: T[] = [];
   while (true) {
     const next = await generator.next();

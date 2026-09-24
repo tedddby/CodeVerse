@@ -24,19 +24,30 @@ test.describe("explore a repository", () => {
 
   test("homepage → explorer → select file → view source", async ({ page }) => {
     await gotoHydrated(page, "/");
-    await expect(page.getByRole("heading", { level: 1, name: /explore any codebase as a 3d universe/i })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { level: 1, name: /explore any codebase as a 3d universe/i }),
+    ).toBeVisible();
 
     const input = page.getByRole("textbox", { name: /repository/i }).first();
     await input.fill(`https://github.com/${FIXTURE_OWNER}/${FIXTURE_REPO}`);
-    await page.getByRole("button", { name: /^explore/i }).first().click();
+    await page
+      .getByRole("button", { name: /^explore/i })
+      .first()
+      .click();
 
-    await expect(page).toHaveURL(new RegExp(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`), WORLD_TIMEOUT);
+    await expect(page).toHaveURL(
+      new RegExp(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`),
+      WORLD_TIMEOUT,
+    );
 
     // The explorer shell appears once the analysis stream completes and the world is laid out.
     await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);
 
     // Select a file through global search (keyboard-first flow).
-    await page.locator("body").click({ position: { x: 5, y: 5 } }).catch(() => undefined);
+    await page
+      .locator("body")
+      .click({ position: { x: 5, y: 5 } })
+      .catch(() => undefined);
     await page.keyboard.press("/");
     const search = page.getByRole("dialog", { name: /search repository/i });
     await expect(search).toBeVisible();
@@ -56,7 +67,9 @@ test.describe("explore a repository", () => {
   test("shared deep link opens the explorer directly", async ({ page }) => {
     await page.goto(`/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}?mode=dependencies`);
     await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);
-    await expect(page.getByRole("button", { name: /dependencies/i, pressed: true }).first()).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /dependencies/i, pressed: true }).first(),
+    ).toBeVisible();
   });
 
   test("the 3D canvas fills the explorer viewport after the entry transition", async ({ page }) => {
@@ -111,7 +124,10 @@ test.describe("explore a repository", () => {
     await gotoHydrated(page, "/");
     const input = page.getByRole("textbox", { name: /repository/i }).first();
     await input.fill("https://gitlab.com/foo/bar");
-    await page.getByRole("button", { name: /^explore/i }).first().click();
+    await page
+      .getByRole("button", { name: /^explore/i })
+      .first()
+      .click();
     await expect(page.getByText(/doesn't look like a github repository/i).first()).toBeVisible();
     await expect(page).toHaveURL(/\/$/);
   });
@@ -136,7 +152,8 @@ test.describe("error handling", () => {
       analysisError: {
         code: "RATE_LIMITED",
         title: "GitHub API rate limit reached.",
-        message: "Add a GitHub token to continue with higher limits, or try again when the limit resets.",
+        message:
+          "Add a GitHub token to continue with higher limits, or try again when the limit resets.",
         retryAt: new Date(Date.now() + 30 * 60_000).toISOString(),
       },
     });

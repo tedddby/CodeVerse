@@ -2,7 +2,10 @@ import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
 import { Tooltip, type TooltipAlign, type TooltipSide } from "./tooltip";
 
-export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
+export interface IconButtonProps extends Omit<
+  ButtonHTMLAttributes<HTMLButtonElement>,
+  "aria-label"
+> {
   /** Accessible name; also shown as the tooltip. */
   label: string;
   /** Keyboard shortcut displayed in the tooltip, e.g. "F". */
@@ -17,7 +20,18 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, shortcut, pressed, icon, size = "md", tooltipSide = "bottom", tooltipAlign, className, type = "button", ...props },
+  {
+    label,
+    shortcut,
+    pressed,
+    icon,
+    size = "md",
+    tooltipSide = "bottom",
+    tooltipAlign,
+    className,
+    type = "button",
+    ...props
+  },
   ref,
 ) {
   return (
@@ -32,7 +46,7 @@ export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(functio
           size === "md" ? "size-9" : "size-7",
           pressed
             ? "border-signal/50 bg-signal/12 text-signal"
-            : "border-transparent text-ink-muted hover:border-line-strong hover:bg-panel-raised hover:text-ink",
+            : "text-ink-muted hover:border-line-strong hover:bg-panel-raised hover:text-ink border-transparent",
           className,
         )}
         {...props}

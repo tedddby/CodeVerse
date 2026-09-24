@@ -4,7 +4,9 @@ import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import { readNdjson, type MalformedLineInfo } from "./stream";
 import { collect, createChunkedResponse, createControlledResponse } from "./test-helpers";
 
-const stage = (overrides: Partial<Extract<AnalysisEvent, { type: "stage" }>> = {}): AnalysisEvent => ({
+const stage = (
+  overrides: Partial<Extract<AnalysisEvent, { type: "stage" }>> = {},
+): AnalysisEvent => ({
   type: "stage",
   stage: "connect",
   status: "done",
@@ -21,17 +23,30 @@ function chunk(text: string, size: number): string[] {
 
 describe("readNdjson", () => {
   it("yields every event of a well-formed stream and summarizes it", async () => {
-    const body = [stage(), stage({ stage: "tree", message: "3,281 files" }), { type: "heartbeat" } as const]
+    const body = [
+      stage(),
+      stage({ stage: "tree", message: "3,281 files" }),
+      { type: "heartbeat" } as const,
+    ]
       .map(encodeEvent)
       .join("");
     const { items, result } = await collect(readNdjson(createChunkedResponse([body])));
-    expect(items).toEqual([stage(), stage({ stage: "tree", message: "3,281 files" }), { type: "heartbeat" }]);
+    expect(items).toEqual([
+      stage(),
+      stage({ stage: "tree", message: "3,281 files" }),
+      { type: "heartbeat" },
+    ]);
     expect(result).toEqual({ events: 3, malformedLines: 0 });
   });
 
   it("reassembles lines split across arbitrary chunk boundaries", async () => {
     const events: AnalysisEvent[] = [
-      stage({ stage: "parse", status: "progress", progress: 0.71, message: "1,065 of 1,500 files" }),
+      stage({
+        stage: "parse",
+        status: "progress",
+        progress: 0.71,
+        message: "1,065 of 1,500 files",
+      }),
       { type: "complete", graph: mockRepositoryGraph },
     ];
     const body = events.map(encodeEvent).join("");
@@ -45,7 +60,9 @@ describe("readNdjson", () => {
   });
 
   it("decodes multi-byte UTF-8 characters split between network chunks", async () => {
-    const bytes = new TextEncoder().encode(encodeEvent(stage({ message: "Données · 日本語 · 🚀" })));
+    const bytes = new TextEncoder().encode(
+      encodeEvent(stage({ message: "Données · 日本語 · 🚀" })),
+    );
     // Split inside the 4-byte emoji and inside a 3-byte CJK character.
     const emojiStart = bytes.findIndex((byte) => byte === 0xf0);
     const cjkStart = bytes.findIndex((byte) => byte === 0xe6);
@@ -81,7 +98,9 @@ describe("readNdjson", () => {
     const body = `${JSON.stringify(stage())}\n{"type":"complete","graph":{"schema`;
     const malformed: MalformedLineInfo[] = [];
     const { items, result } = await collect(
-      readNdjson(createChunkedResponse([body]), undefined, { onMalformedLine: (info) => malformed.push(info) }),
+      readNdjson(createChunkedResponse([body]), undefined, {
+        onMalformedLine: (info) => malformed.push(info),
+      }),
     );
     expect(items).toHaveLength(1);
     expect(result.malformedLines).toBe(1);
@@ -132,13 +151,22 @@ describe("readNdjson", () => {
   });
 
   it("discards lines longer than the limit without buffering them, then recovers", async () => {
-    const long = JSON.stringify({ type: "stage", stage: "connect", status: "done", message: "y".repeat(400) });
+    const long = JSON.stringify({
+      type: "stage",
+      stage: "connect",
+      status: "done",
+      message: "y".repeat(400),
+    });
     const malformed: MalformedLineInfo[] = [];
     const { items, result } = await collect(
-      readNdjson(createChunkedResponse(chunk(`${long}\n${JSON.stringify(stage())}\n`, 50)), undefined, {
-        maxLineLength: 200,
-        onMalformedLine: (info) => malformed.push(info),
-      }),
+      readNdjson(
+        createChunkedResponse(chunk(`${long}\n${JSON.stringify(stage())}\n`, 50)),
+        undefined,
+        {
+          maxLineLength: 200,
+          onMalformedLine: (info) => malformed.push(info),
+        },
+      ),
     );
     expect(items).toEqual([stage()]);
     expect(result.malformedLines).toBe(1);
@@ -166,7 +194,9 @@ describe("readNdjson", () => {
   it("throws immediately for an already aborted signal", async () => {
     const controller = new AbortController();
     controller.abort();
-    await expect(readNdjson(createChunkedResponse(["{}\n"]), controller.signal).next()).rejects.toMatchObject({
+    await expect(
+      readNdjson(createChunkedResponse(["{}\n"]), controller.signal).next(),
+    ).rejects.toMatchObject({
       name: "AbortError",
     });
   });

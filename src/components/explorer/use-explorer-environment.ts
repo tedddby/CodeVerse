@@ -28,7 +28,11 @@ export function useExplorerEnvironment(): void {
  * Clears repository-specific store state when the explorer opens another
  * repository (or ref) and when it unmounts, so nothing leaks between visits.
  */
-export function useRepositoryStoreLifecycle(owner: string, repo: string, ref: string | undefined): void {
+export function useRepositoryStoreLifecycle(
+  owner: string,
+  repo: string,
+  ref: string | undefined,
+): void {
   useEffect(() => {
     useExplorerStore.getState().reset();
     return () => useExplorerStore.getState().reset();
@@ -43,7 +47,11 @@ export function useRepositoryStoreLifecycle(owner: string, repo: string, ref: st
  *   slow orbit to the overview pose, so opening the explorer feels like
  *   descending into the world rather than a cut.
  */
-export function useExplorerEntrance(initial: ShareState, ready: boolean, worldEnabled: boolean): void {
+export function useExplorerEntrance(
+  initial: ShareState,
+  ready: boolean,
+  worldEnabled: boolean,
+): void {
   const appliedRef = useRef(false);
   useEffect(() => {
     if (!ready || appliedRef.current) return;

@@ -18,7 +18,12 @@ function Harness({ onUnmountWithFocus }: { onUnmountWithFocus?: () => void }) {
       </button>
       <button type="button">Elsewhere</button>
       {open ? (
-        <Panel title="acme/platform" eyebrow="Repository statistics" onClose={() => setOpen(false)} onUnmountWithFocus={onUnmountWithFocus}>
+        <Panel
+          title="acme/platform"
+          eyebrow="Repository statistics"
+          onClose={() => setOpen(false)}
+          onUnmountWithFocus={onUnmountWithFocus}
+        >
           <button type="button">Inside</button>
         </Panel>
       ) : null}
@@ -44,7 +49,9 @@ describe("Panel", () => {
         <p>Body</p>
       </Panel>,
     );
-    expect(screen.getByRole("complementary", { name: "Selection details" })).not.toHaveAttribute("aria-labelledby");
+    expect(screen.getByRole("complementary", { name: "Selection details" })).not.toHaveAttribute(
+      "aria-labelledby",
+    );
   });
 
   it("returns focus to the control that opened it when closed from inside", async () => {

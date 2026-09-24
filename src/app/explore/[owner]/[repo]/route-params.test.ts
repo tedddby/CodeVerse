@@ -3,12 +3,21 @@ import { parseRepositoryParams } from "./route-params";
 
 describe("parseRepositoryParams", () => {
   it("accepts valid owners and repository names", () => {
-    expect(parseRepositoryParams({ owner: "facebook", repo: "react" })).toEqual({ owner: "facebook", repo: "react" });
-    expect(parseRepositoryParams({ owner: "vercel", repo: "next.js" })).toEqual({ owner: "vercel", repo: "next.js" });
+    expect(parseRepositoryParams({ owner: "facebook", repo: "react" })).toEqual({
+      owner: "facebook",
+      repo: "react",
+    });
+    expect(parseRepositoryParams({ owner: "vercel", repo: "next.js" })).toEqual({
+      owner: "vercel",
+      repo: "next.js",
+    });
   });
 
   it("decodes percent-encoded segments before validating", () => {
-    expect(parseRepositoryParams({ owner: "fa%63ebook", repo: "re%61ct" })).toEqual({ owner: "facebook", repo: "react" });
+    expect(parseRepositoryParams({ owner: "fa%63ebook", repo: "re%61ct" })).toEqual({
+      owner: "facebook",
+      repo: "react",
+    });
   });
 
   it("rejects invalid, reserved, traversal and malformed segments", () => {

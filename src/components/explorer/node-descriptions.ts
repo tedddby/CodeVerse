@@ -53,11 +53,16 @@ export interface FileStatusCopy {
 }
 
 export const FILE_STATUS_COPY: Record<FileAnalysisStatus, FileStatusCopy> = {
-  parsed: { label: "Parsed", tone: "ok", explanation: "Source was parsed; symbols and imports are extracted." },
+  parsed: {
+    label: "Parsed",
+    tone: "ok",
+    explanation: "Source was parsed; symbols and imports are extracted.",
+  },
   partial: {
     label: "Partially parsed",
     tone: "warn",
-    explanation: "The parser hit syntax it could not understand; symbols and imports may be incomplete.",
+    explanation:
+      "The parser hit syntax it could not understand; symbols and imports may be incomplete.",
   },
   "content-only": {
     label: "Not parsed",
@@ -67,10 +72,19 @@ export const FILE_STATUS_COPY: Record<FileAnalysisStatus, FileStatusCopy> = {
   "metadata-only": {
     label: "Metadata only",
     tone: "warn",
-    explanation: "Content was not downloaded because of analysis limits; the line count is estimated from the file size.",
+    explanation:
+      "Content was not downloaded because of analysis limits; the line count is estimated from the file size.",
   },
-  binary: { label: "Binary", tone: "neutral", explanation: "Binary files are never downloaded or parsed." },
-  failed: { label: "Analysis failed", tone: "danger", explanation: "The file could not be downloaded or parsed." },
+  binary: {
+    label: "Binary",
+    tone: "neutral",
+    explanation: "Binary files are never downloaded or parsed.",
+  },
+  failed: {
+    label: "Analysis failed",
+    tone: "danger",
+    explanation: "The file could not be downloaded or parsed.",
+  },
 };
 
 export function languageName(languageId: string): string {
@@ -143,7 +157,10 @@ export function describeSelection(selection: NodeRef | null, index: GraphIndex |
     case "directory": {
       const directory = index.directoriesById.get(selection.id);
       if (!directory) return "";
-      const name = directory.path === "" ? `repository root ${index.graph.repository.fullName}` : `directory ${directory.path}`;
+      const name =
+        directory.path === ""
+          ? `repository root ${index.graph.repository.fullName}`
+          : `directory ${directory.path}`;
       return `Selected ${name}, ${pluralize(directory.stats.fileCount, "file")}`;
     }
     case "symbol": {
@@ -169,11 +186,16 @@ export function isTrustedAvatarUrl(url: string | undefined): url is string {
 
 /** Initials for avatar placeholders ("Ada Octo" -> "AO"). */
 export function initialsOf(name: string): string {
-  const words = name.trim().split(/[\s._-]+/).filter(Boolean);
+  const words = name
+    .trim()
+    .split(/[\s._-]+/)
+    .filter(Boolean);
   const letters = words.length >= 2 ? [words[0], words[words.length - 1]] : [words[0] ?? "?"];
-  return letters
-    .map((word) => Array.from(word ?? "")[0] ?? "")
-    .join("")
-    .toUpperCase()
-    .slice(0, 2) || "?";
+  return (
+    letters
+      .map((word) => Array.from(word ?? "")[0] ?? "")
+      .join("")
+      .toUpperCase()
+      .slice(0, 2) || "?"
+  );
 }

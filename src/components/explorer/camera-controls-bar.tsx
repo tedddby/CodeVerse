@@ -17,7 +17,7 @@ export function CameraControlsBar({ className }: { className?: string }) {
       role="group"
       aria-label="Camera controls"
       className={cn(
-        "glass pointer-events-auto fixed bottom-2 right-2 z-20 flex items-center gap-0.5 rounded-xl p-0.5 animate-fade-in md:bottom-4 md:right-4",
+        "glass animate-fade-in pointer-events-auto fixed right-2 bottom-2 z-20 flex items-center gap-0.5 rounded-xl p-0.5 md:right-4 md:bottom-4",
         // On narrow screens the selection panel is a bottom sheet occupying this corner.
         hasSelection && "max-md:hidden",
         className,
@@ -49,7 +49,7 @@ export function CameraControlsBar({ className }: { className?: string }) {
         icon={<Scan />}
         onClick={() => issueCameraCommand({ type: "focus-repository" })}
       />
-      <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line-strong" />
+      <span aria-hidden="true" className="bg-line-strong mx-0.5 h-5 w-px" />
       <IconButton
         label="Explore mode"
         shortcut="G"

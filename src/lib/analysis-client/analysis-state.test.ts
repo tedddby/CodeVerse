@@ -10,8 +10,14 @@ import {
   type AnalysisSnapshot,
 } from "./analysis-state";
 
-function apply(events: Array<[AnalysisEvent, number]>, state: AnalysisSnapshot = createInitialSnapshot()): AnalysisSnapshot {
-  return events.reduce((current, [event, at]) => analysisReducer(current, { type: "event", event, at }), state);
+function apply(
+  events: Array<[AnalysisEvent, number]>,
+  state: AnalysisSnapshot = createInitialSnapshot(),
+): AnalysisSnapshot {
+  return events.reduce(
+    (current, [event, at]) => analysisReducer(current, { type: "event", event, at }),
+    state,
+  );
 }
 
 describe("analysisReducer", () => {
@@ -29,8 +35,19 @@ describe("analysisReducer", () => {
       [{ type: "stage", stage: "parse", status: "start", message: "Parsing 1,500 files" }, 200],
       [{ type: "stage", stage: "parse", status: "progress", progress: 0.4 }, 900],
     ]);
-    expect(state.stages.connect).toEqual({ status: "done", startedAt: 5, finishedAt: 120, progress: 1, message: "Repository found" });
-    expect(state.stages.parse).toMatchObject({ status: "progress", progress: 0.4, startedAt: 200, message: "Parsing 1,500 files" });
+    expect(state.stages.connect).toEqual({
+      status: "done",
+      startedAt: 5,
+      finishedAt: 120,
+      progress: 1,
+      message: "Repository found",
+    });
+    expect(state.stages.parse).toMatchObject({
+      status: "progress",
+      progress: 0.4,
+      startedAt: 200,
+      message: "Parsing 1,500 files",
+    });
     expect(state.stages.parse.finishedAt).toBeUndefined();
     expect(activeStage(state.stages)).toBe("parse");
     expect(finishedStageCount(state.stages)).toBe(1);
@@ -38,12 +55,21 @@ describe("analysisReducer", () => {
   });
 
   it("collects de-duplicated warnings from warning events", () => {
-    const warning = (message: string): [AnalysisEvent, number] => [{ type: "stage", stage: "tree", status: "warning", message }, 1];
-    const state = apply([warning("Large repository"), warning("Large repository"), warning("Tree truncated")]);
+    const warning = (message: string): [AnalysisEvent, number] => [
+      { type: "stage", stage: "tree", status: "warning", message },
+      1,
+    ];
+    const state = apply([
+      warning("Large repository"),
+      warning("Large repository"),
+      warning("Tree truncated"),
+    ]);
     expect(state.warnings).toEqual(["Large repository", "Tree truncated"]);
     expect(state.stages.tree.status).toBe("warning");
 
-    const many = apply(Array.from({ length: MAX_STREAM_WARNINGS + 5 }, (_, index) => warning(`w${index}`)));
+    const many = apply(
+      Array.from({ length: MAX_STREAM_WARNINGS + 5 }, (_, index) => warning(`w${index}`)),
+    );
     expect(many.warnings).toHaveLength(MAX_STREAM_WARNINGS);
     expect(many.warnings.at(-1)).toBe(`w${MAX_STREAM_WARNINGS + 4}`);
   });
@@ -68,11 +94,21 @@ describe("analysisReducer", () => {
       at: 30,
     });
     expect(failed.status).toBe("error");
-    expect(analysisReducer(failed, { type: "event", event: { type: "complete", graph: mockRepositoryGraph }, at: 40 })).toBe(failed);
+    expect(
+      analysisReducer(failed, {
+        type: "event",
+        event: { type: "complete", graph: mockRepositoryGraph },
+        at: 40,
+      }),
+    ).toBe(failed);
     expect(analysisReducer(failed, { type: "tick", at: 5_000 })).toBe(failed);
 
     const complete = apply([[{ type: "complete", graph: mockRepositoryGraph }, 10]]);
-    const afterFail = analysisReducer(complete, { type: "fail", error: { code: "INTERNAL", ...ERROR_COPY.INTERNAL }, at: 20 });
+    const afterFail = analysisReducer(complete, {
+      type: "fail",
+      error: { code: "INTERNAL", ...ERROR_COPY.INTERNAL },
+      at: 20,
+    });
     expect(afterFail).toBe(complete);
   });
 
@@ -80,6 +116,8 @@ describe("analysisReducer", () => {
     const state = analysisReducer(createInitialSnapshot(), { type: "tick", at: 300 });
     expect(state.elapsedMs).toBe(300);
     expect(analysisReducer(state, { type: "tick", at: 200 })).toBe(state);
-    expect(analysisReducer(state, { type: "event", event: { type: "heartbeat" }, at: 250 })).toBe(state);
+    expect(analysisReducer(state, { type: "event", event: { type: "heartbeat" }, at: 250 })).toBe(
+      state,
+    );
   });
 });

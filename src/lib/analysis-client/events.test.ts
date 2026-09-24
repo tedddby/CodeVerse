@@ -12,24 +12,41 @@ import {
 
 describe("parseAnalysisEventLine", () => {
   it("accepts every event type of the protocol", () => {
-    expect(parseAnalysisEventLine('{"type":"heartbeat"}')).toEqual({ ok: true, event: { type: "heartbeat" } });
+    expect(parseAnalysisEventLine('{"type":"heartbeat"}')).toEqual({
+      ok: true,
+      event: { type: "heartbeat" },
+    });
     expect(parseAnalysisEventLine('{"type":"stage","stage":"tree","status":"start"}')).toEqual({
       ok: true,
       event: { type: "stage", stage: "tree", status: "start" },
     });
-    const preview = parseAnalysisEventLine(JSON.stringify({ type: "preview", graph: mockRepositoryGraph }));
+    const preview = parseAnalysisEventLine(
+      JSON.stringify({ type: "preview", graph: mockRepositoryGraph }),
+    );
     expect(preview.ok && preview.event.type).toBe("preview");
   });
 
   it("drops non-finite progress and strips control characters from messages", () => {
     const result = parseAnalysisEventLine(
-      JSON.stringify({ type: "stage", stage: "parse", status: "progress", progress: "0.5", message: "a\u0007b\nc" }),
+      JSON.stringify({
+        type: "stage",
+        stage: "parse",
+        status: "progress",
+        progress: "0.5",
+        message: "a\u0007b\nc",
+      }),
     );
-    expect(result).toEqual({ ok: true, event: { type: "stage", stage: "parse", status: "progress", message: "a b c" } });
+    expect(result).toEqual({
+      ok: true,
+      event: { type: "stage", stage: "parse", status: "progress", message: "a b c" },
+    });
   });
 
   it("rejects prototype-pollution style payloads as unknown events", () => {
-    expect(parseAnalysisEventLine('{"__proto__":{"type":"complete"}}')).toEqual({ ok: false, reason: "missing event type" });
+    expect(parseAnalysisEventLine('{"__proto__":{"type":"complete"}}')).toEqual({
+      ok: false,
+      reason: "missing event type",
+    });
   });
 });
 
@@ -45,7 +62,10 @@ describe("isRepositoryGraphLike", () => {
 
 describe("normalizeErrorPayload", () => {
   it("fills missing copy from ERROR_COPY and keeps server specifics", () => {
-    expect(normalizeErrorPayload({ code: "NOT_FOUND" })).toEqual({ code: "NOT_FOUND", ...ERROR_COPY.NOT_FOUND });
+    expect(normalizeErrorPayload({ code: "NOT_FOUND" })).toEqual({
+      code: "NOT_FOUND",
+      ...ERROR_COPY.NOT_FOUND,
+    });
     expect(normalizeErrorPayload({ code: "TIMEOUT", message: "GitHub took 30s." })).toEqual({
       code: "TIMEOUT",
       title: ERROR_COPY.TIMEOUT.title,
@@ -58,9 +78,9 @@ describe("normalizeErrorPayload", () => {
       code: "INTERNAL",
       ...ERROR_COPY.INTERNAL,
     });
-    expect(normalizeErrorPayload({ code: "RATE_LIMITED", retryAt: "2026-09-23T12:00:00Z" })?.retryAt).toBe(
-      "2026-09-23T12:00:00.000Z",
-    );
+    expect(
+      normalizeErrorPayload({ code: "RATE_LIMITED", retryAt: "2026-09-23T12:00:00Z" })?.retryAt,
+    ).toBe("2026-09-23T12:00:00.000Z");
     expect(normalizeErrorPayload("NOT_FOUND")).toBeNull();
   });
 });
@@ -68,14 +88,17 @@ describe("normalizeErrorPayload", () => {
 describe("extractErrorPayload", () => {
   it("finds an NDJSON error event after other lines", () => {
     const body = `{"type":"stage","stage":"connect","status":"start"}\n{"type":"error","error":{"code":"RATE_LIMITED","retryAt":"2026-09-23T12:00:00Z"}}\n`;
-    expect(extractErrorPayload(body)).toMatchObject({ code: "RATE_LIMITED", retryAt: "2026-09-23T12:00:00.000Z" });
+    expect(extractErrorPayload(body)).toMatchObject({
+      code: "RATE_LIMITED",
+      retryAt: "2026-09-23T12:00:00.000Z",
+    });
   });
 
   it("accepts plain and pretty-printed JSON bodies", () => {
     expect(extractErrorPayload('{"error":{"code":"NOT_FOUND"}}')?.code).toBe("NOT_FOUND");
-    expect(extractErrorPayload(JSON.stringify({ error: { code: "INVALID_REPOSITORY" } }, null, 2))?.code).toBe(
-      "INVALID_REPOSITORY",
-    );
+    expect(
+      extractErrorPayload(JSON.stringify({ error: { code: "INVALID_REPOSITORY" } }, null, 2))?.code,
+    ).toBe("INVALID_REPOSITORY");
   });
 
   it("returns null for bodies without an error payload", () => {

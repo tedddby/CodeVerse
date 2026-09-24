@@ -290,7 +290,9 @@ export async function runHistoryStage(
       context.addWarning({
         code: "HISTORY_UNAVAILABLE",
         message: `Commit history was skipped because the server's GitHub API quota is nearly used up.${
-          authenticated(input.source) ? " It resets within the hour." : " Configure a GitHub token for full history."
+          authenticated(input.source)
+            ? " It resets within the hour."
+            : " Configure a GitHub token for full history."
         }`,
       });
     }

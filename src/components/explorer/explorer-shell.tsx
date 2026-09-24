@@ -53,7 +53,7 @@ export function ExplorerShell({
   useExplorerShortcuts({ enabled: chrome, worldEnabled, onTogglePerf: togglePerf });
 
   return (
-    <div className="relative h-dvh w-full overflow-hidden bg-void text-ink">
+    <div className="bg-void text-ink relative h-dvh w-full overflow-hidden">
       {chrome ? <TopBar worldEnabled={worldEnabled} /> : null}
 
       <main aria-label={`${fullName} explorer`} className="absolute inset-0">

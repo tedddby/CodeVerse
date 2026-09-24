@@ -18,9 +18,14 @@ function releaseContext(context: GLContext): void {
   }
 }
 
-function tryContext(canvas: HTMLCanvasElement, kind: "webgl2" | "webgl" | "experimental-webgl"): GLContext | null {
+function tryContext(
+  canvas: HTMLCanvasElement,
+  kind: "webgl2" | "webgl" | "experimental-webgl",
+): GLContext | null {
   try {
-    const context = canvas.getContext(kind, { failIfMajorPerformanceCaveat: false }) as GLContext | null;
+    const context = canvas.getContext(kind, {
+      failIfMajorPerformanceCaveat: false,
+    }) as GLContext | null;
     return context && typeof context.getParameter === "function" ? context : null;
   } catch {
     return null;
@@ -41,7 +46,9 @@ export function detectWebGL(): boolean {
     return false;
   }
   const context =
-    tryContext(canvas, "webgl2") ?? tryContext(canvas, "webgl") ?? tryContext(canvas, "experimental-webgl");
+    tryContext(canvas, "webgl2") ??
+    tryContext(canvas, "webgl") ??
+    tryContext(canvas, "experimental-webgl");
   if (!context) return false;
   releaseContext(context);
   return true;

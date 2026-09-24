@@ -30,7 +30,9 @@ describe("withTimeout", () => {
   });
 
   it("resolves to null for rejected and synchronously throwing tasks", async () => {
-    await expect(withTimeout(() => Promise.reject(new Error("rate limited")), 1_000)).resolves.toBeNull();
+    await expect(
+      withTimeout(() => Promise.reject(new Error("rate limited")), 1_000),
+    ).resolves.toBeNull();
     await expect(
       withTimeout(() => {
         throw new Error("boom");
@@ -46,7 +48,9 @@ describe("text helpers", () => {
 
   it("truncates at word boundaries with an ellipsis", () => {
     expect(truncateText("short", 10)).toBe("short");
-    expect(truncateText("The library for web and native user interfaces", 24)).toBe("The library for web and…");
+    expect(truncateText("The library for web and native user interfaces", 24)).toBe(
+      "The library for web and…",
+    );
     expect(Array.from(truncateText("😀".repeat(30), 10))).toHaveLength(10);
   });
 

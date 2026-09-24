@@ -1,7 +1,12 @@
 import { z } from "zod";
 import { nodeRefFromId } from "@/graph/model/ids";
 import type { NodeRef } from "@/graph/model/types";
-import { VISUAL_MODES, type CameraPose, type NavigationMode, type VisualMode } from "@/state/explorer-store";
+import {
+  VISUAL_MODES,
+  type CameraPose,
+  type NavigationMode,
+  type VisualMode,
+} from "@/state/explorer-store";
 import { explorePath, isValidRef } from "@/lib/validation/repository-url";
 
 /**
@@ -54,14 +59,19 @@ const CONTROL_CHARACTERS = /[\u0000-\u001f\u007f]/;
 
 const modeSchema = z.enum(VISUAL_MODES.map((mode) => mode.id) as [VisualMode, ...VisualMode[]]);
 const navSchema = z.enum(["orbit", "explore"]);
-const booleanFlagSchema = z.enum(["1", "0", "true", "false"]).transform((value) => value === "1" || value === "true");
+const booleanFlagSchema = z
+  .enum(["1", "0", "true", "false"])
+  .transform((value) => value === "1" || value === "true");
 
 const nodeIdSchema = z
   .string()
   .min(4)
   .max(MAX_NODE_ID_LENGTH)
   .refine((value) => !CONTROL_CHARACTERS.test(value), "control characters")
-  .refine((value) => value.startsWith("file:") || value.startsWith("dir:") || value.startsWith("sym:"), "prefix")
+  .refine(
+    (value) => value.startsWith("file:") || value.startsWith("dir:") || value.startsWith("sym:"),
+    "prefix",
+  )
   .refine((value) => {
     // A file or symbol id needs a path; "dir:" alone is the root directory.
     if (value.startsWith("file:")) return value.length > 5;
@@ -82,13 +92,25 @@ const cameraSchema = z
   .max(160)
   .transform((value, context) => {
     const parts = value.split(",");
-    if (parts.length !== 6 || parts.some((part) => !/^-?\d+(\.\d+)?(e[-+]?\d+)?$/i.test(part.trim()))) {
+    if (
+      parts.length !== 6 ||
+      parts.some((part) => !/^-?\d+(\.\d+)?(e[-+]?\d+)?$/i.test(part.trim()))
+    ) {
       context.addIssue({ code: "custom", message: "expected six numbers" });
       return z.NEVER;
     }
     return parts.map(Number);
   })
-  .pipe(z.tuple([coordinateSchema, coordinateSchema, coordinateSchema, coordinateSchema, coordinateSchema, coordinateSchema]));
+  .pipe(
+    z.tuple([
+      coordinateSchema,
+      coordinateSchema,
+      coordinateSchema,
+      coordinateSchema,
+      coordinateSchema,
+      coordinateSchema,
+    ]),
+  );
 
 const timestampSchema = z
   .string()
@@ -106,7 +128,9 @@ function roundCoordinate(value: number): number {
 
 /** "x,y,z,tx,ty,tz" with at most two decimals. */
 export function encodeCamera(pose: CameraPose): string {
-  return [...pose.position, ...pose.target].map((value) => String(roundCoordinate(value))).join(",");
+  return [...pose.position, ...pose.target]
+    .map((value) => String(roundCoordinate(value)))
+    .join(",");
 }
 
 function isFiniteCamera(pose: CameraPose): boolean {
@@ -119,7 +143,8 @@ function isFiniteCamera(pose: CameraPose): boolean {
 export function encodeShareState(state: ShareState): URLSearchParams {
   const params = new URLSearchParams();
   if (state.ref && isValidRef(state.ref)) params.set(SHARE_PARAMS.ref, state.ref);
-  if (state.mode && modeSchema.safeParse(state.mode).success) params.set(SHARE_PARAMS.mode, state.mode);
+  if (state.mode && modeSchema.safeParse(state.mode).success)
+    params.set(SHARE_PARAMS.mode, state.mode);
   if (state.selection && nodeIdSchema.safeParse(state.selection.id).success) {
     params.set(SHARE_PARAMS.selection, state.selection.id);
   }
@@ -128,10 +153,16 @@ export function encodeShareState(state: ShareState): URLSearchParams {
   if (state.contributor && contributorSchema.safeParse(state.contributor).success) {
     params.set(SHARE_PARAMS.contributor, state.contributor);
   }
-  if (state.t !== undefined && Number.isInteger(state.t) && state.t >= 0 && state.t <= MAX_TIMESTAMP) {
+  if (
+    state.t !== undefined &&
+    Number.isInteger(state.t) &&
+    state.t >= 0 &&
+    state.t <= MAX_TIMESTAMP
+  ) {
     params.set(SHARE_PARAMS.t, String(state.t));
   }
-  if (state.camera && isFiniteCamera(state.camera)) params.set(SHARE_PARAMS.camera, encodeCamera(state.camera));
+  if (state.camera && isFiniteCamera(state.camera))
+    params.set(SHARE_PARAMS.camera, encodeCamera(state.camera));
   return params;
 }
 
@@ -176,7 +207,9 @@ export function decodeShareState(params: URLSearchParams): ShareState {
 }
 
 /** Converts Next.js `searchParams` (string | string[] | undefined values) into URLSearchParams. */
-export function searchParamsFromRecord(record: Record<string, string | string[] | undefined>): URLSearchParams {
+export function searchParamsFromRecord(
+  record: Record<string, string | string[] | undefined>,
+): URLSearchParams {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(record)) {
     if (typeof value === "string") params.append(key, value);
@@ -186,7 +219,12 @@ export function searchParamsFromRecord(record: Record<string, string | string[] 
 }
 
 /** Absolute explorer URL for a repository with the given view state. */
-export function buildShareUrl(origin: string, owner: string, repo: string, state: ShareState): string {
+export function buildShareUrl(
+  origin: string,
+  owner: string,
+  repo: string,
+  state: ShareState,
+): string {
   const base = origin.replace(/\/+$/, "");
   const query = encodeShareState(state).toString();
   return `${base}${explorePath(owner, repo)}${query ? `?${query}` : ""}`;

@@ -12,14 +12,31 @@ import type { WorldLayout } from "@/engine/layout/types";
  * and read with `useExplorerStore.getState()` to avoid re-rendering React.
  */
 
-export type VisualMode = "architecture" | "dependencies" | "activity" | "contributors" | "complexity";
+export type VisualMode =
+  "architecture" | "dependencies" | "activity" | "contributors" | "complexity";
 
 export const VISUAL_MODES: ReadonlyArray<{ id: VisualMode; label: string; description: string }> = [
-  { id: "architecture", label: "Architecture", description: "Directories as districts, files colored by language." },
-  { id: "dependencies", label: "Dependencies", description: "Emphasize import relationships between files." },
+  {
+    id: "architecture",
+    label: "Architecture",
+    description: "Directories as districts, files colored by language.",
+  },
+  {
+    id: "dependencies",
+    label: "Dependencies",
+    description: "Emphasize import relationships between files.",
+  },
   { id: "activity", label: "Activity", description: "Brighter buildings changed more recently." },
-  { id: "contributors", label: "Contributors", description: "Highlight files touched by a contributor." },
-  { id: "complexity", label: "Complexity", description: "Emphasize large files with many symbols and dependencies." },
+  {
+    id: "contributors",
+    label: "Contributors",
+    description: "Highlight files touched by a contributor.",
+  },
+  {
+    id: "complexity",
+    label: "Complexity",
+    description: "Emphasize large files with many symbols and dependencies.",
+  },
 ];
 
 export type NavigationMode = "orbit" | "explore";
@@ -165,7 +182,12 @@ let commandNonce = 0;
 
 type ModeTransition = Pick<
   ExplorerState,
-  "visualMode" | "showDependencies" | "dependenciesFromMode" | "timeline" | "panels" | "modeBeforeTimeline"
+  | "visualMode"
+  | "showDependencies"
+  | "dependenciesFromMode"
+  | "timeline"
+  | "panels"
+  | "modeBeforeTimeline"
 >;
 
 /** State changes of switching to `mode`, including the tools the mode brings along. */
@@ -174,7 +196,11 @@ function modeTransition(state: ExplorerState, mode: VisualMode): ModeTransition 
   if (mode === "dependencies" && !showDependencies) {
     showDependencies = true;
     dependenciesFromMode = true;
-  } else if (mode !== "dependencies" && state.visualMode === "dependencies" && dependenciesFromMode) {
+  } else if (
+    mode !== "dependencies" &&
+    state.visualMode === "dependencies" &&
+    dependenciesFromMode
+  ) {
     // Lines the mode turned on leave with it; lines the user turned on stay.
     showDependencies = false;
     dependenciesFromMode = false;
@@ -220,7 +246,8 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
       // layout hook recomputes it and swaps it in once ready.
       layout: sameRepository ? previous.layout : null,
       // Drop selection/hover that no longer resolve in the new graph.
-      selection: previous.selection && nodeExists(index, previous.selection) ? previous.selection : null,
+      selection:
+        previous.selection && nodeExists(index, previous.selection) ? previous.selection : null,
       hovered: null,
       focusedDirectoryId:
         previous.focusedDirectoryId && index.directoriesById.has(previous.focusedDirectoryId)
@@ -256,7 +283,10 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
   setVisualMode: (mode) => set((state) => modeTransition(state, mode)),
 
   toggleDependencies: (value) =>
-    set((state) => ({ showDependencies: value ?? !state.showDependencies, dependenciesFromMode: false })),
+    set((state) => ({
+      showDependencies: value ?? !state.showDependencies,
+      dependenciesFromMode: false,
+    })),
 
   setDependencyDirection: (dependencyDirection) => set({ dependencyDirection }),
 
@@ -273,12 +303,17 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
     set((state) => {
       const timeline = { ...state.timeline, ...patch };
       if (timeline.active && !state.timeline.active && state.visualMode !== "activity") {
-        return { ...modeTransition(state, "activity"), timeline, modeBeforeTimeline: state.visualMode };
+        return {
+          ...modeTransition(state, "activity"),
+          timeline,
+          modeBeforeTimeline: state.visualMode,
+        };
       }
       if (!timeline.active && state.timeline.active && state.modeBeforeTimeline) {
         // Restore only if the user is still in the Activity mode the timeline chose, and
         // without re-opening the mode's panels (contributors) the user may have closed.
-        const restored = state.visualMode === "activity" ? modeTransition(state, state.modeBeforeTimeline) : null;
+        const restored =
+          state.visualMode === "activity" ? modeTransition(state, state.modeBeforeTimeline) : null;
         return { ...restored, timeline, panels: state.panels, modeBeforeTimeline: null };
       }
       return { timeline };
@@ -292,7 +327,8 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
 
   setPanel: (panel, open) => set((state) => ({ panels: { ...state.panels, [panel]: open } })),
 
-  togglePanel: (panel) => set((state) => ({ panels: { ...state.panels, [panel]: !state.panels[panel] } })),
+  togglePanel: (panel) =>
+    set((state) => ({ panels: { ...state.panels, [panel]: !state.panels[panel] } })),
 
   openCodeViewer: (codeViewer) => {
     if (!get().index?.filesById.has(codeViewer.fileId)) return;
@@ -311,7 +347,9 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
 // ─── Selectors ──────────────────────────────────────────────────────────────
 
 export const selectSelectedFile = (state: ExplorerState) =>
-  state.selection?.kind === "file" ? (state.index?.filesById.get(state.selection.id) ?? null) : null;
+  state.selection?.kind === "file"
+    ? (state.index?.filesById.get(state.selection.id) ?? null)
+    : null;
 
 export const selectSelectedDirectory = (state: ExplorerState) =>
   state.selection?.kind === "directory"
@@ -319,7 +357,9 @@ export const selectSelectedDirectory = (state: ExplorerState) =>
     : null;
 
 export const selectSelectedSymbol = (state: ExplorerState) =>
-  state.selection?.kind === "symbol" ? (state.index?.symbolsById.get(state.selection.id) ?? null) : null;
+  state.selection?.kind === "symbol"
+    ? (state.index?.symbolsById.get(state.selection.id) ?? null)
+    : null;
 
 /** True when any modal overlay that should capture keyboard input is open. */
 export const selectHasBlockingOverlay = (state: ExplorerState) =>

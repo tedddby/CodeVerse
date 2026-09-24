@@ -22,10 +22,19 @@ function lines(): Line[] {
     [{ text: "# Run it locally", tone: "comment" }],
     [{ text: "$ ", tone: "prompt" }, { text: "git clone " }, { text: cloneUrl, tone: "value" }],
     [{ text: "$ ", tone: "prompt" }, { text: `cd ${directory} && pnpm install` }],
-    [{ text: "$ ", tone: "prompt" }, { text: "pnpm dev" }, { text: "   # http://localhost:3000", tone: "comment" }],
+    [
+      { text: "$ ", tone: "prompt" },
+      { text: "pnpm dev" },
+      { text: "   # http://localhost:3000", tone: "comment" },
+    ],
     [],
     [{ text: "# Or ship the Docker image", tone: "comment" }],
-    [{ text: "$ ", tone: "prompt" }, { text: "docker build " }, { text: "-t", tone: "flag" }, { text: ` ${directory} .` }],
+    [
+      { text: "$ ", tone: "prompt" },
+      { text: "docker build " },
+      { text: "-t", tone: "flag" },
+      { text: ` ${directory} .` },
+    ],
     [
       { text: "$ ", tone: "prompt" },
       { text: "docker run " },

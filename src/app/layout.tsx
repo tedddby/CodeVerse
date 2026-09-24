@@ -12,7 +12,14 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   applicationName: siteConfig.name,
-  keywords: ["code visualization", "3D", "GitHub", "software architecture", "dependency graph", "codebase explorer"],
+  keywords: [
+    "code visualization",
+    "3D",
+    "GitHub",
+    "software architecture",
+    "dependency graph",
+    "codebase explorer",
+  ],
   openGraph: {
     type: "website",
     siteName: siteConfig.name,
@@ -34,7 +41,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
     <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}>
-      <body className="min-h-full bg-void text-ink">{children}</body>
+      <body className="bg-void text-ink min-h-full">{children}</body>
     </html>
   );
 }

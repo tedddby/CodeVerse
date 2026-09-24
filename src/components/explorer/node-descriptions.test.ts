@@ -18,12 +18,18 @@ beforeEach(() => {
 
 describe("describeSelection", () => {
   it("describes files, directories, the root and symbols", () => {
-    expect(describeSelection(fileRef("src/auth/auth.ts"), index)).toBe("Selected file src/auth/auth.ts, TypeScript, 842 lines");
+    expect(describeSelection(fileRef("src/auth/auth.ts"), index)).toBe(
+      "Selected file src/auth/auth.ts, TypeScript, 842 lines",
+    );
     expect(describeSelection(fileRef("docs/diagrams/overview.png"), index)).toBe(
       "Selected file docs/diagrams/overview.png, Other, binary file",
     );
-    expect(describeSelection(directoryRef("src/auth"), index)).toBe("Selected directory src/auth, 4 files");
-    expect(describeSelection({ kind: "directory", id: "dir:" }, index)).toMatch(/^Selected repository root codeverse-demo\/acme-platform, \d+ files$/);
+    expect(describeSelection(directoryRef("src/auth"), index)).toBe(
+      "Selected directory src/auth, 4 files",
+    );
+    expect(describeSelection({ kind: "directory", id: "dir:" }, index)).toMatch(
+      /^Selected repository root codeverse-demo\/acme-platform, \d+ files$/,
+    );
     expect(describeSelection(symbolRef("src/auth/auth.ts", "authenticate", 44), index)).toBe(
       "Selected method authenticate in src/auth/auth.ts, lines 44–120",
     );
@@ -41,12 +47,21 @@ describe("file metrics", () => {
     const auth = index.filesById.get("file:src/auth/auth.ts");
     const invoice = index.filesById.get("file:services/billing/invoice.go");
     expect(auth && countFileSymbols(auth, index)).toEqual({ functions: 6, classes: 1, total: 8 });
-    expect(invoice && countFileSymbols(invoice, index)).toEqual({ functions: 1, classes: 1, total: 2 });
+    expect(invoice && countFileSymbols(invoice, index)).toEqual({
+      functions: 1,
+      classes: 1,
+      total: 2,
+    });
   });
 
   it("lists distinct dependents", () => {
     expect(dependentFileIds("file:src/lib/config.ts", index).sort()).toEqual(
-      ["file:src/auth/jwt.ts", "file:src/index.ts", "file:src/lib/db.ts", "file:src/payments/stripe.ts"].sort(),
+      [
+        "file:src/auth/jwt.ts",
+        "file:src/index.ts",
+        "file:src/lib/db.ts",
+        "file:src/payments/stripe.ts",
+      ].sort(),
     );
   });
 

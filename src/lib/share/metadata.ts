@@ -16,7 +16,10 @@ export type RepositoryMetadataSource = Pick<RepositoryInfo, "fullName" | "stars"
  * null on timeout or on ANY error. Never rejects: callers use it for optional
  * enrichment that must not break a page.
  */
-export async function withTimeout<T>(task: (signal: AbortSignal) => Promise<T>, timeoutMs: number): Promise<T | null> {
+export async function withTimeout<T>(
+  task: (signal: AbortSignal) => Promise<T>,
+  timeoutMs: number,
+): Promise<T | null> {
   const controller = new AbortController();
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<null>((resolve) => {
@@ -58,12 +61,14 @@ export function truncateText(value: string, maxLength: number): string {
  * fetch emoji artwork from a CDN at render time, which can fail or stall.
  */
 export function stripEmoji(value: string): string {
-  return value
-    .replace(/\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1f3fb}-\u{1f3ff}‍︎️⃣]/gu, "")
-    // GitHub emoji shortcodes such as ":rocket:" (only as standalone words).
-    .replace(/(^|\s):[a-z0-9_+-]{2,40}:(?=\s|$)/g, "$1")
-    .replace(/\s{2,}/g, " ")
-    .trim();
+  return (
+    value
+      .replace(/\p{Extended_Pictographic}|\p{Regional_Indicator}|[\u{1f3fb}-\u{1f3ff}‍︎️⃣]/gu, "")
+      // GitHub emoji shortcodes such as ":rocket:" (only as standalone words).
+      .replace(/(^|\s):[a-z0-9_+-]{2,40}:(?=\s|$)/g, "$1")
+      .replace(/\s{2,}/g, " ")
+      .trim()
+  );
 }
 
 /** "A declarative UI library · 238.4K stars · TypeScript" (description truncated to ~180 characters). */

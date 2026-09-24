@@ -81,7 +81,13 @@ export function projectCityMap(
   const offsetX = (options.width - spanX * scale) / 2 - bounds.minX * scale;
   const offsetY = (options.height - spanZ * scale) / 2 - bounds.minZ * scale;
 
-  const project = (x: number, z: number, width: number, depth: number, minSize: number): ThumbnailRect => {
+  const project = (
+    x: number,
+    z: number,
+    width: number,
+    depth: number,
+    minSize: number,
+  ): ThumbnailRect => {
     const w = Math.min(Math.max(width * scale, minSize), options.width);
     const h = Math.min(Math.max(depth * scale, minSize), options.height);
     const clampedX = Math.min(Math.max(offsetX + x * scale - w / 2, 0), options.width - w);
@@ -95,7 +101,10 @@ export function projectCityMap(
       area: district.width * district.depth,
       rect: project(district.x, district.z, district.width, district.depth, 0),
     }))
-    .filter((district) => district.rect.width >= MIN_DISTRICT_PX && district.rect.height >= MIN_DISTRICT_PX)
+    .filter(
+      (district) =>
+        district.rect.width >= MIN_DISTRICT_PX && district.rect.height >= MIN_DISTRICT_PX,
+    )
     .sort((a, b) => b.area - a.area || a.level - b.level)
     .slice(0, maxDistricts)
     // Parents first so nested districts draw on top.
@@ -103,10 +112,14 @@ export function projectCityMap(
     .map(({ level, rect }) => ({ ...rect, level }));
 
   let maxHeight = 0;
-  for (const building of layout.buildings) if (building.height > maxHeight) maxHeight = building.height;
+  for (const building of layout.buildings)
+    if (building.height > maxHeight) maxHeight = building.height;
 
   const buildings = [...layout.buildings]
-    .sort((a, b) => b.width * b.depth * b.height - a.width * a.depth * a.height || a.id.localeCompare(b.id))
+    .sort(
+      (a, b) =>
+        b.width * b.depth * b.height - a.width * a.depth * a.height || a.id.localeCompare(b.id),
+    )
     .slice(0, maxBuildings)
     .map((building) => ({
       ...project(building.x, building.z, building.width, building.depth, MIN_BUILDING_PX),
@@ -197,11 +210,21 @@ function sliceRegion(region: Region, weights: number[], gap: number): Region[] {
  * Generates a deterministic abstract city (treemap districts filled with a
  * grid of buildings) from a seed string and an accent color.
  */
-export function generateAbstractMap(seedText: string, accentColor: string, box: ThumbnailBox & { maxBuildings?: number }): OgThumbnail {
+export function generateAbstractMap(
+  seedText: string,
+  accentColor: string,
+  box: ThumbnailBox & { maxBuildings?: number },
+): OgThumbnail {
   const random = seededRandom(hashString(seedText));
   const padding = box.padding ?? 12;
   const maxBuildings = box.maxBuildings ?? 900;
-  const palette = [accentColor, shadeColor(accentColor, 0.35), shadeColor(accentColor, -0.25), "#4de2ff", "#9b8cff"];
+  const palette = [
+    accentColor,
+    shadeColor(accentColor, 0.35),
+    shadeColor(accentColor, -0.25),
+    "#4de2ff",
+    "#9b8cff",
+  ];
 
   const root: Region = {
     x: padding,
@@ -250,7 +273,10 @@ export function generateAbstractMap(seedText: string, accentColor: string, box: 
           y: round(leaf.y + inset + row * (cell + gap) + (cell - size) / 2),
           width: round(size),
           height: round(size),
-          color: random() < 0.8 ? districtColor : (palette[Math.floor(random() * palette.length)] ?? accentColor),
+          color:
+            random() < 0.8
+              ? districtColor
+              : (palette[Math.floor(random() * palette.length)] ?? accentColor),
           opacity: round(0.3 + random() * 0.7),
         });
       }

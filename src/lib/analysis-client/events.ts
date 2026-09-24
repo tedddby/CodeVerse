@@ -20,7 +20,13 @@ import { GRAPH_SCHEMA_VERSION, type RepositoryGraph } from "@/graph/model/types"
  */
 
 const STAGE_IDS: ReadonlySet<string> = new Set(ANALYSIS_STAGES);
-const STAGE_STATUSES: ReadonlySet<string> = new Set<StageStatus>(["start", "progress", "done", "skipped", "warning"]);
+const STAGE_STATUSES: ReadonlySet<string> = new Set<StageStatus>([
+  "start",
+  "progress",
+  "done",
+  "skipped",
+  "warning",
+]);
 const ERROR_CODES: ReadonlySet<string> = new Set(Object.keys(ERROR_COPY));
 
 /** Longest stage message kept; longer messages are truncated with an ellipsis. */
@@ -55,11 +61,24 @@ export function isRepositoryGraphLike(value: unknown): value is RepositoryGraph 
   if (!isRecord(value)) return false;
   if (value.schemaVersion !== GRAPH_SCHEMA_VERSION) return false;
   const repository = value.repository;
-  if (!isRecord(repository) || typeof repository.fullName !== "string" || typeof repository.id !== "string") {
+  if (
+    !isRecord(repository) ||
+    typeof repository.fullName !== "string" ||
+    typeof repository.id !== "string"
+  ) {
     return false;
   }
   if (typeof value.rootDirectoryId !== "string") return false;
-  const arrays = ["directories", "files", "symbols", "dependencies", "externalPackages", "commits", "contributors", "languages"];
+  const arrays = [
+    "directories",
+    "files",
+    "symbols",
+    "dependencies",
+    "externalPackages",
+    "commits",
+    "contributors",
+    "languages",
+  ];
   if (!arrays.every((key) => Array.isArray(value[key]))) return false;
   return isRecord(value.timeline) && isRecord(value.analysis);
 }
@@ -86,7 +105,10 @@ export function normalizeErrorPayload(value: unknown): AnalysisErrorPayload | nu
 }
 
 /** Builds an error payload from the canonical copy for a code, with an optional message override. */
-export function errorPayload(code: AnalysisErrorCode, overrides?: Partial<Omit<AnalysisErrorPayload, "code">>): AnalysisErrorPayload {
+export function errorPayload(
+  code: AnalysisErrorCode,
+  overrides?: Partial<Omit<AnalysisErrorPayload, "code">>,
+): AnalysisErrorPayload {
   return { code, ...ERROR_COPY[code], ...overrides };
 }
 
@@ -99,7 +121,11 @@ export function toAnalysisEvent(value: unknown): ParsedEventResult {
       if (typeof value.status !== "string" || !STAGE_STATUSES.has(value.status)) {
         return { ok: false, reason: "unknown stage status" };
       }
-      const event: StageEvent = { type: "stage", stage: value.stage, status: value.status as StageStatus };
+      const event: StageEvent = {
+        type: "stage",
+        stage: value.stage,
+        status: value.status as StageStatus,
+      };
       if (typeof value.progress === "number" && Number.isFinite(value.progress)) {
         event.progress = Math.min(1, Math.max(0, value.progress));
       }
@@ -120,7 +146,10 @@ export function toAnalysisEvent(value: unknown): ParsedEventResult {
     case "heartbeat":
       return { ok: true, event: { type: "heartbeat" } };
     default:
-      return { ok: false, reason: typeof value.type === "string" ? "unknown event type" : "missing event type" };
+      return {
+        ok: false,
+        reason: typeof value.type === "string" ? "unknown event type" : "missing event type",
+      };
   }
 }
 
@@ -173,7 +202,11 @@ export function extractErrorPayload(body: string): AnalysisErrorPayload | null {
  * Fallback error for an HTTP failure whose body carried no usable error payload.
  * `retryAfter` is the raw Retry-After header (seconds or HTTP date), when present.
  */
-export function errorFromHttpStatus(status: number, retryAfter?: string | null, now: number = Date.now()): AnalysisErrorPayload {
+export function errorFromHttpStatus(
+  status: number,
+  retryAfter?: string | null,
+  now: number = Date.now(),
+): AnalysisErrorPayload {
   let code: AnalysisErrorCode;
   if (status === 400 || status === 422) code = "INVALID_REPOSITORY";
   else if (status === 401) code = "UNAUTHORIZED";
@@ -191,7 +224,10 @@ export function errorFromHttpStatus(status: number, retryAfter?: string | null, 
 }
 
 /** Converts a Retry-After header (delta-seconds or HTTP date) to an ISO date. */
-export function parseRetryAfter(header: string | null | undefined, now: number = Date.now()): string | undefined {
+export function parseRetryAfter(
+  header: string | null | undefined,
+  now: number = Date.now(),
+): string | undefined {
   if (!header) return undefined;
   const trimmed = header.trim();
   if (/^\d{1,7}$/.test(trimmed)) return new Date(now + Number(trimmed) * 1000).toISOString();

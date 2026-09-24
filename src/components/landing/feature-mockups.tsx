@@ -56,7 +56,9 @@ function distinctLabels(files: readonly FileNode[]): Map<string, string> {
     const suffix = (path: string, count: number) => path.split("/").slice(-count).join("/");
     while (
       depth < parts.length &&
-      files.some((other) => other.id !== file.id && suffix(other.path, depth) === suffix(file.path, depth))
+      files.some(
+        (other) => other.id !== file.id && suffix(other.path, depth) === suffix(file.path, depth),
+      )
     ) {
       depth += 1;
     }
@@ -213,8 +215,7 @@ export function ActivityMockup() {
       <Surface className="px-3 py-2.5">
         <p className="truncate text-[12px] font-semibold text-(--lc-ink)">{latest?.message}</p>
         <p className="mt-0.5 flex items-center gap-1.5 text-[11px] text-(--lc-muted)">
-          <span>{latest ? formatDate(latest.date) : ""}</span>·
-          <span>{latest?.authorName}</span>·
+          <span>{latest ? formatDate(latest.date) : ""}</span>·<span>{latest?.authorName}</span>·
           <span>{formatInteger(latest?.fileIds?.length ?? 0)} files lit</span>
         </p>
       </Surface>
@@ -265,7 +266,10 @@ export function ContributorsMockup() {
             <span className="h-1.5 flex-1 rounded-full bg-(--lc-mist)">
               <span
                 className="block h-full rounded-full"
-                style={{ width: `${(contributor.contributions / max) * 100}%`, backgroundColor: color }}
+                style={{
+                  width: `${(contributor.contributions / max) * 100}%`,
+                  backgroundColor: color,
+                }}
               />
             </span>
             <span className="w-8 text-right text-[11px] text-(--lc-muted) tabular-nums">
@@ -345,7 +349,9 @@ export function SearchMockup() {
                 <span className="w-[44px] shrink-0 text-[10px] font-semibold text-(--lc-accent-strong)">
                   {symbol.kind}
                 </span>
-                <span className="shrink-0 font-mono text-[11px] text-(--lc-ink)">{symbol.name}</span>
+                <span className="shrink-0 font-mono text-[11px] text-(--lc-ink)">
+                  {symbol.name}
+                </span>
                 <span className="ml-auto min-w-0 truncate pl-2 font-mono text-[10px] text-(--lc-muted)">
                   {file?.name}:{symbol.startLine}
                 </span>
@@ -386,7 +392,13 @@ export function ShareMockup() {
           ))}
         </p>
         <span className="inline-flex h-7 shrink-0 items-center gap-1 rounded-md bg-(--lc-ink) px-2.5 text-[11px] font-semibold text-white">
-          <svg viewBox="0 0 12 12" className="size-3" fill="none" stroke="currentColor" strokeWidth={1.6}>
+          <svg
+            viewBox="0 0 12 12"
+            className="size-3"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth={1.6}
+          >
             <path d="M2.5 6.5 5 9l4.5-6" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
           Copied
@@ -396,7 +408,13 @@ export function ShareMockup() {
         {captured.map((item) => (
           <li key={item} className="flex items-center gap-1.5">
             <span className="inline-flex size-4 items-center justify-center rounded-full bg-[#e3f6ec] text-[#16794a]">
-              <svg viewBox="0 0 12 12" className="size-2.5" fill="none" stroke="currentColor" strokeWidth={2}>
+              <svg
+                viewBox="0 0 12 12"
+                className="size-2.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth={2}
+              >
                 <path d="M2.5 6.5 5 9l4.5-6" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             </span>
@@ -412,9 +430,24 @@ export function ShareMockup() {
 
 export function LargeRepositoryMockup() {
   const tiers = [
-    { name: "Full", range: `up to ${formatInteger(DEFAULT_LIMITS.tierFullMax)} files`, note: "everything parsed", tone: "bg-[#e9e6ff] text-(--lc-accent-strong)" },
-    { name: "Progressive", range: `to ${formatInteger(DEFAULT_LIMITS.tierProgressiveMax)}`, note: "source parsed first", tone: "bg-[#dff3fb] text-[#0b6b86]" },
-    { name: "Directory-first", range: `above ${formatInteger(DEFAULT_LIMITS.tierProgressiveMax)}`, note: `≤ ${formatInteger(DEFAULT_LIMITS.maxFiles)} buildings`, tone: "bg-[#fdeedd] text-[#9a5410]" },
+    {
+      name: "Full",
+      range: `up to ${formatInteger(DEFAULT_LIMITS.tierFullMax)} files`,
+      note: "everything parsed",
+      tone: "bg-[#e9e6ff] text-(--lc-accent-strong)",
+    },
+    {
+      name: "Progressive",
+      range: `to ${formatInteger(DEFAULT_LIMITS.tierProgressiveMax)}`,
+      note: "source parsed first",
+      tone: "bg-[#dff3fb] text-[#0b6b86]",
+    },
+    {
+      name: "Directory-first",
+      range: `above ${formatInteger(DEFAULT_LIMITS.tierProgressiveMax)}`,
+      note: `≤ ${formatInteger(DEFAULT_LIMITS.maxFiles)} buildings`,
+      tone: "bg-[#fdeedd] text-[#9a5410]",
+    },
   ] as const;
   return (
     <div className="flex h-full flex-col justify-center gap-3 px-5 sm:px-8">

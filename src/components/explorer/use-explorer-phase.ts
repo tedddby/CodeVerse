@@ -27,18 +27,27 @@ export interface ExplorerPhaseInput {
 }
 
 /** Pure phase derivation (exported for tests). */
-export function derivePhase(input: ExplorerPhaseInput & { minimumShown: boolean; entered: boolean }): ExplorerPhase {
+export function derivePhase(
+  input: ExplorerPhaseInput & { minimumShown: boolean; entered: boolean },
+): ExplorerPhase {
   if (input.status === "error") return "error";
   if (input.status !== "complete" || !input.worldReady || !input.minimumShown) return "loading";
   return input.entered ? "explorer" : "entering";
 }
 
-export function useExplorerPhase({ status, worldReady, reducedMotion }: ExplorerPhaseInput): ExplorerPhase {
+export function useExplorerPhase({
+  status,
+  worldReady,
+  reducedMotion,
+}: ExplorerPhaseInput): ExplorerPhase {
   const [minimumShown, setMinimumShown] = useState(false);
   const [entered, setEntered] = useState(false);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setMinimumShown(true), reducedMotion ? 0 : MIN_LOADING_MS);
+    const timer = window.setTimeout(
+      () => setMinimumShown(true),
+      reducedMotion ? 0 : MIN_LOADING_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [reducedMotion]);
 
@@ -46,7 +55,10 @@ export function useExplorerPhase({ status, worldReady, reducedMotion }: Explorer
 
   useEffect(() => {
     if (phase !== "entering") return;
-    const timer = window.setTimeout(() => setEntered(true), reducedMotion ? 0 : ENTER_TRANSITION_MS);
+    const timer = window.setTimeout(
+      () => setEntered(true),
+      reducedMotion ? 0 : ENTER_TRANSITION_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [phase, reducedMotion]);
 

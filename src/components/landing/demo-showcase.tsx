@@ -79,7 +79,7 @@ export function DemoShowcase() {
       <div
         aria-hidden="true"
         className={cn(
-          "absolute inset-x-0 top-0 -z-10 bottom-[300px] bg-(--lc-mist) sm:bottom-[360px] lg:bottom-[400px]",
+          "absolute inset-x-0 top-0 bottom-[300px] -z-10 bg-(--lc-mist) sm:bottom-[360px] lg:bottom-[400px]",
           styles.skewBottom,
         )}
       />

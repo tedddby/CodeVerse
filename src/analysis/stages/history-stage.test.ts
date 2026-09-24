@@ -10,7 +10,12 @@ import {
 const limits = { maxCommits: 300, maxCommitDetails: 40 };
 
 function quota(remaining: number, authenticated: boolean): RateLimitSnapshot {
-  return { limit: authenticated ? 5000 : 60, remaining, resetAt: "2026-09-23T19:00:00.000Z", authenticated };
+  return {
+    limit: authenticated ? 5000 : 60,
+    remaining,
+    resetAt: "2026-09-23T19:00:00.000Z",
+    authenticated,
+  };
 }
 
 describe("planHistoryBudget", () => {

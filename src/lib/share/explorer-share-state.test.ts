@@ -2,7 +2,12 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { fileRef, loadMockGraph, resetExplorerStore } from "@/components/explorer/test-utils";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import { useExplorerStore } from "@/state/explorer-store";
-import { applyShareState, captureShareState, hasViewState, socialImagePath } from "./explorer-share-state";
+import {
+  applyShareState,
+  captureShareState,
+  hasViewState,
+  socialImagePath,
+} from "./explorer-share-state";
 import { decodeShareState, encodeShareState } from "./url-state";
 
 const allOptions = { includeCamera: true, includeSelection: true, pinCommit: false };
@@ -55,7 +60,14 @@ describe("captureShareState", () => {
       requestedRef: "main",
     });
     expect(share).toEqual({ ref: mockRepositoryGraph.repository.commitSha });
-    expect(captureShareState(useExplorerStore.getState(), { ...allOptions, includeCamera: false, includeSelection: false, requestedRef: "develop" })).toEqual({
+    expect(
+      captureShareState(useExplorerStore.getState(), {
+        ...allOptions,
+        includeCamera: false,
+        includeSelection: false,
+        requestedRef: "develop",
+      }),
+    ).toEqual({
       ref: "develop",
     });
   });
@@ -88,7 +100,11 @@ describe("applyShareState", () => {
   it("lets an explicit mode override the contributor's implied mode and applies the timeline", () => {
     applyShareState(
       useExplorerStore.getState(),
-      { contributor: mockRepositoryGraph.contributors[0]?.id, mode: "complexity", t: 1_700_000_000_000 },
+      {
+        contributor: mockRepositoryGraph.contributors[0]?.id,
+        mode: "complexity",
+        t: 1_700_000_000_000,
+      },
       { worldEnabled: true },
     );
     const state = useExplorerStore.getState();
@@ -99,7 +115,10 @@ describe("applyShareState", () => {
   it("round-trips the timeline in the mode it was shared in", () => {
     const store = useExplorerStore.getState();
     store.setTimeline({ active: true, cursor: 1_700_000_000_000 });
-    expect(captureShareState(useExplorerStore.getState(), allOptions)).toEqual({ mode: "activity", t: 1_700_000_000_000 });
+    expect(captureShareState(useExplorerStore.getState(), allOptions)).toEqual({
+      mode: "activity",
+      t: 1_700_000_000_000,
+    });
 
     // The user may switch mode while the timeline stays open; the link names that mode.
     store.setVisualMode("architecture");

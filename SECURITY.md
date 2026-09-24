@@ -110,7 +110,7 @@ Every response carries security headers (see `next.config.ts`):
 ## Operator responsibilities
 
 - **Always run behind a reverse proxy, and tell CodeVerse how many there are.** Proxies such as nginx
-  (`$proxy_add_x_forwarded_for`), cloud load balancers and Vercel *append* the client address to
+  (`$proxy_add_x_forwarded_for`), cloud load balancers and Vercel _append_ the client address to
   `X-Forwarded-For`, and whatever a client sends ends up at the left of that list. Rate limiting therefore reads
   the address `CODEVERSE_TRUSTED_PROXY_HOPS` entries from the right (default `1`), or a header your platform
   overwrites on every request (`CODEVERSE_CLIENT_IP_HEADER`, e.g. `x-real-ip`). Next.js only fills

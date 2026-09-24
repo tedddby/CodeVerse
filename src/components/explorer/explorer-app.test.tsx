@@ -4,7 +4,10 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ERROR_COPY, encodeEvent } from "@/analysis/protocol";
 import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
-import { createChunkedResponse, createControlledResponse } from "@/lib/analysis-client/test-helpers";
+import {
+  createChunkedResponse,
+  createControlledResponse,
+} from "@/lib/analysis-client/test-helpers";
 import type { ShareState } from "@/lib/share/url-state";
 import { useExplorerStore } from "@/state/explorer-store";
 import { ExplorerApp } from "./explorer-app";
@@ -20,7 +23,11 @@ import { fileRef, resetExplorerStore } from "./test-utils";
 
 vi.mock("@/engine/rendering/universe-canvas", () => ({
   default: ({ interactive, autoRotate }: { interactive?: boolean; autoRotate?: boolean }) => (
-    <div data-testid="universe-canvas" data-interactive={String(interactive)} data-auto-rotate={String(autoRotate)} />
+    <div
+      data-testid="universe-canvas"
+      data-interactive={String(interactive)}
+      data-auto-rotate={String(autoRotate)}
+    />
   ),
 }));
 vi.mock("@/components/minimap/minimap", () => ({ Minimap: () => null }));
@@ -29,7 +36,14 @@ vi.mock("@/components/overlays/repository-summary", () => ({
     standalone ? <article data-testid="summary-standalone" /> : null,
 }));
 vi.mock("next/navigation", () => ({
-  useRouter: () => ({ push: vi.fn(), replace: vi.fn(), prefetch: vi.fn(), back: vi.fn(), forward: vi.fn(), refresh: vi.fn() }),
+  useRouter: () => ({
+    push: vi.fn(),
+    replace: vi.fn(),
+    prefetch: vi.fn(),
+    back: vi.fn(),
+    forward: vi.fn(),
+    refresh: vi.fn(),
+  }),
   usePathname: () => "/explore/codeverse-demo/acme-platform",
   useSearchParams: () => new URLSearchParams(),
 }));
@@ -52,7 +66,9 @@ function stubEnvironment({ webgl }: { webgl: boolean }) {
     dispatchEvent: () => false,
   }));
   vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockImplementation(((kind: string) =>
-    webgl && kind === "webgl2" ? { getParameter: () => null, getExtension: () => null } : null) as never);
+    webgl && kind === "webgl2"
+      ? { getParameter: () => null, getExtension: () => null }
+      : null) as never);
 }
 
 function completeStream() {
@@ -67,10 +83,16 @@ function renderApp(initialShareState: ShareState = {}) {
 }
 
 async function waitForExplorer() {
-  await waitFor(() => expect(screen.getByRole("navigation", { name: "Explorer tools" })).toBeInTheDocument(), {
-    timeout: 5_000,
-  });
-  await waitFor(() => expect(screen.queryByText("CodeVerse · Mission control")).not.toBeInTheDocument(), { timeout: 5_000 });
+  await waitFor(
+    () => expect(screen.getByRole("navigation", { name: "Explorer tools" })).toBeInTheDocument(),
+    {
+      timeout: 5_000,
+    },
+  );
+  await waitFor(
+    () => expect(screen.queryByText("CodeVerse · Mission control")).not.toBeInTheDocument(),
+    { timeout: 5_000 },
+  );
 }
 
 beforeEach(() => {
@@ -96,7 +118,12 @@ describe("ExplorerApp", () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`/api/analyze/${OWNER}/${REPO}`);
 
     act(() => {
-      control.pushEvent({ type: "stage", stage: "connect", status: "done", message: "Repository found" });
+      control.pushEvent({
+        type: "stage",
+        stage: "connect",
+        status: "done",
+        message: "Repository found",
+      });
       control.pushEvent({ type: "preview", graph: mockRepositoryGraph });
     });
     expect(await screen.findByText("Repository found")).toBeInTheDocument();
@@ -109,13 +136,20 @@ describe("ExplorerApp", () => {
     });
     await waitForExplorer();
 
-    const world = screen.getByRole("application", { name: `Interactive 3D map of ${OWNER}/${REPO}` });
-    expect(within(world).getByTestId("universe-canvas")).toHaveAttribute("data-interactive", "true");
+    const world = screen.getByRole("application", {
+      name: `Interactive 3D map of ${OWNER}/${REPO}`,
+    });
+    expect(within(world).getByTestId("universe-canvas")).toHaveAttribute(
+      "data-interactive",
+      "true",
+    );
     expect(screen.getByRole("group", { name: "Visual mode" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Parsed \d+ of \d+ files/ })).toBeInTheDocument();
     // Without a shared viewpoint, the camera flies from the backdrop orbit to the overview.
     expect(useExplorerStore.getState().cameraCommand).toMatchObject({ type: "reset" });
-    expect(useExplorerStore.getState().layout?.buildings).toHaveLength(mockRepositoryGraph.files.length);
+    expect(useExplorerStore.getState().layout?.buildings).toHaveLength(
+      mockRepositoryGraph.files.length,
+    );
   });
 
   it("restores shared view state once the explorer opens", async () => {
@@ -132,8 +166,14 @@ describe("ExplorerApp", () => {
     const state = useExplorerStore.getState();
     expect(state.visualMode).toBe("dependencies");
     expect(state.selection).toEqual(fileRef("src/auth/auth.ts"));
-    expect(state.cameraCommand).toMatchObject({ type: "set-pose", animate: false, pose: { position: [40, 60, 40] } });
-    expect(within(screen.getByRole("complementary", { name: "Selection details" })).getByText("auth.ts")).toBeInTheDocument();
+    expect(state.cameraCommand).toMatchObject({
+      type: "set-pose",
+      animate: false,
+      pose: { position: [40, 60, 40] },
+    });
+    expect(
+      within(screen.getByRole("complementary", { name: "Selection details" })).getByText("auth.ts"),
+    ).toBeInTheDocument();
   });
 
   it("handles keyboard shortcuts once the explorer is open", async () => {
@@ -152,11 +192,16 @@ describe("ExplorerApp", () => {
     const user = userEvent.setup();
     fetchMock
       .mockResolvedValueOnce(
-        createChunkedResponse([encodeEvent({ type: "error", error: { code: "NOT_FOUND", ...ERROR_COPY.NOT_FOUND } })], { status: 404 }),
+        createChunkedResponse(
+          [encodeEvent({ type: "error", error: { code: "NOT_FOUND", ...ERROR_COPY.NOT_FOUND } })],
+          { status: 404 },
+        ),
       )
       .mockResolvedValueOnce(completeStream());
     renderApp();
-    expect(await screen.findByRole("heading", { name: "Repository not found." })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: "Repository not found." }),
+    ).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Try again" }));
     await waitForExplorer();
     expect(fetchMock).toHaveBeenCalledTimes(2);

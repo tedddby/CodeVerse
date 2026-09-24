@@ -34,7 +34,13 @@ import {
   type SymbolNode,
   type TimelineBucket,
 } from "@/graph/model/types";
-import { detectCategory, detectLanguage, isBinaryPath, isGeneratedPath, isParseableLanguage } from "@/lib/languages/registry";
+import {
+  detectCategory,
+  detectLanguage,
+  isBinaryPath,
+  isGeneratedPath,
+  isParseableLanguage,
+} from "@/lib/languages/registry";
 
 export interface FixtureSymbolSpec {
   kind: SymbolKind;
@@ -139,7 +145,10 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
   const files: FileNode[] = [];
   const symbols: SymbolNode[] = [];
   const filePaths = new Set(sortedSpecs.map((f) => f.path));
-  const externalCounts = new Map<string, { importCount: number; files: Set<string>; language: string }>();
+  const externalCounts = new Map<
+    string,
+    { importCount: number; files: Set<string>; language: string }
+  >();
   const edgeWeights = new Map<string, DependencyEdge>();
 
   for (const fileSpec of sortedSpecs) {
@@ -148,7 +157,8 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
     const id = fileId(fileSpec.path);
     const binary = isBinaryPath(fileSpec.path);
     const status: FileAnalysisStatus =
-      fileSpec.status ?? (binary ? "binary" : isParseableLanguage(language.id) ? "parsed" : "content-only");
+      fileSpec.status ??
+      (binary ? "binary" : isParseableLanguage(language.id) ? "parsed" : "content-only");
 
     const symbolIds: string[] = [];
     const idByName = new Map<string, string>();
@@ -172,21 +182,33 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
     const imports = (fileSpec.imports ?? []).map((specifier, i) => {
       if (specifier.startsWith("pkg:")) {
         const name = specifier.slice(4);
-        const entry = externalCounts.get(name) ?? { importCount: 0, files: new Set<string>(), language: language.id };
+        const entry = externalCounts.get(name) ?? {
+          importCount: 0,
+          files: new Set<string>(),
+          language: language.id,
+        };
         entry.importCount += 1;
         entry.files.add(id);
         externalCounts.set(name, entry);
         return { specifier: name, kind: "import" as const, line: i + 1, external: true };
       }
       if (!filePaths.has(specifier)) {
-        throw new Error(`Fixture import "${specifier}" in ${fileSpec.path} does not match any fixture file`);
+        throw new Error(
+          `Fixture import "${specifier}" in ${fileSpec.path} does not match any fixture file`,
+        );
       }
       const target = fileId(specifier);
       const edgeId = dependencyEdgeId("import", id, target);
       const existing = edgeWeights.get(edgeId);
       if (existing) existing.weight += 1;
       else edgeWeights.set(edgeId, { id: edgeId, source: id, target, kind: "import", weight: 1 });
-      return { specifier: `./${specifier}`, kind: "import" as const, line: i + 1, resolvedFileId: target, external: false };
+      return {
+        specifier: `./${specifier}`,
+        kind: "import" as const,
+        line: i + 1,
+        resolvedFileId: target,
+        external: false,
+      };
     });
 
     const size = fileSpec.size ?? fileSpec.lines * 32;
@@ -245,7 +267,8 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
           activity.lastModified = date;
           activity.lastAuthorId = author?.id;
         }
-        if (author && !activity.contributorIds.includes(author.id)) activity.contributorIds.push(author.id);
+        if (author && !activity.contributorIds.includes(author.id))
+          activity.contributorIds.push(author.id);
         file.activity = activity;
       }
       return {
@@ -262,7 +285,9 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
     .sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
 
   // ── Directory stats (post-order) ──
-  const dirList = [...directories.values()].sort((a, b) => b.depth - a.depth || a.path.localeCompare(b.path));
+  const dirList = [...directories.values()].sort(
+    (a, b) => b.depth - a.depth || a.path.localeCompare(b.path),
+  );
   const dirById = new Map(dirList.map((d) => [d.id, d] as const));
   const fileById = new Map(files.map((f) => [f.id, f] as const));
   for (const dir of dirList) {
@@ -298,7 +323,9 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
   // ── Languages ──
   const totalBytes = files.reduce((sum, f) => sum + f.size, 0) || 1;
   // Like production (and GitHub Linguist): generated, vendored and binary files don't count.
-  const ownFiles = files.filter((f) => !f.isGenerated && f.status !== "binary" && f.category !== "vendor");
+  const ownFiles = files.filter(
+    (f) => !f.isGenerated && f.status !== "binary" && f.category !== "vendor",
+  );
   const languageFiles = ownFiles.length > 0 ? ownFiles : files;
   const languageBytes = languageFiles.reduce((sum, f) => sum + f.size, 0) || 1;
   const languageMap = new Map<string, LanguageStat>();
@@ -306,7 +333,16 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
     const info = detectLanguage(file.path);
     const stat =
       languageMap.get(info.id) ??
-      ({ id: info.id, name: info.name, color: info.color, files: 0, bytes: 0, lines: 0, share: 0, parseable: isParseableLanguage(info.id) } satisfies LanguageStat);
+      ({
+        id: info.id,
+        name: info.name,
+        color: info.color,
+        files: 0,
+        bytes: 0,
+        lines: 0,
+        share: 0,
+        parseable: isParseableLanguage(info.id),
+      } satisfies LanguageStat);
     stat.files += 1;
     stat.bytes += file.size;
     stat.lines += file.lines;
@@ -327,18 +363,30 @@ export function buildFixtureGraph(spec: FixtureSpec): RepositoryGraph {
         const time = Date.parse(c.date);
         return time >= t && time < end;
       }).length;
-      buckets.push({ start: new Date(t).toISOString(), end: new Date(end).toISOString(), commits: count });
+      buckets.push({
+        start: new Date(t).toISOString(),
+        end: new Date(end).toISOString(),
+        commits: count,
+      });
     }
   }
 
   const dependencies = [...edgeWeights.values()].sort((a, b) => a.id.localeCompare(b.id));
   const externalPackages: ExternalPackage[] = [...externalCounts.entries()]
-    .map(([name, v]) => ({ name, importCount: v.importCount, fileCount: v.files.size, language: v.language }))
+    .map(([name, v]) => ({
+      name,
+      importCount: v.importCount,
+      fileCount: v.files.size,
+      language: v.language,
+    }))
     .sort((a, b) => b.importCount - a.importCount || a.name.localeCompare(b.name));
 
   const count = (status: FileAnalysisStatus) => files.filter((f) => f.status === status).length;
   const importsFound = files.reduce((sum, f) => sum + f.imports.length, 0);
-  const externalImports = files.reduce((sum, f) => sum + f.imports.filter((i) => i.external).length, 0);
+  const externalImports = files.reduce(
+    (sum, f) => sum + f.imports.filter((i) => i.external).length,
+    0,
+  );
 
   return {
     schemaVersion: GRAPH_SCHEMA_VERSION,
@@ -437,7 +485,28 @@ export function createSyntheticGraph(options: SyntheticOptions): RepositoryGraph
   const random = mulberry32(options.seed ?? 42);
   const filesPerDirectory = options.filesPerDirectory ?? 12;
   const extensions = ["ts", "tsx", "js", "py", "go", "rs", "java", "md", "json", "css"];
-  const words = ["core", "api", "auth", "ui", "data", "utils", "net", "io", "render", "server", "client", "store", "model", "view", "cli", "plugins", "compiler", "runtime", "shared", "tests"];
+  const words = [
+    "core",
+    "api",
+    "auth",
+    "ui",
+    "data",
+    "utils",
+    "net",
+    "io",
+    "render",
+    "server",
+    "client",
+    "store",
+    "model",
+    "view",
+    "cli",
+    "plugins",
+    "compiler",
+    "runtime",
+    "shared",
+    "tests",
+  ];
 
   const directoriesList: string[] = [""];
   const files: FixtureFileSpec[] = [];
@@ -458,7 +527,13 @@ export function createSyntheticGraph(options: SyntheticOptions): RepositoryGraph
     const symbolsSpec: FixtureSymbolSpec[] = [];
     for (let s = 0; s < symbolCount; s += 1) {
       const start = Math.floor((s / Math.max(1, symbolCount)) * lines) + 1;
-      symbolsSpec.push({ kind: s % 3 === 0 ? "class" : "function", name: `sym${i}_${s}`, start, end: Math.min(lines, start + 5), exported: s % 2 === 0 });
+      symbolsSpec.push({
+        kind: s % 3 === 0 ? "class" : "function",
+        name: `sym${i}_${s}`,
+        start,
+        end: Math.min(lines, start + 5),
+        exported: s % 2 === 0,
+      });
     }
     files.push({ path, lines, symbols: symbolsSpec });
   }

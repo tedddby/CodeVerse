@@ -75,14 +75,24 @@ export function Panel({
       ref={setRoot}
       aria-label={ariaLabel}
       aria-labelledby={ariaLabel || Component === "div" ? undefined : titleId}
-      className={cn("glass flex max-h-full flex-col overflow-hidden rounded-2xl shadow-2xl", className)}
+      className={cn(
+        "glass flex max-h-full flex-col overflow-hidden rounded-2xl shadow-2xl",
+        className,
+      )}
     >
-      <header className="flex items-start justify-between gap-3 border-b border-line/80 px-4 py-3">
+      <header className="border-line/80 flex items-start justify-between gap-3 border-b px-4 py-3">
         <div className="min-w-0">
           {eyebrow ? (
-            <p className="font-mono text-[10px] uppercase tracking-[0.2em] text-ink-subtle">{eyebrow}</p>
+            <p className="text-ink-subtle font-mono text-[10px] tracking-[0.2em] uppercase">
+              {eyebrow}
+            </p>
           ) : null}
-          <h2 ref={titleRef} id={titleId} tabIndex={-1} className="truncate text-sm font-semibold text-ink">
+          <h2
+            ref={titleRef}
+            id={titleId}
+            tabIndex={-1}
+            className="text-ink truncate text-sm font-semibold"
+          >
             {title}
           </h2>
         </div>
@@ -93,14 +103,16 @@ export function Panel({
               type="button"
               onClick={onClose}
               aria-label="Close panel"
-              className="rounded-md p-1.5 text-ink-subtle transition-colors hover:bg-panel-raised hover:text-ink"
+              className="text-ink-subtle hover:bg-panel-raised hover:text-ink rounded-md p-1.5 transition-colors"
             >
               <X aria-hidden="true" className="size-4" />
             </button>
           ) : null}
         </div>
       </header>
-      <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-3", bodyClassName)}>{children}</div>
+      <div className={cn("min-h-0 flex-1 overflow-y-auto px-4 py-3", bodyClassName)}>
+        {children}
+      </div>
     </Component>
   );
 }

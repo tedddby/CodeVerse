@@ -43,7 +43,14 @@ export function analyzeApiUrl(owner: string, repo: string, ref?: string): string
 }
 
 /** Link to a file (optionally a line range) on the provider's website. */
-export function githubBlobUrl(owner: string, repo: string, ref: string, path: string, line?: number, endLine?: number): string {
+export function githubBlobUrl(
+  owner: string,
+  repo: string,
+  ref: string,
+  path: string,
+  line?: number,
+  endLine?: number,
+): string {
   const encodedPath = path.split("/").map(encodeURIComponent).join("/");
   const anchor = line ? `#L${line}${endLine && endLine !== line ? `-L${endLine}` : ""}` : "";
   return `https://github.com/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}/blob/${encodeURIComponent(ref)}/${encodedPath}${anchor}`;

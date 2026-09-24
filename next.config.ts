@@ -41,8 +41,14 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/**/*": ["./public/grammars/*.wasm"],
     // Social cards read Geist from disk (standalone/Docker builds must include it).
-    "/opengraph-image": ["./node_modules/geist/dist/fonts/geist-sans/*.ttf", "./node_modules/geist/dist/fonts/geist-mono/*.ttf"],
-    "/explore/**/*": ["./node_modules/geist/dist/fonts/geist-sans/*.ttf", "./node_modules/geist/dist/fonts/geist-mono/*.ttf"],
+    "/opengraph-image": [
+      "./node_modules/geist/dist/fonts/geist-sans/*.ttf",
+      "./node_modules/geist/dist/fonts/geist-mono/*.ttf",
+    ],
+    "/explore/**/*": [
+      "./node_modules/geist/dist/fonts/geist-sans/*.ttf",
+      "./node_modules/geist/dist/fonts/geist-mono/*.ttf",
+    ],
   },
   images: {
     remotePatterns: [{ protocol: "https", hostname: "avatars.githubusercontent.com" }],

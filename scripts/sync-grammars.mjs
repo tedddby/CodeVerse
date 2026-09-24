@@ -65,4 +65,6 @@ for (const [pkg, file, out] of WASM_FILES) {
   copied += 1;
 }
 
-console.log(`[sync-grammars] ${copied}/${WASM_FILES.length} WebAssembly binaries ready in public/grammars`);
+console.log(
+  `[sync-grammars] ${copied}/${WASM_FILES.length} WebAssembly binaries ready in public/grammars`,
+);

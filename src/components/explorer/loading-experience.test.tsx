@@ -3,7 +3,14 @@ import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import type { AnalysisStageId } from "@/analysis/protocol";
 import { createInitialStages, type StageProgress } from "@/lib/analysis-client/analysis-state";
-import { buildStageRow, formatElapsed, loadingAnnouncement, renderBlockBar, tipForElapsed, LOADING_TIPS } from "./loading-display";
+import {
+  buildStageRow,
+  formatElapsed,
+  loadingAnnouncement,
+  renderBlockBar,
+  tipForElapsed,
+  LOADING_TIPS,
+} from "./loading-display";
 import { LoadingExperience } from "./loading-experience";
 
 afterEach(() => cleanup());
@@ -17,7 +24,12 @@ const midwayStages = stagesWith({
   tree: { status: "done", message: "3,281 files", startedAt: 300, finishedAt: 1_500 },
   languages: { status: "done", message: "TypeScript 62%", startedAt: 1_500, finishedAt: 1_600 },
   parse: { status: "progress", progress: 0.71, startedAt: 1_600 },
-  dependencies: { status: "progress", progress: 0.89, message: "Resolving imports", startedAt: 2_000 },
+  dependencies: {
+    status: "progress",
+    progress: 0.89,
+    message: "Resolving imports",
+    startedAt: 2_000,
+  },
 });
 
 describe("LoadingExperience", () => {
@@ -35,7 +47,13 @@ describe("LoadingExperience", () => {
     );
     expect(screen.getByRole("heading", { name: "vercel/next.js" })).toBeInTheDocument();
     expect(screen.getByText("T+00:12.4")).toBeInTheDocument();
-    for (const label of ["Connecting to GitHub...", "Fetching file tree...", "Parsing source...", "Building dependency graph...", "Constructing universe..."]) {
+    for (const label of [
+      "Connecting to GitHub...",
+      "Fetching file tree...",
+      "Parsing source...",
+      "Building dependency graph...",
+      "Constructing universe...",
+    ]) {
       expect(screen.getByText(label)).toBeInTheDocument();
     }
     expect(screen.getByText("Repository found")).toBeInTheDocument();
@@ -50,11 +68,21 @@ describe("LoadingExperience", () => {
 
   it("announces stage transitions politely without per-percent chatter", () => {
     render(
-      <LoadingExperience owner="vercel" repo="next.js" status="loading" stages={midwayStages} warnings={[]} elapsedMs={0} layoutPending={false} />,
+      <LoadingExperience
+        owner="vercel"
+        repo="next.js"
+        status="loading"
+        stages={midwayStages}
+        warnings={[]}
+        elapsedMs={0}
+        layoutPending={false}
+      />,
     );
     const status = screen.getByRole("status");
     expect(status).toHaveAttribute("aria-live", "polite");
-    expect(status).toHaveTextContent("Analyzing vercel/next.js: Building dependency graph. 3 of 8 steps finished.");
+    expect(status).toHaveTextContent(
+      "Analyzing vercel/next.js: Building dependency graph. 3 of 8 steps finished.",
+    );
   });
 
   it("shows warnings as they arrive", () => {
@@ -64,7 +92,9 @@ describe("LoadingExperience", () => {
         repo="linux"
         status="preview"
         stages={midwayStages}
-        warnings={["Large repository: showing structure first and parsing a sample of 1,500 files."]}
+        warnings={[
+          "Large repository: showing structure first and parsing a sample of 1,500 files.",
+        ]}
         elapsedMs={0}
         layoutPending={false}
       />,
@@ -75,17 +105,51 @@ describe("LoadingExperience", () => {
 
   it("shows the client-side layout step, then completion", () => {
     const { rerender } = render(
-      <LoadingExperience owner="a" repo="b" status="complete" stages={midwayStages} warnings={[]} elapsedMs={9_000} layoutPending />,
+      <LoadingExperience
+        owner="a"
+        repo="b"
+        status="complete"
+        stages={midwayStages}
+        warnings={[]}
+        elapsedMs={9_000}
+        layoutPending
+      />,
     );
     expect(screen.getByText("Laying out districts")).toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Analysis of a/b complete. Constructing the 3D universe.");
-    rerender(<LoadingExperience owner="a" repo="b" status="complete" stages={midwayStages} warnings={[]} elapsedMs={9_000} layoutPending={false} exiting />);
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "Analysis of a/b complete. Constructing the 3D universe.",
+    );
+    rerender(
+      <LoadingExperience
+        owner="a"
+        repo="b"
+        status="complete"
+        stages={midwayStages}
+        warnings={[]}
+        elapsedMs={9_000}
+        layoutPending={false}
+        exiting
+      />,
+    );
     expect(screen.getByText("Complete")).toBeInTheDocument();
-    expect(screen.getByRole("status", { hidden: true })).toHaveTextContent("a/b is ready. Entering the explorer.");
+    expect(screen.getByRole("status", { hidden: true })).toHaveTextContent(
+      "a/b is ready. Entering the explorer.",
+    );
   });
 
   it("offers a way out while loading", () => {
-    render(<LoadingExperience owner="a" repo="b" gitRef="v2.0.0" status="loading" stages={createInitialStages()} warnings={[]} elapsedMs={0} layoutPending={false} />);
+    render(
+      <LoadingExperience
+        owner="a"
+        repo="b"
+        gitRef="v2.0.0"
+        status="loading"
+        stages={createInitialStages()}
+        warnings={[]}
+        elapsedMs={0}
+        layoutPending={false}
+      />,
+    );
     expect(screen.getByRole("link", { name: "Cancel" })).toHaveAttribute("href", "/");
     expect(screen.getByText("ref v2.0.0")).toBeInTheDocument();
   });
@@ -109,10 +173,22 @@ describe("loading display helpers", () => {
 
   it("maps stage states to row models", () => {
     const context = { status: "loading", layoutPending: false } as const;
-    expect(buildStageRow("connect", { status: "pending" }, context)).toMatchObject({ tone: "pending", detail: "", progress: null });
-    expect(buildStageRow("history", { status: "skipped" }, context)).toMatchObject({ tone: "skipped", detail: "Skipped" });
-    expect(buildStageRow("tree", { status: "warning", message: "Tree truncated" }, context)).toMatchObject({ tone: "warning", detail: "Tree truncated" });
-    expect(buildStageRow("parse", { status: "start" }, context)).toMatchObject({ tone: "running", progress: null });
+    expect(buildStageRow("connect", { status: "pending" }, context)).toMatchObject({
+      tone: "pending",
+      detail: "",
+      progress: null,
+    });
+    expect(buildStageRow("history", { status: "skipped" }, context)).toMatchObject({
+      tone: "skipped",
+      detail: "Skipped",
+    });
+    expect(
+      buildStageRow("tree", { status: "warning", message: "Tree truncated" }, context),
+    ).toMatchObject({ tone: "warning", detail: "Tree truncated" });
+    expect(buildStageRow("parse", { status: "start" }, context)).toMatchObject({
+      tone: "running",
+      progress: null,
+    });
   });
 
   it("rotates tips deterministically", () => {
@@ -122,8 +198,11 @@ describe("loading display helpers", () => {
   });
 
   it("announces the start of an analysis before any stage reports", () => {
-    expect(loadingAnnouncement("a/b", createInitialStages(), { status: "loading", layoutPending: false })).toBe(
-      "Analyzing a/b. 0 of 8 steps finished.",
-    );
+    expect(
+      loadingAnnouncement("a/b", createInitialStages(), {
+        status: "loading",
+        layoutPending: false,
+      }),
+    ).toBe("Analyzing a/b. 0 of 8 steps finished.");
   });
 });

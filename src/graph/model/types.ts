@@ -236,7 +236,8 @@ export interface Edge<K extends string = string> {
   kind: K;
 }
 
-export type DependencyKind = "import" | "dynamic-import" | "require" | "re-export" | "type-import" | "module";
+export type DependencyKind =
+  "import" | "dynamic-import" | "require" | "re-export" | "type-import" | "module";
 
 /** File-to-file dependency: `source` imports `target`. */
 export interface DependencyEdge extends Edge<DependencyKind> {

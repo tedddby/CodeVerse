@@ -5,7 +5,11 @@
  * Resolves to whether the copy succeeded.
  */
 export async function copyText(text: string): Promise<boolean> {
-  if (typeof navigator !== "undefined" && navigator.clipboard && typeof navigator.clipboard.writeText === "function") {
+  if (
+    typeof navigator !== "undefined" &&
+    navigator.clipboard &&
+    typeof navigator.clipboard.writeText === "function"
+  ) {
     try {
       await navigator.clipboard.writeText(text);
       return true;
@@ -18,7 +22,8 @@ export async function copyText(text: string): Promise<boolean> {
 
 function legacyCopy(text: string): boolean {
   if (typeof document === "undefined" || !document.body) return false;
-  const previouslyFocused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+  const previouslyFocused =
+    document.activeElement instanceof HTMLElement ? document.activeElement : null;
   const textarea = document.createElement("textarea");
   textarea.value = text;
   textarea.setAttribute("readonly", "");

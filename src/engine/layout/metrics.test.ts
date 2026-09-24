@@ -76,6 +76,8 @@ describe("generated files", () => {
     expect(buildingHeight(lockfile, DEFAULT_LAYOUT_OPTIONS)).toBeLessThan(
       buildingHeight(source, DEFAULT_LAYOUT_OPTIONS),
     );
-    expect(buildingHeight(lockfile, DEFAULT_LAYOUT_OPTIONS)).toBeGreaterThan(DEFAULT_LAYOUT_OPTIONS.minHeight);
+    expect(buildingHeight(lockfile, DEFAULT_LAYOUT_OPTIONS)).toBeGreaterThan(
+      DEFAULT_LAYOUT_OPTIONS.minHeight,
+    );
   });
 });

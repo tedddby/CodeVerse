@@ -1,6 +1,9 @@
 /** Formatting helpers shared by panels, the loading experience and the OG image. */
 
-const compactFormatter = new Intl.NumberFormat("en", { notation: "compact", maximumFractionDigits: 1 });
+const compactFormatter = new Intl.NumberFormat("en", {
+  notation: "compact",
+  maximumFractionDigits: 1,
+});
 const integerFormatter = new Intl.NumberFormat("en");
 
 /** 238421 -> "238.4K". */
@@ -47,11 +50,17 @@ export function formatRelativeTime(isoDate: string, now: number = Date.now()): s
   if (abs < 3600) return relativeFormatter.format(Math.round(seconds / 60), "minute");
   if (abs < 86_400) return relativeFormatter.format(Math.round(seconds / 3600), "hour");
   if (abs < 86_400 * 30) return relativeFormatter.format(Math.round(seconds / 86_400), "day");
-  if (abs < 86_400 * 365) return relativeFormatter.format(Math.round(seconds / (86_400 * 30)), "month");
+  if (abs < 86_400 * 365)
+    return relativeFormatter.format(Math.round(seconds / (86_400 * 30)), "month");
   return relativeFormatter.format(Math.round(seconds / (86_400 * 365)), "year");
 }
 
-const dateFormatter = new Intl.DateTimeFormat("en", { year: "numeric", month: "short", day: "numeric", timeZone: "UTC" });
+const dateFormatter = new Intl.DateTimeFormat("en", {
+  year: "numeric",
+  month: "short",
+  day: "numeric",
+  timeZone: "UTC",
+});
 
 export function formatDate(isoDate: string): string {
   const time = Date.parse(isoDate);

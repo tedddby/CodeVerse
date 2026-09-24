@@ -20,7 +20,10 @@ export function useMediaQuery(query: string, serverValue = false): boolean {
     },
     [query],
   );
-  const getSnapshot = useCallback(() => (supportsMatchMedia() ? window.matchMedia(query).matches : serverValue), [query, serverValue]);
+  const getSnapshot = useCallback(
+    () => (supportsMatchMedia() ? window.matchMedia(query).matches : serverValue),
+    [query, serverValue],
+  );
   const getServerSnapshot = useCallback(() => serverValue, [serverValue]);
   return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

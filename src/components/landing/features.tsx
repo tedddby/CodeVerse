@@ -84,7 +84,11 @@ export function Features() {
       className={cn("scroll-mt-4 bg-(--lc-mist)", SECTION_SPACING)}
     >
       <div className={CONTAINER}>
-        <SectionHeading id="features-title" eyebrow="Features" title="Eight ways to read a codebase.">
+        <SectionHeading
+          id="features-title"
+          eyebrow="Features"
+          title="Eight ways to read a codebase."
+        >
           <p>
             Switch lenses without leaving the scene. Every view reads the same graph, and the modes
             sit on number keys.

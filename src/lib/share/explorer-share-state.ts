@@ -35,14 +35,18 @@ export function captureShareState(state: CaptureSource, options: ShareCaptureOpt
   const ref = options.pinCommit ? state.graph?.repository.commitSha : options.requestedRef;
   if (ref) share.ref = ref;
   const timelineCursor =
-    state.timeline.active && state.timeline.cursor !== null && Number.isFinite(state.timeline.cursor)
+    state.timeline.active &&
+    state.timeline.cursor !== null &&
+    Number.isFinite(state.timeline.cursor)
       ? Math.round(state.timeline.cursor)
       : undefined;
   // Restoring a timeline switches to Activity mode, so a timeline link names its mode even when it is the default.
-  if (state.visualMode !== "architecture" || timelineCursor !== undefined) share.mode = state.visualMode;
+  if (state.visualMode !== "architecture" || timelineCursor !== undefined)
+    share.mode = state.visualMode;
   if (options.includeSelection && state.selection) share.selection = state.selection;
   // Dependencies mode turns dependency lines on; only record deviations from that default.
-  if (state.showDependencies !== (state.visualMode === "dependencies")) share.deps = state.showDependencies;
+  if (state.showDependencies !== (state.visualMode === "dependencies"))
+    share.deps = state.showDependencies;
   if (state.navigationMode !== "orbit") share.nav = state.navigationMode;
   if (state.activeContributorId) share.contributor = state.activeContributorId;
   if (timelineCursor !== undefined) share.t = timelineCursor;
@@ -74,7 +78,11 @@ export interface ApplyShareOptions {
  * camera flight; an explicit camera pose is jumped to without animation so the
  * default cinematic intro does not play.
  */
-export function applyShareState(store: ApplyTarget, share: ShareState, options: ApplyShareOptions): void {
+export function applyShareState(
+  store: ApplyTarget,
+  share: ShareState,
+  options: ApplyShareOptions,
+): void {
   if (share.contributor && store.index?.contributorsById.has(share.contributor)) {
     store.setActiveContributor(share.contributor);
   }

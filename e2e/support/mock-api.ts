@@ -16,7 +16,11 @@ import { mockRepositoryGraph } from "../../src/fixtures/mock-repository-graph";
 /** The fixture graph, presented as a GitHub repository so provider-specific UI (source viewer) is exercised. */
 export const e2eGraph: RepositoryGraph = {
   ...mockRepositoryGraph,
-  repository: { ...mockRepositoryGraph.repository, provider: "github", id: `github:${mockRepositoryGraph.repository.fullName}` },
+  repository: {
+    ...mockRepositoryGraph.repository,
+    provider: "github",
+    id: `github:${mockRepositoryGraph.repository.fullName}`,
+  },
 };
 
 export const FIXTURE_OWNER = e2eGraph.repository.owner;
@@ -34,7 +38,12 @@ function analysisEvents(graph: RepositoryGraph): AnalysisEvent[] {
     { type: "stage", stage: "fetch", status: "done", message: `${fileCount} files downloaded` },
     { type: "stage", stage: "parse", status: "progress", progress: 0.71 },
     { type: "stage", stage: "parse", status: "done", message: `${graph.symbols.length} symbols` },
-    { type: "stage", stage: "dependencies", status: "done", message: `${graph.dependencies.length} dependencies` },
+    {
+      type: "stage",
+      stage: "dependencies",
+      status: "done",
+      message: `${graph.dependencies.length} dependencies`,
+    },
     { type: "stage", stage: "history", status: "done", message: `${graph.commits.length} commits` },
     { type: "stage", stage: "construct", status: "done", message: "Complete" },
     { type: "complete", graph },
@@ -72,7 +81,9 @@ export async function mockAnalysisApi(page: Page, options: MockApiOptions = {}):
       await route.fulfill({
         status: 404,
         contentType: "application/json",
-        body: JSON.stringify({ error: { code: "NOT_FOUND", title: "File not found.", message: "No such file." } }),
+        body: JSON.stringify({
+          error: { code: "NOT_FOUND", title: "File not found.", message: "No such file." },
+        }),
       });
       return;
     }
@@ -87,6 +98,10 @@ export async function mockAnalysisApi(page: Page, options: MockApiOptions = {}):
       language: file.language,
       lines: content.split("\n").length,
     };
-    await route.fulfill({ status: 200, contentType: "application/json", body: JSON.stringify(body) });
+    await route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify(body),
+    });
   });
 }

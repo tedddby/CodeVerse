@@ -9,7 +9,11 @@ import { useExplorerStore } from "@/state/explorer-store";
 import { ErrorState } from "./error-state";
 import { ExplorerShell } from "./explorer-shell";
 import { LoadingExperience } from "./loading-experience";
-import { useExplorerEntrance, useExplorerEnvironment, useRepositoryStoreLifecycle } from "./use-explorer-environment";
+import {
+  useExplorerEntrance,
+  useExplorerEnvironment,
+  useRepositoryStoreLifecycle,
+} from "./use-explorer-environment";
 import { useExplorerPhase } from "./use-explorer-phase";
 import { WorldViewport } from "./world-viewport";
 
@@ -39,9 +43,14 @@ export function ExplorerApp({ owner, repo, initialShareState }: ExplorerAppProps
 
   const layoutFailed = !layoutEngine.computing && layoutEngine.error !== null;
   const worldEnabled = webglAvailable === true && !layoutFailed;
-  const worldReady = webglAvailable === false || layoutFailed || (!layoutEngine.computing && hasLayout);
+  const worldReady =
+    webglAvailable === false || layoutFailed || (!layoutEngine.computing && hasLayout);
   const phase = useExplorerPhase({ status: analysis.status, worldReady, reducedMotion });
-  useExplorerEntrance(initialShareState, phase === "entering" || phase === "explorer", worldEnabled);
+  useExplorerEntrance(
+    initialShareState,
+    phase === "entering" || phase === "explorer",
+    worldEnabled,
+  );
 
   // Missing WebGL is explained by the standalone summary itself; a failed layout is not.
   const worldUnavailableNotice =
@@ -51,7 +60,14 @@ export function ExplorerApp({ owner, repo, initialShareState }: ExplorerAppProps
 
   let overlay: ReactNode = null;
   if (phase === "error") {
-    overlay = <ErrorState error={analysis.error ?? errorPayload("INTERNAL")} owner={owner} repo={repo} onRetry={analysis.retry} />;
+    overlay = (
+      <ErrorState
+        error={analysis.error ?? errorPayload("INTERNAL")}
+        owner={owner}
+        repo={repo}
+        onRetry={analysis.retry}
+      />
+    );
   } else if (phase === "loading" || phase === "entering") {
     overlay = (
       <LoadingExperience

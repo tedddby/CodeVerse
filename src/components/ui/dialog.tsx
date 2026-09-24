@@ -45,7 +45,7 @@ export function Dialog({
   return (
     <div
       className={cn(
-        "fixed inset-0 z-50 flex justify-center bg-void/60 px-4 backdrop-blur-[2px] animate-fade-in",
+        "bg-void/60 animate-fade-in fixed inset-0 z-50 flex justify-center px-4 backdrop-blur-[2px]",
         placement === "center" ? "items-center" : "items-start pt-[12vh]",
       )}
       onMouseDown={(event) => {
@@ -58,7 +58,10 @@ export function Dialog({
         aria-modal="true"
         aria-labelledby={titleId}
         aria-describedby={description ? descriptionId : undefined}
-        className={cn("glass relative w-full max-w-lg rounded-2xl shadow-2xl animate-slide-up", className)}
+        className={cn(
+          "glass animate-slide-up relative w-full max-w-lg rounded-2xl shadow-2xl",
+          className,
+        )}
         onKeyDown={(event) => {
           if (event.key === "Escape") {
             event.stopPropagation();
@@ -66,13 +69,15 @@ export function Dialog({
           }
         }}
       >
-        <div className={cn("flex items-start justify-between gap-4 px-5 pt-4", hideTitle && "sr-only")}>
+        <div
+          className={cn("flex items-start justify-between gap-4 px-5 pt-4", hideTitle && "sr-only")}
+        >
           <div>
-            <h2 id={titleId} className="text-sm font-semibold text-ink">
+            <h2 id={titleId} className="text-ink text-sm font-semibold">
               {title}
             </h2>
             {description ? (
-              <p id={descriptionId} className="mt-1 text-xs text-ink-muted">
+              <p id={descriptionId} className="text-ink-muted mt-1 text-xs">
                 {description}
               </p>
             ) : null}
@@ -83,7 +88,7 @@ export function Dialog({
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="absolute right-3 top-3 rounded-md p-1.5 text-ink-subtle transition-colors hover:bg-panel-raised hover:text-ink"
+            className="text-ink-subtle hover:bg-panel-raised hover:text-ink absolute top-3 right-3 rounded-md p-1.5 transition-colors"
           >
             <X aria-hidden="true" className="size-4" />
           </button>

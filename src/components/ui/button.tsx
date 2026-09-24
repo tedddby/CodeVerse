@@ -1,5 +1,10 @@
 import Link from "next/link";
-import { forwardRef, type AnchorHTMLAttributes, type ButtonHTMLAttributes, type ReactNode } from "react";
+import {
+  forwardRef,
+  type AnchorHTMLAttributes,
+  type ButtonHTMLAttributes,
+  type ReactNode,
+} from "react";
 import { cn } from "@/lib/utils/cn";
 
 export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
@@ -22,7 +27,11 @@ const sizes: Record<ButtonSize, string> = {
   lg: "h-12 px-6 text-base",
 };
 
-export function buttonClasses(variant: ButtonVariant = "secondary", size: ButtonSize = "md", className?: string) {
+export function buttonClasses(
+  variant: ButtonVariant = "secondary",
+  size: ButtonSize = "md",
+  className?: string,
+) {
   return cn(base, variants[variant], sizes[size], className);
 }
 
@@ -35,7 +44,9 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   { variant = "secondary", size = "md", className, type = "button", ...props },
   ref,
 ) {
-  return <button ref={ref} type={type} className={buttonClasses(variant, size, className)} {...props} />;
+  return (
+    <button ref={ref} type={type} className={buttonClasses(variant, size, className)} {...props} />
+  );
 });
 
 export interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
@@ -47,7 +58,15 @@ export interface ButtonLinkProps extends AnchorHTMLAttributes<HTMLAnchorElement>
   external?: boolean;
 }
 
-export function ButtonLink({ href, variant = "secondary", size = "md", className, external, children, ...props }: ButtonLinkProps) {
+export function ButtonLink({
+  href,
+  variant = "secondary",
+  size = "md",
+  className,
+  external,
+  children,
+  ...props
+}: ButtonLinkProps) {
   const classes = buttonClasses(variant, size, className);
   if (external) {
     return (

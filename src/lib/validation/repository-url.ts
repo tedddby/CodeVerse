@@ -63,14 +63,19 @@ export interface RepositoryReference {
 
 export type ParseRepositoryResult =
   | ({ ok: true } & RepositoryReference)
-  | { ok: false; reason: "empty" | "not-github" | "invalid-owner" | "invalid-repo" | "missing-repo" };
+  | {
+      ok: false;
+      reason: "empty" | "not-github" | "invalid-owner" | "invalid-repo" | "missing-repo";
+    };
 
 export function isValidOwner(owner: string): boolean {
   return OWNER_PATTERN.test(owner) && !RESERVED_OWNERS.has(owner.toLowerCase());
 }
 
 export function isValidRepoName(repo: string): boolean {
-  return REPO_PATTERN.test(repo) && repo !== "." && repo !== ".." && !repo.toLowerCase().endsWith(".git");
+  return (
+    REPO_PATTERN.test(repo) && repo !== "." && repo !== ".." && !repo.toLowerCase().endsWith(".git")
+  );
 }
 
 export function isValidRef(ref: string): boolean {
@@ -107,7 +112,10 @@ export function parseRepositoryInput(rawInput: string): ParseRepositoryResult {
       return { ok: false, reason: "not-github" };
     }
     const host = url.hostname.toLowerCase();
-    if ((url.protocol !== "https:" && url.protocol !== "http:") || (host !== "github.com" && host !== "www.github.com")) {
+    if (
+      (url.protocol !== "https:" && url.protocol !== "http:") ||
+      (host !== "github.com" && host !== "www.github.com")
+    ) {
       return { ok: false, reason: "not-github" };
     }
     if (url.username || url.password || (url.port && url.port !== "443" && url.port !== "80")) {
@@ -140,7 +148,8 @@ export function parseRepositoryInput(rawInput: string): ParseRepositoryResult {
     if (ref && isValidRef(ref)) {
       result.ref = ref;
       const path = pathSegments.join("/");
-      if (path && !pathSegments.some((segment) => segment === ".." || segment === ".")) result.path = path;
+      if (path && !pathSegments.some((segment) => segment === ".." || segment === "."))
+        result.path = path;
     }
   }
   return result;
@@ -151,7 +160,10 @@ export function explorePath(owner: string, repo: string): string {
   return `/explore/${encodeURIComponent(owner)}/${encodeURIComponent(repo)}`;
 }
 
-export const PARSE_ERROR_MESSAGES: Record<Exclude<ParseRepositoryResult, { ok: true }>["reason"], string> = {
+export const PARSE_ERROR_MESSAGES: Record<
+  Exclude<ParseRepositoryResult, { ok: true }>["reason"],
+  string
+> = {
   empty: "Paste a GitHub repository URL, like https://github.com/facebook/react.",
   "not-github": "That doesn't look like a GitHub repository URL.",
   "invalid-owner": "That GitHub owner name isn't valid.",

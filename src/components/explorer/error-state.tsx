@@ -47,7 +47,10 @@ const TONE_ICON: Record<ErrorTone, ReactNode> = {
 const timeFormatter = new Intl.DateTimeFormat("en", { hour: "numeric", minute: "2-digit" });
 
 /** "Resets at 3:42 PM (in 12 minutes)", or null when the date is missing/invalid. */
-export function describeRetryAt(retryAt: string | undefined, now: number = Date.now()): string | null {
+export function describeRetryAt(
+  retryAt: string | undefined,
+  now: number = Date.now(),
+): string | null {
   if (!retryAt) return null;
   const time = Date.parse(retryAt);
   if (Number.isNaN(time)) return null;
@@ -68,7 +71,9 @@ export function ErrorState({ error, owner, repo, onRetry, className }: ErrorStat
   const isRateLimit = error.code === "RATE_LIMITED" || error.code === "CLIENT_RATE_LIMITED";
   const retryHint = isRateLimit ? describeRetryAt(error.retryAt) : null;
   const examples = siteConfig.exampleRepositories.filter(
-    (example) => example.owner.toLowerCase() !== owner.toLowerCase() || example.repo.toLowerCase() !== repo.toLowerCase(),
+    (example) =>
+      example.owner.toLowerCase() !== owner.toLowerCase() ||
+      example.repo.toLowerCase() !== repo.toLowerCase(),
   );
 
   useEffect(() => {
@@ -79,42 +84,54 @@ export function ErrorState({ error, owner, repo, onRetry, className }: ErrorStat
   return (
     <div
       className={cn(
-        "fixed inset-0 z-40 flex items-center justify-center overflow-y-auto bg-void/85 px-4 py-10 backdrop-blur-sm animate-fade-in",
+        "bg-void/85 animate-fade-in fixed inset-0 z-40 flex items-center justify-center overflow-y-auto px-4 py-10 backdrop-blur-sm",
         className,
       )}
     >
-      <div aria-hidden="true" className="bg-grid pointer-events-none absolute inset-0 opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
+      <div
+        aria-hidden="true"
+        className="bg-grid pointer-events-none absolute inset-0 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)] opacity-40"
+      />
       <section
         aria-labelledby="explorer-error-title"
-        className="glass relative w-full max-w-xl rounded-2xl p-6 shadow-2xl animate-slide-up sm:p-8"
+        className="glass animate-slide-up relative w-full max-w-xl rounded-2xl p-6 shadow-2xl sm:p-8"
       >
         <div
           className={cn(
             "mb-5 inline-flex size-12 items-center justify-center rounded-xl border",
-            tone === "limit" ? "border-warn/40 bg-warn/10 text-warn" : tone === "missing" ? "border-signal/35 bg-signal/10 text-signal" : "border-danger/40 bg-danger/10 text-danger",
+            tone === "limit"
+              ? "border-warn/40 bg-warn/10 text-warn"
+              : tone === "missing"
+                ? "border-signal/35 bg-signal/10 text-signal"
+                : "border-danger/40 bg-danger/10 text-danger",
           )}
         >
           {TONE_ICON[tone]}
         </div>
-        <p className="font-mono text-xs text-ink-subtle">
+        <p className="text-ink-subtle font-mono text-xs">
           {owner}/{repo}
         </p>
         <div role="alert">
-          <h1 id="explorer-error-title" ref={headingRef} tabIndex={-1} className="mt-1 text-xl font-semibold text-ink focus:outline-none sm:text-2xl">
+          <h1
+            id="explorer-error-title"
+            ref={headingRef}
+            tabIndex={-1}
+            className="text-ink mt-1 text-xl font-semibold focus:outline-none sm:text-2xl"
+          >
             {title}
           </h1>
-          <p className="mt-2 text-sm leading-relaxed text-ink-muted">{message}</p>
+          <p className="text-ink-muted mt-2 text-sm leading-relaxed">{message}</p>
         </div>
 
-        {retryHint ? <p className="mt-3 font-mono text-xs text-warn">{retryHint}</p> : null}
+        {retryHint ? <p className="text-warn mt-3 font-mono text-xs">{retryHint}</p> : null}
 
         {error.code === "RATE_LIMITED" ? (
-          <div className="mt-4 flex gap-3 rounded-xl border border-line-strong bg-abyss/70 p-3 text-xs leading-relaxed text-ink-muted">
-            <KeyRound aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-signal" />
+          <div className="border-line-strong bg-abyss/70 text-ink-muted mt-4 flex gap-3 rounded-xl border p-3 text-xs leading-relaxed">
+            <KeyRound aria-hidden="true" className="text-signal mt-0.5 size-4 shrink-0" />
             <p>
-              Without a token, GitHub allows only 60 API requests per hour. Self-hosting CodeVerse? Set{" "}
-              <code className="font-mono text-ink">GITHUB_TOKEN</code> on the server to raise the limit to 5,000
-              requests per hour.
+              Without a token, GitHub allows only 60 API requests per hour. Self-hosting CodeVerse?
+              Set <code className="text-ink font-mono">GITHUB_TOKEN</code> on the server to raise
+              the limit to 5,000 requests per hour.
             </p>
           </div>
         ) : null}
@@ -130,7 +147,7 @@ export function ErrorState({ error, owner, repo, onRetry, className }: ErrorStat
           </ButtonLink>
         </div>
 
-        <div className="mt-8 border-t border-line/80 pt-6">
+        <div className="border-line/80 mt-8 border-t pt-6">
           <RepositoryJumpForm />
           {examples.length > 0 ? (
             <div className="mt-5">
@@ -140,7 +157,7 @@ export function ErrorState({ error, owner, repo, onRetry, className }: ErrorStat
                   <li key={`${example.owner}/${example.repo}`}>
                     <Link
                       href={explorePath(example.owner, example.repo)}
-                      className="inline-flex items-center rounded-md border border-line-strong bg-panel-raised/60 px-2.5 py-1 font-mono text-xs text-ink-muted transition-colors hover:border-signal/40 hover:text-ink"
+                      className="border-line-strong bg-panel-raised/60 text-ink-muted hover:border-signal/40 hover:text-ink inline-flex items-center rounded-md border px-2.5 py-1 font-mono text-xs transition-colors"
                     >
                       {example.owner}/{example.repo}
                     </Link>

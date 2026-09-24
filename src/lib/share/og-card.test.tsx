@@ -50,7 +50,8 @@ describe("RepositoryOgCard", () => {
       owner: "a-very-long-organisation-name",
       repo: "an-extremely-long-repository-name-that-keeps-going-and-going",
       summary: {
-        fullName: "a-very-long-organisation-name/an-extremely-long-repository-name-that-keeps-going-and-going",
+        fullName:
+          "a-very-long-organisation-name/an-extremely-long-repository-name-that-keeps-going-and-going",
         stars: 1_234_567,
         forks: 89_012,
         language: "TypeScript",

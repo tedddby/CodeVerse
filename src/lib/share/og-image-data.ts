@@ -14,7 +14,9 @@ import { generateAbstractMap, projectCityMap, type OgThumbnail } from "./og-thum
 const SIGNAL = "#4de2ff";
 
 /** Registry language matching a provider language name ("TypeScript", "C++"). */
-export function languageForProviderName(name: string | undefined): { name: string; color: string } | null {
+export function languageForProviderName(
+  name: string | undefined,
+): { name: string; color: string } | null {
   if (!name) return null;
   const lower = name.trim().toLowerCase();
   const match = LANGUAGES.find((language) => language.name.toLowerCase() === lower);
@@ -45,21 +47,36 @@ export interface RepositoryCardInput {
   siteName: string;
 }
 
-export function buildRepositoryCardData({ owner, repo, summary, graph, host, siteName }: RepositoryCardInput): RepositoryCardData {
+export function buildRepositoryCardData({
+  owner,
+  repo,
+  summary,
+  graph,
+  host,
+  siteName,
+}: RepositoryCardInput): RepositoryCardData {
   const primaryGraphLanguage = graph?.languages.find((language) => language.id !== "unknown");
   const language =
     languageForProviderName(summary?.language ?? graph?.repository.language) ??
-    (primaryGraphLanguage ? { name: getLanguage(primaryGraphLanguage.id).name, color: primaryGraphLanguage.color } : null);
+    (primaryGraphLanguage
+      ? { name: getLanguage(primaryGraphLanguage.id).name, color: primaryGraphLanguage.color }
+      : null);
 
   // Prefer the provider's canonical casing ("facebook/react") over the URL's.
   const canonical = summary?.fullName ?? graph?.repository.fullName;
   const [canonicalOwner, canonicalRepo] = canonical?.split("/") ?? [];
-  const displayOwner = canonicalOwner && canonicalOwner.toLowerCase() === owner.toLowerCase() ? canonicalOwner : owner;
-  const displayRepo = canonicalRepo && canonicalRepo.toLowerCase() === repo.toLowerCase() ? canonicalRepo : repo;
+  const displayOwner =
+    canonicalOwner && canonicalOwner.toLowerCase() === owner.toLowerCase() ? canonicalOwner : owner;
+  const displayRepo =
+    canonicalRepo && canonicalRepo.toLowerCase() === repo.toLowerCase() ? canonicalRepo : repo;
 
   const thumbnail =
     (graph ? cityThumbnail(graph) : null) ??
-    generateAbstractMap(`${owner.toLowerCase()}/${repo.toLowerCase()}`, language?.color ?? SIGNAL, OG_THUMBNAIL_SIZE);
+    generateAbstractMap(
+      `${owner.toLowerCase()}/${repo.toLowerCase()}`,
+      language?.color ?? SIGNAL,
+      OG_THUMBNAIL_SIZE,
+    );
 
   return {
     owner: displayOwner,

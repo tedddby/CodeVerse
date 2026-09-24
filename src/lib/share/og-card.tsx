@@ -49,7 +49,15 @@ function repoNameFontSize(name: string): number {
 
 function StarIcon({ color }: { color: string }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinejoin="round">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinejoin="round"
+    >
       <path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z" />
     </svg>
   );
@@ -57,7 +65,15 @@ function StarIcon({ color }: { color: string }) {
 
 function ForkIcon({ color }: { color: string }) {
   return (
-    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round">
+    <svg
+      width="26"
+      height="26"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+    >
       <circle cx="12" cy="18" r="3" />
       <circle cx="6" cy="6" r="3" />
       <circle cx="18" cy="6" r="3" />
@@ -147,10 +163,19 @@ export function RepositoryOgCard(data: RepositoryCardData): ReactElement {
       >
         <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
           <SocialMark size={44} />
-          <div style={{ display: "flex", fontSize: 28, fontWeight: 600, letterSpacing: -0.6 }}>{data.siteName}</div>
+          <div style={{ display: "flex", fontSize: 28, fontWeight: 600, letterSpacing: -0.6 }}>
+            {data.siteName}
+          </div>
         </div>
         <div style={{ display: "flex", flexDirection: "column" }}>
-          <div style={{ display: "flex", fontFamily: SOCIAL_CARD_FONT_FAMILY.mono, fontSize: 26, color: BRAND_COLORS.inkMuted }}>
+          <div
+            style={{
+              display: "flex",
+              fontFamily: SOCIAL_CARD_FONT_FAMILY.mono,
+              fontSize: 26,
+              color: BRAND_COLORS.inkMuted,
+            }}
+          >
             {`${owner} /`}
           </div>
           <div
@@ -166,11 +191,21 @@ export function RepositoryOgCard(data: RepositoryCardData): ReactElement {
             {repo}
           </div>
           {description ? (
-            <div style={{ display: "flex", marginTop: 20, fontSize: 25, lineHeight: 1.4, color: BRAND_COLORS.inkMuted }}>
+            <div
+              style={{
+                display: "flex",
+                marginTop: 20,
+                fontSize: 25,
+                lineHeight: 1.4,
+                color: BRAND_COLORS.inkMuted,
+              }}
+            >
               {description}
             </div>
           ) : null}
-          <div style={{ display: "flex", alignItems: "center", gap: 28, marginTop: 28, fontSize: 24 }}>
+          <div
+            style={{ display: "flex", alignItems: "center", gap: 28, marginTop: 28, fontSize: 24 }}
+          >
             {data.stars !== undefined ? (
               <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
                 <StarIcon color={BRAND_COLORS.inkMuted} />
@@ -195,7 +230,14 @@ export function RepositoryOgCard(data: RepositoryCardData): ReactElement {
                   fontSize: 21,
                 }}
               >
-                <div style={{ width: 12, height: 12, borderRadius: 12, backgroundColor: data.language.color }} />
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: 12,
+                    backgroundColor: data.language.color,
+                  }}
+                />
                 <span>{cardText(data.language.name, 24)}</span>
               </div>
             ) : null}
@@ -203,7 +245,11 @@ export function RepositoryOgCard(data: RepositoryCardData): ReactElement {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 14, fontSize: 22 }}>
           <span style={{ color: BRAND_COLORS.signal, fontWeight: 600 }}>Explore it in 3D →</span>
-          <span style={{ color: INK_SUBTLE, fontFamily: SOCIAL_CARD_FONT_FAMILY.mono, fontSize: 19 }}>{data.host}</span>
+          <span
+            style={{ color: INK_SUBTLE, fontFamily: SOCIAL_CARD_FONT_FAMILY.mono, fontSize: 19 }}
+          >
+            {data.host}
+          </span>
         </div>
       </div>
       <Thumbnail thumbnail={data.thumbnail} />

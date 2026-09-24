@@ -60,7 +60,14 @@ export function createInitialStages(): Record<AnalysisStageId, StageProgress> {
 }
 
 export function createInitialSnapshot(): AnalysisSnapshot {
-  return { status: "loading", stages: createInitialStages(), warnings: [], graph: null, error: null, elapsedMs: 0 };
+  return {
+    status: "loading",
+    stages: createInitialStages(),
+    warnings: [],
+    graph: null,
+    error: null,
+    elapsedMs: 0,
+  };
 }
 
 export function isTerminalStatus(status: AnalysisStatus): boolean {
@@ -117,7 +124,8 @@ export function analysisReducer(state: AnalysisSnapshot, action: AnalysisAction)
   if (isTerminalStatus(state.status)) return state;
   const elapsedMs = Math.max(state.elapsedMs, action.at);
 
-  if (action.type === "tick") return elapsedMs === state.elapsedMs ? state : { ...state, elapsedMs };
+  if (action.type === "tick")
+    return elapsedMs === state.elapsedMs ? state : { ...state, elapsedMs };
   if (action.type === "fail") return { ...state, status: "error", error: action.error, elapsedMs };
 
   const event = action.event;
@@ -125,7 +133,13 @@ export function analysisReducer(state: AnalysisSnapshot, action: AnalysisAction)
     case "stage": {
       const stages = {
         ...state.stages,
-        [event.stage]: applyStage(state.stages[event.stage], event.status, action.at, event.progress, event.message),
+        [event.stage]: applyStage(
+          state.stages[event.stage],
+          event.status,
+          action.at,
+          event.progress,
+          event.message,
+        ),
       };
       let warnings = state.warnings;
       if (event.status === "warning" && event.message && !warnings.includes(event.message)) {
@@ -151,7 +165,9 @@ export function analysisReducer(state: AnalysisSnapshot, action: AnalysisAction)
 }
 
 /** The stage currently in progress (the latest one that started and has not finished), if any. */
-export function activeStage(stages: Record<AnalysisStageId, StageProgress>): AnalysisStageId | null {
+export function activeStage(
+  stages: Record<AnalysisStageId, StageProgress>,
+): AnalysisStageId | null {
   let active: AnalysisStageId | null = null;
   for (const id of ANALYSIS_STAGES) {
     const status = stages[id].status;

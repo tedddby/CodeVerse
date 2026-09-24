@@ -15,7 +15,9 @@ export function SelectionAnnouncer() {
   const visualMode = useExplorerStore((state) => state.visualMode);
 
   const selectionText = describeSelection(selection, index);
-  const focusedPath = focusedDirectoryId ? index?.directoriesById.get(focusedDirectoryId)?.path : undefined;
+  const focusedPath = focusedDirectoryId
+    ? index?.directoriesById.get(focusedDirectoryId)?.path
+    : undefined;
   const focusText = focusedPath ? `Inside directory ${focusedPath}` : "";
   const modeLabel = VISUAL_MODES.find((mode) => mode.id === visualMode)?.label ?? visualMode;
 

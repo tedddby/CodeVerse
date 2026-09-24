@@ -12,7 +12,9 @@ function svgNumber(value: number): string {
 }
 
 function svgOpacity(value: number): string {
-  return Number.isFinite(value) ? String(Math.min(1, Math.max(0, Math.round(value * 1000) / 1000))) : "1";
+  return Number.isFinite(value)
+    ? String(Math.min(1, Math.max(0, Math.round(value * 1000) / 1000)))
+    : "1";
 }
 
 /**

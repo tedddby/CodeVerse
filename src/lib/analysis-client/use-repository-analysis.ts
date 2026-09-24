@@ -92,9 +92,14 @@ interface RunOptions {
 async function runAnalysis({ url, signal, elapsed, send }: RunOptions): Promise<void> {
   let response: Response;
   try {
-    response = await fetch(url, { signal, headers: { Accept: "application/x-ndjson" }, cache: "no-store" });
+    response = await fetch(url, {
+      signal,
+      headers: { Accept: "application/x-ndjson" },
+      cache: "no-store",
+    });
   } catch {
-    if (!signal.aborted) send({ type: "fail", error: errorPayload("NETWORK_ERROR"), at: elapsed() });
+    if (!signal.aborted)
+      send({ type: "fail", error: errorPayload("NETWORK_ERROR"), at: elapsed() });
     return;
   }
   if (signal.aborted) return;
@@ -121,10 +126,17 @@ async function runAnalysis({ url, signal, elapsed, send }: RunOptions): Promise<
   if (!signal.aborted) send({ type: "fail", error: STREAM_INTERRUPTED_ERROR, at: elapsed() });
 }
 
-export function useRepositoryAnalysis({ owner, repo, ref }: RepositoryAnalysisInput): AnalysisState {
+export function useRepositoryAnalysis({
+  owner,
+  repo,
+  ref,
+}: RepositoryAnalysisInput): AnalysisState {
   const [attempt, setAttempt] = useState(0);
   const requestKey = JSON.stringify([owner, repo, ref ?? null, attempt]);
-  const [state, dispatch] = useReducer(keyedReducer, { key: requestKey, snapshot: INITIAL_SNAPSHOT });
+  const [state, dispatch] = useReducer(keyedReducer, {
+    key: requestKey,
+    snapshot: INITIAL_SNAPSHOT,
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -136,9 +148,11 @@ export function useRepositoryAnalysis({ owner, repo, ref }: RepositoryAnalysisIn
     };
 
     const timer = window.setInterval(() => send({ type: "tick", at: elapsed() }), TICK_INTERVAL_MS);
-    void runAnalysis({ url: analyzeApiUrl(owner, repo, ref), signal, elapsed, send }).finally(() => {
-      window.clearInterval(timer);
-    });
+    void runAnalysis({ url: analyzeApiUrl(owner, repo, ref), signal, elapsed, send }).finally(
+      () => {
+        window.clearInterval(timer);
+      },
+    );
 
     return () => {
       controller.abort();

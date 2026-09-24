@@ -46,7 +46,12 @@ const EXAMPLE_NOTES: Readonly<Record<string, ExampleNotes>> = {
 };
 
 /** Slabs for the directory-first sketch carry the language tint instead of paper gray. */
-const DIRECTORY_FIRST_GROUND = { top: "#e7ecf4", left: "#c9d3e2", right: "#b5c1d4", edge: "#a9b6cb" };
+const DIRECTORY_FIRST_GROUND = {
+  top: "#e7ecf4",
+  left: "#c9d3e2",
+  right: "#b5c1d4",
+  edge: "#a9b6cb",
+};
 
 /** Section 4: famous repositories as landmarks, each card one big link. */
 export function Examples() {
@@ -74,7 +79,7 @@ export function Examples() {
             return (
               <li
                 key={fullName}
-                className="group relative flex flex-col rounded-2xl bg-white shadow-[0_1px_2px_rgb(15_28_63/0.05)] ring-1 ring-(--lc-line) transition-shadow duration-200 outline-offset-4 outline-(--lc-focus) hover:shadow-[0_1px_2px_rgb(15_28_63/0.05),0_18px_40px_-18px_rgb(15_28_63/0.3)] has-[a:focus-visible]:outline-2"
+                className="group relative flex flex-col rounded-2xl bg-white shadow-[0_1px_2px_rgb(15_28_63/0.05)] ring-1 ring-(--lc-line) outline-offset-4 outline-(--lc-focus) transition-shadow duration-200 hover:shadow-[0_1px_2px_rgb(15_28_63/0.05),0_18px_40px_-18px_rgb(15_28_63/0.3)] has-[a:focus-visible]:outline-2"
               >
                 <div
                   aria-hidden="true"
@@ -114,7 +119,10 @@ export function Examples() {
                     <Link
                       href={explorePath(owner, repo)}
                       aria-label={`Explore ${fullName}`}
-                      className={cn(styles.noRing, "after:absolute after:inset-0 after:rounded-2xl")}
+                      className={cn(
+                        styles.noRing,
+                        "after:absolute after:inset-0 after:rounded-2xl",
+                      )}
                     >
                       <span className="text-(--lc-muted)">{owner}/</span>
                       <span className="font-semibold">{repo}</span>

@@ -22,14 +22,18 @@ describe("parseRepositoryInput", () => {
   });
 
   it("extracts ref and path from tree/blob URLs", () => {
-    expect(parseRepositoryInput("https://github.com/facebook/react/tree/main/packages/react")).toEqual({
+    expect(
+      parseRepositoryInput("https://github.com/facebook/react/tree/main/packages/react"),
+    ).toEqual({
       ok: true,
       owner: "facebook",
       repo: "react",
       ref: "main",
       path: "packages/react",
     });
-    expect(parseRepositoryInput("https://github.com/facebook/react/blob/v18.2.0/README.md")).toEqual({
+    expect(
+      parseRepositoryInput("https://github.com/facebook/react/blob/v18.2.0/README.md"),
+    ).toEqual({
       ok: true,
       owner: "facebook",
       repo: "react",
@@ -84,9 +88,12 @@ describe("isValidRef", () => {
   it.each(["main", "v1.2.3", "feature/x", "a".repeat(40)])("accepts %s", (ref) => {
     expect(isValidRef(ref)).toBe(true);
   });
-  it.each(["", "a..b", "/main", "main/", "x.lock", "a//b", "has space", "semi;colon"])("rejects %j", (ref) => {
-    expect(isValidRef(ref)).toBe(false);
-  });
+  it.each(["", "a..b", "/main", "main/", "x.lock", "a//b", "has space", "semi;colon"])(
+    "rejects %j",
+    (ref) => {
+      expect(isValidRef(ref)).toBe(false);
+    },
+  );
 });
 
 describe("explorePath", () => {

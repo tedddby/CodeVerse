@@ -18,7 +18,8 @@ describe("detectWebGL", () => {
     const loseContext = vi.fn();
     const getContext = vi
       .spyOn(HTMLCanvasElement.prototype, "getContext")
-      .mockImplementation(((kind: string) => (kind === "webgl2" ? fakeContext(loseContext) : null)) as never);
+      .mockImplementation(((kind: string) =>
+        kind === "webgl2" ? fakeContext(loseContext) : null) as never);
     expect(detectWebGL()).toBe(true);
     expect(getContext).toHaveBeenCalledTimes(1);
     expect(getContext.mock.calls[0]?.[0]).toBe("webgl2");

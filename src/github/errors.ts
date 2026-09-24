@@ -55,7 +55,9 @@ export interface ResponseErrorInput {
 /** Extracts and sanitizes the `message` field of a GitHub JSON error body. */
 /** GitHubApiError check that survives duplicated module copies (see `isSourceError`). */
 export function isGitHubApiError(value: unknown): value is GitHubApiError {
-  return value instanceof GitHubApiError || (isSourceError(value) && value.name === "GitHubApiError");
+  return (
+    value instanceof GitHubApiError || (isSourceError(value) && value.name === "GitHubApiError")
+  );
 }
 
 export function readUpstreamMessage(bodyText: string, secret?: string): string | undefined {

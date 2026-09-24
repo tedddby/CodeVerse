@@ -82,7 +82,11 @@ describe("explorer store", () => {
       store().setTimeline({ active: true });
       expect(store().showDependencies).toBe(false);
       store().setTimeline({ active: false });
-      expect(store()).toMatchObject({ visualMode: "dependencies", showDependencies: true, dependenciesFromMode: true });
+      expect(store()).toMatchObject({
+        visualMode: "dependencies",
+        showDependencies: true,
+        dependenciesFromMode: true,
+      });
     });
 
     it("keeps a mode the user picks while the timeline is open", () => {

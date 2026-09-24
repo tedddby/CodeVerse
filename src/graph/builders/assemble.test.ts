@@ -307,7 +307,9 @@ describe("assembleGraph", () => {
     expect(languageBytes).toBe(
       graph.analysis.coverage.bytesInRepository - binaryBytes - generatedBytes,
     );
-    expect(graph.languages.some((language) => language.id === "unknown" && language.bytes === 40_000)).toBe(false);
+    expect(
+      graph.languages.some((language) => language.id === "unknown" && language.bytes === 40_000),
+    ).toBe(false);
     expect(graph.analysis.unsupportedLanguages).toEqual([{ language: "c", name: "C", files: 2 }]);
   });
 
