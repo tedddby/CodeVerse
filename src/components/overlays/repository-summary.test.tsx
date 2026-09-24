@@ -62,6 +62,28 @@ describe("RepositorySummary", () => {
     expect(items.filter((item) => item.tabIndex === 0)).toHaveLength(1);
   });
 
+  it("counts files in the singular for single-file directories", () => {
+    load();
+    render(<RepositorySummary standalone />);
+    const scripts = treeItem("scripts, 1 file");
+    expect(scripts).toHaveTextContent(/1 file · 88 LOC/);
+    expect(treeItem(/^src, \d+ files$/)).toBeInTheDocument();
+  });
+
+  it("shows hidden characters in names as visible markers", () => {
+    const rlo = String.fromCodePoint(0x202e);
+    load({
+      ...githubGraph,
+      files: githubGraph.files.map((file) =>
+        file.id === "file:tsconfig.json" ? { ...file, name: `tsconfig${rlo}nosj.exe` } : file,
+      ),
+    });
+    render(<RepositorySummary standalone />);
+    const item = treeItem("tsconfig[U+202E]nosj.exe");
+    expect(item).toHaveTextContent("tsconfigU+202Enosj.exe");
+    expect(item.textContent).not.toContain(rlo);
+  });
+
   it("supports the tree keyboard pattern", async () => {
     const user = userEvent.setup();
     load();

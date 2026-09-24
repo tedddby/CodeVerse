@@ -24,6 +24,12 @@ export const VISUAL_MODES: ReadonlyArray<{ id: VisualMode; label: string; descri
 
 export type NavigationMode = "orbit" | "explore";
 
+/**
+ * Which side of the selected file's dependency graph is emphasised: its
+ * imports ("outgoing"), the files importing it ("incoming"), or both.
+ */
+export type DependencyDirection = "both" | "outgoing" | "incoming";
+
 export interface CameraPose {
   position: [number, number, number];
   target: [number, number, number];
@@ -36,8 +42,11 @@ export type CameraCommand =
   | { type: "focus-repository" }
   /** Frame the current selection (no-op without selection). */
   | { type: "focus-selected" }
-  /** Fly to a directory, file or symbol. */
-  | { type: "focus-node"; ref: NodeRef }
+  /**
+   * Fly to a directory, file or symbol. `include` lists related nodes to keep
+   * in frame with it (e.g. a file's imports), framing all of them together.
+   */
+  | { type: "focus-node"; ref: NodeRef; include?: readonly NodeRef[] }
   /** Fly to a ground point (e.g. minimap click), keeping the current viewing angle. */
   | { type: "focus-point"; x: number; z: number }
   /** Jump/fly to an exact pose (e.g. restored from a share link). */
@@ -76,8 +85,12 @@ export interface ExplorerState {
   showDependencies: boolean;
   /** True when dependency lines were switched on by entering Dependencies mode (not by the user). */
   dependenciesFromMode: boolean;
+  /** Side of the selected file's dependencies to emphasise; back to "both" when the selection changes. */
+  dependencyDirection: DependencyDirection;
   navigationMode: NavigationMode;
   timeline: TimelineState;
+  /** Mode shown before opening the timeline switched to Activity; restored when it closes. */
+  modeBeforeTimeline: VisualMode | null;
   activeContributorId: string | null;
 
   panels: Record<PanelId, boolean>;
@@ -98,9 +111,15 @@ export interface ExplorerState {
   focusDirectory: (directoryId: string | null) => void;
   setVisualMode: (mode: VisualMode) => void;
   toggleDependencies: (value?: boolean) => void;
+  setDependencyDirection: (direction: DependencyDirection) => void;
   setNavigationMode: (mode: NavigationMode) => void;
   issueCameraCommand: (command: CameraCommand) => void;
   setCameraPose: (pose: CameraPose) => void;
+  /**
+   * Updates the history timeline. Opening it switches to Activity mode (the
+   * mode that highlights files changed in the selected period); closing it
+   * restores the previous mode unless the user picked another one meanwhile.
+   */
   setTimeline: (patch: Partial<TimelineState>) => void;
   setActiveContributor: (contributorId: string | null) => void;
   setPanel: (panel: PanelId, open: boolean) => void;
@@ -132,7 +151,9 @@ const initialRepositoryState = {
   visualMode: "architecture" as VisualMode,
   showDependencies: false,
   dependenciesFromMode: false,
+  dependencyDirection: "both" as DependencyDirection,
   timeline: { active: false, cursor: null, windowDays: 30 } satisfies TimelineState,
+  modeBeforeTimeline: null,
   activeContributorId: null,
   panels: CLOSED_PANELS,
   codeViewer: null,
@@ -141,6 +162,32 @@ const initialRepositoryState = {
 } as const;
 
 let commandNonce = 0;
+
+type ModeTransition = Pick<
+  ExplorerState,
+  "visualMode" | "showDependencies" | "dependenciesFromMode" | "timeline" | "panels" | "modeBeforeTimeline"
+>;
+
+/** State changes of switching to `mode`, including the tools the mode brings along. */
+function modeTransition(state: ExplorerState, mode: VisualMode): ModeTransition {
+  let { showDependencies, dependenciesFromMode } = state;
+  if (mode === "dependencies" && !showDependencies) {
+    showDependencies = true;
+    dependenciesFromMode = true;
+  } else if (mode !== "dependencies" && state.visualMode === "dependencies" && dependenciesFromMode) {
+    // Lines the mode turned on leave with it; lines the user turned on stay.
+    showDependencies = false;
+    dependenciesFromMode = false;
+  }
+  return {
+    visualMode: mode,
+    showDependencies,
+    dependenciesFromMode,
+    timeline: mode === "activity" ? { ...state.timeline, active: true } : state.timeline,
+    panels: mode === "contributors" ? { ...state.panels, contributors: true } : state.panels,
+    modeBeforeTimeline: null,
+  };
+}
 
 function nodeExists(index: GraphIndex | null, ref: NodeRef): boolean {
   if (!index) return false;
@@ -186,7 +233,9 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
 
   select: (ref, options) => {
     if (ref && !nodeExists(get().index, ref)) return;
-    set({ selection: ref });
+    const previous = get().selection;
+    const changed = previous?.id !== ref?.id || previous?.kind !== ref?.kind;
+    set(changed ? { selection: ref, dependencyDirection: "both" } : { selection: ref });
     if (ref && options?.focus) get().issueCameraCommand({ type: "focus-node", ref });
   },
 
@@ -204,28 +253,12 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
     }
   },
 
-  setVisualMode: (mode) =>
-    set((state) => {
-      let { showDependencies, dependenciesFromMode } = state;
-      if (mode === "dependencies" && !showDependencies) {
-        showDependencies = true;
-        dependenciesFromMode = true;
-      } else if (mode !== "dependencies" && state.visualMode === "dependencies" && dependenciesFromMode) {
-        // Lines the mode turned on leave with it; lines the user turned on stay.
-        showDependencies = false;
-        dependenciesFromMode = false;
-      }
-      return {
-        visualMode: mode,
-        showDependencies,
-        dependenciesFromMode,
-        timeline: mode === "activity" ? { ...state.timeline, active: true } : state.timeline,
-        panels: mode === "contributors" ? { ...state.panels, contributors: true } : state.panels,
-      };
-    }),
+  setVisualMode: (mode) => set((state) => modeTransition(state, mode)),
 
   toggleDependencies: (value) =>
     set((state) => ({ showDependencies: value ?? !state.showDependencies, dependenciesFromMode: false })),
+
+  setDependencyDirection: (dependencyDirection) => set({ dependencyDirection }),
 
   setNavigationMode: (mode) => set({ navigationMode: mode }),
 
@@ -236,7 +269,20 @@ export const useExplorerStore = create<ExplorerState>()((set, get) => ({
 
   setCameraPose: (pose) => set({ cameraPose: pose }),
 
-  setTimeline: (patch) => set((state) => ({ timeline: { ...state.timeline, ...patch } })),
+  setTimeline: (patch) =>
+    set((state) => {
+      const timeline = { ...state.timeline, ...patch };
+      if (timeline.active && !state.timeline.active && state.visualMode !== "activity") {
+        return { ...modeTransition(state, "activity"), timeline, modeBeforeTimeline: state.visualMode };
+      }
+      if (!timeline.active && state.timeline.active && state.modeBeforeTimeline) {
+        // Restore only if the user is still in the Activity mode the timeline chose, and
+        // without re-opening the mode's panels (contributors) the user may have closed.
+        const restored = state.visualMode === "activity" ? modeTransition(state, state.modeBeforeTimeline) : null;
+        return { ...restored, timeline, panels: state.panels, modeBeforeTimeline: null };
+      }
+      return { timeline };
+    }),
 
   setActiveContributor: (contributorId) =>
     set((state) => ({

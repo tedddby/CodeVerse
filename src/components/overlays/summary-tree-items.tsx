@@ -2,10 +2,12 @@
 
 import { ChevronRight, Folder, FolderOpen } from "lucide-react";
 import { createContext, useContext, type MutableRefObject } from "react";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { Badge, LanguageDot } from "@/components/ui/primitives";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import { cn } from "@/lib/utils/cn";
-import { formatCompact, formatInteger } from "@/lib/utils/format";
+import { formatCompact, formatInteger, pluralize } from "@/lib/utils/format";
 import { moreRowId, TREE_PAGE_SIZE, treeChildren, type TreeChild } from "./summary-tree-model";
 
 /**
@@ -117,7 +119,7 @@ function DirectoryItem({ child, level, posinset, setsize }: ItemProps) {
       aria-level={level}
       aria-posinset={posinset}
       aria-setsize={setsize}
-      aria-label={`${child.name}, ${formatInteger(directory?.stats.fileCount ?? 0)} files`}
+      aria-label={`${escapeHiddenCharacters(child.name)}, ${pluralize(directory?.stats.fileCount ?? 0, "file")}`}
       tabIndex={tabStopId === child.id ? 0 : -1}
       className={ITEM_CLASS}
     >
@@ -134,10 +136,12 @@ function DirectoryItem({ child, level, posinset, setsize }: ItemProps) {
           )}
         />
         <Icon aria-hidden="true" className="text-ink-subtle size-4 shrink-0" />
-        <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{child.name}</span>
+        <span className="min-w-0 flex-1 truncate font-mono text-[13px]">
+          {revealHiddenCharacters(child.name)}
+        </span>
         {directory ? (
           <span aria-hidden="true" className="text-ink-subtle shrink-0 font-mono text-[11px]">
-            {formatInteger(directory.stats.fileCount)} files ·{" "}
+            {pluralize(directory.stats.fileCount, "file")} ·{" "}
             {directory.stats.linesEstimated ? "~" : ""}
             {formatCompact(directory.stats.totalLines)} LOC
           </span>
@@ -174,7 +178,7 @@ function FileItem({ child, level, posinset, setsize }: ItemProps) {
       aria-level={level}
       aria-posinset={posinset}
       aria-setsize={setsize}
-      aria-label={child.name}
+      aria-label={escapeHiddenCharacters(child.name)}
       tabIndex={tabStopId === child.id ? 0 : -1}
       className={ITEM_CLASS}
     >
@@ -185,7 +189,9 @@ function FileItem({ child, level, posinset, setsize }: ItemProps) {
       >
         <span aria-hidden="true" className="w-3.5 shrink-0" />
         {file ? <LanguageDot language={file.language} className="mx-1" /> : null}
-        <span className="min-w-0 flex-1 truncate font-mono text-[13px]">{child.name}</span>
+        <span className="min-w-0 flex-1 truncate font-mono text-[13px]">
+          {revealHiddenCharacters(child.name)}
+        </span>
         {status ? (
           <Badge tone={file?.status === "failed" ? "danger" : "neutral"} className="shrink-0">
             {status}

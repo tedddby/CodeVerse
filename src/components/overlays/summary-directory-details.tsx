@@ -3,6 +3,7 @@
 import { ExternalLink } from "lucide-react";
 import { useId } from "react";
 import { githubTreeUrl } from "@/analysis/source-protocol";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { ButtonLink } from "@/components/ui/button";
 import { LanguageDot, Stat } from "@/components/ui/primitives";
 import type { GraphIndex } from "@/graph/model/graph-index";
@@ -30,7 +31,7 @@ export function DirectoryDetails({
     <article aria-labelledby={titleId}>
       <p className="text-ink-subtle font-mono text-[10px] tracking-[0.2em] uppercase">Directory</p>
       <h3 id={titleId} className="text-ink mt-0.5 font-mono text-sm font-semibold break-all">
-        {directory.path === "" ? repository.name : `${directory.path}/`}
+        {revealHiddenCharacters(directory.path === "" ? repository.name : `${directory.path}/`)}
       </h3>
       <dl className="mt-3 space-y-1">
         <Stat

@@ -50,28 +50,32 @@
 /*
  * Focus: the global ring is a pale cyan made for dark surfaces. Here it is a
  * 2px indigo outline (white on color and navy), keeping each element's radius.
+ * These rules share the global ring's base layer: they outrank it by
+ * specificity, `revert-layer` skips its 4px radius, and utilities still win.
  */
-.root :focus-visible {
-  outline: 2px solid var(--lc-focus);
-  outline-offset: 3px;
-  border-radius: revert-layer;
-}
+@layer base {
+  .root :focus-visible {
+    outline: 2px solid var(--lc-focus);
+    outline-offset: 3px;
+    border-radius: revert-layer;
+  }
 
-.onColor :focus-visible {
-  outline-color: #ffffff;
-}
+  .onColor :focus-visible {
+    outline-color: #ffffff;
+  }
 
-/* The repository field shows focus on its whole frame instead. */
-.root .bareInput:focus-visible {
-  outline: none;
-}
+  /* The repository field shows focus on its whole frame instead. */
+  .root .bareInput:focus-visible {
+    outline: none;
+  }
 
-/*
- * Opt-out for elements whose focus is shown elsewhere: whole-card links (the
- * card draws the ring through `has-[a:focus-visible]`) and the skip target.
- */
-.root .noRing:focus-visible {
-  outline: none;
+  /*
+   * Opt-out for elements whose focus is shown elsewhere: whole-card links (the
+   * card draws the ring through `has-[a:focus-visible]`) and the skip target.
+   */
+  .root .noRing:focus-visible {
+    outline: none;
+  }
 }
 
 /* ─── Skewed edges ─────────────────────────────────────────────────────── */
@@ -113,7 +117,12 @@
   top: -55%;
   width: 72%;
   height: 130%;
-  background: radial-gradient(closest-side, #2a1b9e 0%, rgb(42 27 158 / 0.75) 45%, rgb(42 27 158 / 0) 100%);
+  background: radial-gradient(
+    closest-side,
+    #2a1b9e 0%,
+    rgb(42 27 158 / 0.75) 45%,
+    rgb(42 27 158 / 0) 100%
+  );
   animation-name: driftIndigo;
   animation-duration: 31s;
 }
@@ -124,7 +133,12 @@
   top: -30%;
   width: 72%;
   height: 120%;
-  background: radial-gradient(closest-side, #6b45f2 0%, rgb(107 69 242 / 0.7) 40%, rgb(107 69 242 / 0) 100%);
+  background: radial-gradient(
+    closest-side,
+    #6b45f2 0%,
+    rgb(107 69 242 / 0.7) 40%,
+    rgb(107 69 242 / 0) 100%
+  );
   animation-name: driftViolet;
   animation-duration: 24s;
 }
@@ -134,7 +148,12 @@
   top: -12%;
   width: 66%;
   height: 112%;
-  background: radial-gradient(closest-side, #cf2690 0%, rgb(207 38 144 / 0.72) 42%, rgb(207 38 144 / 0) 100%);
+  background: radial-gradient(
+    closest-side,
+    #cf2690 0%,
+    rgb(207 38 144 / 0.72) 42%,
+    rgb(207 38 144 / 0) 100%
+  );
   animation-name: driftMagenta;
   animation-duration: 28s;
 }
@@ -145,7 +164,12 @@
   top: 48%;
   width: 70%;
   height: 100%;
-  background: radial-gradient(closest-side, #18c2f0 0%, rgb(24 194 240 / 0.72) 45%, rgb(24 194 240 / 0) 100%);
+  background: radial-gradient(
+    closest-side,
+    #18c2f0 0%,
+    rgb(24 194 240 / 0.72) 45%,
+    rgb(24 194 240 / 0) 100%
+  );
   animation-name: driftCyan;
   animation-duration: 22s;
 }
@@ -155,7 +179,12 @@
   top: 60%;
   width: 70%;
   height: 90%;
-  background: radial-gradient(closest-side, #ffae45 0%, rgb(255 174 69 / 0.75) 42%, rgb(255 174 69 / 0) 100%);
+  background: radial-gradient(
+    closest-side,
+    #ffae45 0%,
+    rgb(255 174 69 / 0.75) 42%,
+    rgb(255 174 69 / 0) 100%
+  );
   animation-name: driftAmber;
   animation-duration: 34s;
 }
@@ -164,8 +193,12 @@
 .shade {
   position: absolute;
   inset: 0;
-  background:
-    linear-gradient(180deg, rgb(26 14 96 / 0.34) 0%, rgb(26 14 96 / 0.12) 38%, rgb(26 14 96 / 0) 62%);
+  background: linear-gradient(
+    180deg,
+    rgb(26 14 96 / 0.34) 0%,
+    rgb(26 14 96 / 0.12) 38%,
+    rgb(26 14 96 / 0) 62%
+  );
 }
 
 @keyframes driftIndigo {

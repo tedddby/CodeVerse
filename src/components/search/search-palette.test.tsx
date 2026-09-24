@@ -212,3 +212,28 @@ describe("search palette model", () => {
     expect(splitByMatches("abc", [])).toEqual([{ text: "abc", matched: false }]);
   });
 });
+
+describe("SearchPalette hidden characters", () => {
+  it("shows bidi controls in result names as visible markers, even inside matched runs", async () => {
+    const user = userEvent.setup();
+    const rlo = String.fromCodePoint(0x202e);
+    act(() => {
+      useExplorerStore.getState().loadGraph({
+        ...mockRepositoryGraph,
+        files: mockRepositoryGraph.files.map((file) =>
+          file.id === "file:services/billing/invoice.go"
+            ? { ...file, name: `invoice${rlo}og.exe` }
+            : file,
+        ),
+      });
+      useExplorerStore.getState().setPanel("search", true);
+    });
+    render(<SearchPalette />);
+    await user.type(screen.getByRole("combobox"), "invoice");
+    const option = options().find((candidate) => candidate.textContent?.includes("og.exe"));
+    expect(option).toBeDefined();
+    expect(option?.querySelector('[data-hidden-character="U+202E"]')).not.toBeNull();
+    expect(option?.textContent).toContain("invoiceU+202Eog.exe");
+    expect(option?.textContent).not.toContain(rlo);
+  });
+});

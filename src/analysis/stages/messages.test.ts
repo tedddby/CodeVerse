@@ -3,6 +3,7 @@ import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import type { LanguageStat } from "@/graph/model/types";
 import { ANALYSIS_STAGES } from "../protocol";
 import {
+  STALE_CONNECT_MESSAGE,
   cachedStageEvents,
   dependenciesMessage,
   fetchMessage,
@@ -54,5 +55,16 @@ describe("cachedStageEvents", () => {
       ),
     );
     expect(events[3]?.message).toBe("Cached");
+  });
+
+  it("reports the connect stage as a warning for a stale replay", () => {
+    const events = cachedStageEvents(mockRepositoryGraph, true);
+    expect(events[0]).toEqual({
+      type: "stage",
+      stage: "connect",
+      status: "warning",
+      message: STALE_CONNECT_MESSAGE,
+    });
+    expect(events.slice(1).every((event) => event.status === "done")).toBe(true);
   });
 });

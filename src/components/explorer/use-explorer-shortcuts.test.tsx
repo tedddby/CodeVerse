@@ -174,29 +174,36 @@ describe("useExplorerShortcuts", () => {
     expect(state().panels.analytics).toBe(true);
     press("t");
     expect(state().timeline.active).toBe(true);
+    expect(state().visualMode).toBe("activity"); // the timeline highlights through Activity mode
     press("t");
     expect(state().timeline.active).toBe(false);
+    expect(state().visualMode).toBe("architecture");
     press("`");
     expect(onTogglePerf).toHaveBeenCalledTimes(1);
   });
 
-  it("toggles navigation mode with Tab only in a canvas context", () => {
+  it("never takes over Tab, so focus can always move past the canvas", () => {
     setup();
     const { container } = render(<div {...{ [CANVAS_ATTRIBUTE]: "" }} tabIndex={0} data-testid="canvas" />);
     const canvas = container.firstElementChild as HTMLElement;
 
-    // Fresh page: Tab on the body keeps its native focus behaviour.
+    // fireEvent returns false only when the default action was prevented.
     expect(press("Tab")).toBe(true);
-    expect(state().navigationMode).toBe("orbit");
-
-    expect(press("Tab", {}, canvas)).toBe(false);
-    expect(state().navigationMode).toBe("explore");
+    expect(press("Tab", {}, canvas)).toBe(true);
     expect(press("Tab", { shiftKey: true }, canvas)).toBe(true);
-    expect(state().navigationMode).toBe("explore");
-
-    // After interacting with the canvas, focus falls back to the body: Tab keeps toggling.
     fireEvent.pointerDown(canvas);
-    expect(press("Tab")).toBe(false);
+    expect(press("Tab")).toBe(true);
+    expect(press("Tab", {}, canvas)).toBe(true);
+    expect(state().navigationMode).toBe("orbit");
+  });
+
+  it("switches between Orbit and Explore mode with G, from the canvas or the page", () => {
+    setup();
+    const { container } = render(<div {...{ [CANVAS_ATTRIBUTE]: "" }} tabIndex={0} />);
+    const canvas = container.firstElementChild as HTMLElement;
+    expect(press("g", {}, canvas)).toBe(false);
+    expect(state().navigationMode).toBe("explore");
+    expect(press("G", { shiftKey: true })).toBe(false);
     expect(state().navigationMode).toBe("orbit");
   });
 
@@ -205,6 +212,8 @@ describe("useExplorerShortcuts", () => {
     press("3");
     press("r");
     press("`");
+    press("g");
+    expect(state().navigationMode).toBe("orbit");
     expect(state().visualMode).toBe("architecture");
     expect(state().cameraCommand).toBeNull();
     expect(onTogglePerf).not.toHaveBeenCalled();

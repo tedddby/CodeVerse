@@ -19,8 +19,10 @@ import {
   initials,
   isSafeAvatarUrl,
   mostActiveAreas,
+  partitionByWindowActivity,
   recentCommits,
   sortContributors,
+  touchedFilesInWindow,
 } from "./contributors-model";
 
 const index = buildGraphIndex(mockRepositoryGraph);
@@ -133,14 +135,50 @@ describe("contributors model", () => {
     expect(initials("  ")).toBe("?");
   });
 
-  it("sorts by all-time contributions, then window commits", () => {
+  it("sorts by files touched in the window, then window commits, then all-time contributions", () => {
     const sorted = sortContributors(mockRepositoryGraph.contributors);
+    // Bruno and Chen both touched 6 files in 3 commits; Bruno has more contributions.
     expect(sorted.map((contributor) => contributor.login)).toEqual([
       "octo-ada",
       "octo-bruno",
       "octo-chen",
       "octo-dara",
     ]);
+  });
+
+  it("ranks contributors with nothing in the analysed window last, however large their all-time count", () => {
+    const [ada, bruno] = mockRepositoryGraph.contributors;
+    if (!ada || !bruno) throw new Error("fixture has contributors");
+    const founder = {
+      ...ada,
+      id: "user:founder",
+      name: "Founder",
+      login: "founder",
+      contributions: 3_600,
+      commitCount: 0,
+      fileIds: [],
+    };
+    const bot = {
+      ...bruno,
+      id: "user:bot",
+      name: "renovate[bot]",
+      login: "renovate[bot]",
+      contributions: 900,
+      commitCount: 26,
+      fileIds: [],
+    };
+    const sorted = sortContributors([founder, bot, bruno, ada]);
+    expect(sorted.map((contributor) => contributor.id)).toEqual([
+      ada.id,
+      bruno.id,
+      "user:bot",
+      "user:founder",
+    ]);
+    const { active, inactive } = partitionByWindowActivity(sorted);
+    expect(active.map((contributor) => contributor.id)).toEqual([ada.id, bruno.id]);
+    expect(inactive.map((contributor) => contributor.id)).toEqual(["user:bot", "user:founder"]);
+    expect(touchedFilesInWindow(founder)).toBe(false);
+    expect(touchedFilesInWindow(ada)).toBe(true);
   });
 
   it("finds the most active areas at directory depth ≤ 2", () => {

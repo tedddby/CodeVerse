@@ -204,6 +204,32 @@ describe("file activity", () => {
     expect(graph.analysis.history).toMatchObject({ filesWithActivity: 3, perFileHistory: true });
     expect(graph.analysis.warnings.map((warning) => warning.code)).not.toContain("HISTORY_LIMITED");
   });
+
+  it("counts a looked-up last commit inside the listed window as at least one commit", () => {
+    const recent = commit("w1", "2026-09-01T00:00:00Z", { authorLogin: "ada" });
+    const middle = commit("w2", "2026-07-01T00:00:00Z", { authorLogin: "bob" });
+    const oldest = commit("w3", "2026-05-01T00:00:00Z", { authorLogin: "bob" });
+    const { graph } = runPipeline({
+      files,
+      history: emptyHistory({
+        // Only the newest commit has details; the others were listed without changed files.
+        commits: [recent, middle, oldest],
+        details: [details(recent, ["src/a.ts"])],
+        fileActivity: new Map([
+          ["src/a.ts", { lastModified: "2026-09-01T00:00:00Z", authorLogin: "ada" }],
+          ["src/b.ts", { lastModified: "2026-07-01T00:00:00Z", authorLogin: "bob" }],
+          ["src/c.ts", { lastModified: "2026-04-30T23:59:59Z", authorLogin: "bob" }],
+        ]),
+        perFileHistory: true,
+      }),
+    });
+    const commits = (path: string) =>
+      graph.files.find((file) => file.path === path)?.activity?.commitCount;
+    expect(commits("src/a.ts")).toBe(1);
+    expect(commits("src/b.ts")).toBe(1);
+    // Last changed before the oldest listed commit: no commits within the window.
+    expect(commits("src/c.ts")).toBe(0);
+  });
 });
 
 describe("commits and timeline", () => {

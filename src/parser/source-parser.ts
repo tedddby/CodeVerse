@@ -1,5 +1,6 @@
 import type { Language } from "web-tree-sitter";
 import { Deadline, ParseTimeoutError } from "./deadline";
+import { hasFlowPragma } from "./flow";
 import type { ExtractionContext, LanguageModule } from "./languages/types";
 import { countLines } from "./lines";
 import { LANGUAGE_MODULES, getLanguageModule } from "./registry";
@@ -54,6 +55,29 @@ function roundDuration(milliseconds: number): number {
   return Math.round(milliseconds * 100) / 100;
 }
 
+/**
+ * Grammars tried for a JavaScript file, preferred first. Flow-typed JavaScript
+ * (React, React Native, ...) uses type annotations, `import type` and generics
+ * that the JavaScript grammar turns into ERROR nodes, losing whole
+ * declarations; the TSX grammar accepts JSX and most Flow syntax. A file with
+ * an @flow pragma starts with TSX; any other file that parses with syntax
+ * errors gets TSX as a second opinion.
+ */
+function javascriptGrammars(source: string): readonly ParserLanguageId[] {
+  return hasFlowPragma(source) ? ["tsx", "javascript"] : ["javascript", "tsx"];
+}
+
+/** Amount of extracted structure, to compare two parses of the same file. */
+function extractionScore(outcome: ParseOutcome): number {
+  return outcome.ok ? outcome.symbols.length + outcome.exports.length + outcome.imports.length : -1;
+}
+
+/** Time left of a per-file budget after `elapsedMs`: undefined when unbounded, 0 when spent. */
+function remainingTimeout(timeoutMs: number | undefined, elapsedMs: number): number | undefined {
+  if (timeoutMs === undefined || !Number.isFinite(timeoutMs) || timeoutMs <= 0) return undefined;
+  return Math.max(0, timeoutMs - elapsedMs);
+}
+
 class TreeSitterSourceParser implements SourceParser {
   private readonly runtime: TreeSitterRuntime;
 
@@ -77,30 +101,79 @@ class TreeSitterSourceParser implements SourceParser {
       ) {
         return failure("too-large", `File is larger than the ${maxBytes}-byte parse limit`, lines);
       }
-      const languageModule = getLanguageModule(input.language);
-      if (!languageModule) {
-        const requested = String(input.language).slice(0, 40);
-        return failure("grammar-unavailable", `No parser is available for "${requested}"`, lines);
+      if (input.language === "javascript") {
+        return await this.parseJavaScript(input, content, lines, options);
       }
-      let language: Language;
-      try {
-        language = await this.runtime.loadLanguage(languageModule.grammarFile);
-      } catch (error) {
-        return failure(
-          "grammar-unavailable",
-          `The ${languageModule.displayName} grammar could not be loaded: ${describeError(error)}`,
-          lines,
-        );
-      }
-      return this.parseLoaded(input, languageModule, language, content, lines, options);
+      return await this.parseAs(input.language, input, content, lines, options);
     } catch (error) {
       return failure("parser-crash", `The parser failed: ${describeError(error)}`, lines);
     }
   }
 
+  /** Parses with one grammar, loading it first. */
+  private async parseAs(
+    grammar: ParserLanguageId,
+    input: SourceParserInput,
+    content: string,
+    lines: number,
+    options: ParseOptions,
+  ): Promise<ParseOutcome> {
+    const languageModule = getLanguageModule(grammar);
+    if (!languageModule) {
+      const requested = String(input.language).slice(0, 40);
+      return failure("grammar-unavailable", `No parser is available for "${requested}"`, lines);
+    }
+    let language: Language;
+    try {
+      language = await this.runtime.loadLanguage(languageModule.grammarFile);
+    } catch (error) {
+      return failure(
+        "grammar-unavailable",
+        `The ${languageModule.displayName} grammar could not be loaded: ${describeError(error)}`,
+        lines,
+      );
+    }
+    return this.parseLoaded(input, languageModule, language, content, lines, options);
+  }
+
+  /**
+   * JavaScript through up to two grammars (see `javascriptGrammars`) within
+   * one per-file time budget. The parse that extracts the most wins (ties go
+   * to the preferred grammar); the outcome always reports "javascript".
+   */
+  private async parseJavaScript(
+    input: SourceParserInput,
+    content: string,
+    lines: number,
+    options: ParseOptions,
+  ): Promise<ParseOutcome> {
+    const started = performance.now();
+    let best: ParseOutcome | null = null;
+    for (const grammar of javascriptGrammars(content)) {
+      const timeoutMs = remainingTimeout(options.timeoutMs, performance.now() - started);
+      if (best !== null && timeoutMs === 0) break;
+      const outcome = await this.parseAs(grammar, input, content, lines, { ...options, timeoutMs });
+      if (best === null || extractionScore(outcome) > extractionScore(best)) best = outcome;
+      if (best.ok && !best.hasErrors) break;
+    }
+    if (best === null) return failure("grammar-unavailable", "No parser is available", lines);
+    if (!best.ok) return best;
+    return {
+      ...best,
+      language: input.language,
+      durationMs: roundDuration(performance.now() - started),
+    };
+  }
+
   async warmup(languages?: ParserLanguageId[]): Promise<void> {
-    const modules = languages
-      ? languages.map((id) => getLanguageModule(id)).filter((candidate) => candidate !== undefined)
+    // JavaScript may be parsed with the TSX grammar too (Flow).
+    const requested = languages?.includes("javascript")
+      ? [...languages, "tsx" as const]
+      : languages;
+    const modules = requested
+      ? [...new Set(requested)]
+          .map((id) => getLanguageModule(id))
+          .filter((candidate) => candidate !== undefined)
       : LANGUAGE_MODULES;
     await Promise.all(
       modules.map(async (languageModule) => {

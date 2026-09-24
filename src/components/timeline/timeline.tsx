@@ -2,6 +2,8 @@
 
 import { GitCommitHorizontal, Pause, Play, SkipForward, X } from "lucide-react";
 import { useMemo } from "react";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { IconButton } from "@/components/ui/icon-button";
 import { Badge, LanguageDot } from "@/components/ui/primitives";
 import type { GraphIndex } from "@/graph/model/graph-index";
@@ -20,6 +22,7 @@ import {
   type WindowStats,
 } from "./timeline-model";
 import { useTimelinePlayback } from "./use-timeline-playback";
+import { WindowLengthPicker } from "./window-length-picker";
 
 /**
  * Bottom centre. Below lg the bar spans the width, so it sits above the camera
@@ -80,7 +83,11 @@ function TimelineBar({ index }: { index: GraphIndex }) {
   return (
     <section
       aria-label="History timeline"
-      className={cn(BAR_CLASS, selectionOpen && BESIDE_SELECTION_CLASS, !reducedMotion && "animate-slide-up")}
+      className={cn(
+        BAR_CLASS,
+        selectionOpen && BESIDE_SELECTION_CLASS,
+        !reducedMotion && "animate-slide-up",
+      )}
     >
       <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
         <div className="flex min-w-0 items-center gap-2">
@@ -98,31 +105,10 @@ function TimelineBar({ index }: { index: GraphIndex }) {
         <div className="ml-auto flex items-center gap-1">
           {extent ? (
             <>
-              <div
-                role="radiogroup"
-                aria-label="Window length"
-                className="border-line-strong mr-1 flex rounded-lg border p-0.5"
-              >
-                {WINDOW_OPTIONS.map((option) => {
-                  const checked = option.days === timeline.windowDays;
-                  return (
-                    <button
-                      key={option.days}
-                      type="button"
-                      role="radio"
-                      aria-checked={checked}
-                      aria-label={option.description}
-                      onClick={() => setTimeline({ windowDays: option.days })}
-                      className={cn(
-                        "rounded-md px-2 py-0.5 font-mono text-[11px] transition-colors",
-                        checked ? "bg-signal/15 text-signal" : "text-ink-subtle hover:text-ink",
-                      )}
-                    >
-                      {option.label}
-                    </button>
-                  );
-                })}
-              </div>
+              <WindowLengthPicker
+                value={timeline.windowDays}
+                onChange={(days) => setTimeline({ windowDays: days })}
+              />
               <IconButton
                 size="sm"
                 tooltipSide="top"
@@ -223,13 +209,13 @@ function WindowSummary({
         <span className="text-ink font-mono">{formatWindowRange(stats.start, stats.end)}</span>
         <span>
           <span className="text-ink font-mono tabular-nums">{formatInteger(stats.commits)}</span>{" "}
-          commits
+          {stats.commits === 1 ? "commit" : "commits"}
         </span>
         <span>
           <span className="text-ink font-mono tabular-nums">
             {formatInteger(stats.filesChanged)}
           </span>{" "}
-          files changed
+          {stats.filesChanged === 1 ? "file changed" : "files changed"}
         </span>
         <span>
           <span className="text-ink font-mono tabular-nums">
@@ -249,11 +235,11 @@ function WindowSummary({
                 <button
                   type="button"
                   onClick={() => onSelectFile(fileId)}
-                  title={file.path}
+                  title={escapeHiddenCharacters(file.path)}
                   className="border-line-strong bg-panel-raised/50 text-ink-muted hover:border-signal/40 hover:text-ink flex max-w-[13rem] items-center gap-1.5 rounded-md border px-2 py-0.5 text-[11px] transition-colors"
                 >
                   <LanguageDot language={file.language} />
-                  <span className="truncate font-mono">{file.name}</span>
+                  <span className="truncate font-mono">{revealHiddenCharacters(file.name)}</span>
                   {changes > 1 ? (
                     <span className="text-ink-subtle font-mono">×{changes}</span>
                   ) : null}

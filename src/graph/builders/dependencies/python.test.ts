@@ -135,3 +135,49 @@ describe("Python resolution (flat layout and namespaces)", () => {
     );
   });
 });
+
+describe("Python resolution (setup.cfg / setup.py source roots)", () => {
+  const sources = {
+    "app/main.py": ["acme.core"],
+    "lib/acme/core.py": [],
+  };
+
+  it.each([
+    ["setup.cfg package_dir", "setup.cfg", "[options]\npackage_dir =\n    = lib\n"],
+    ["setup.cfg package_dir (CRLF)", "setup.cfg", "[options]\r\npackage_dir =\r\n    = lib\r\n"],
+    ["setup.cfg find where", "setup.cfg", "[options.packages.find]\nwhere = lib\n"],
+    [
+      "setup.py package_dir",
+      "setup.py",
+      'setup(\n    package_dir={\n        "": "lib",\n    },\n)\n',
+    ],
+  ])("adds roots declared by %s", (_label, name, content) => {
+    const repo = resolveMiniRepository({ configs: { [name]: content }, sources });
+    expect(repo.target("app/main.py", "acme.core")).toBe("lib/acme/core.py");
+  });
+
+  it("ignores declarations without a declared root", () => {
+    const repo = resolveMiniRepository({ configs: { "setup.cfg": "[options]\n" }, sources });
+    expect(repo.target("app/main.py", "acme.core")).toBeNull();
+  });
+
+  it.each([
+    ["newlines", "\n"],
+    ["CRLF line breaks", "\r\n"],
+    ["spaces", " "],
+  ])(
+    "scans a hostile 256 KiB setup.cfg (package_dir= followed by %s) in linear time",
+    (_label, filler) => {
+      const head = "[options]\npackage_dir=";
+      const content = head + filler.repeat((256 * 1024 - head.length) / filler.length) + "x";
+      const started = performance.now();
+      const repo = resolveMiniRepository({
+        configs: { "setup.cfg": content, "setup.py": `package_dir =${filler.repeat(100_000)}x` },
+        sources,
+      });
+      // The former pattern backtracked quadratically: about a minute for this input.
+      expect(performance.now() - started).toBeLessThan(1_000);
+      expect(repo.target("app/main.py", "acme.core")).toBeNull();
+    },
+  );
+});

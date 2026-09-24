@@ -19,6 +19,7 @@ describe("planHistoryBudget", () => {
       maxCommits: 300,
       maxCommitDetails: 40,
       quotaLimited: false,
+      lowQuota: false,
     });
   });
 
@@ -27,6 +28,8 @@ describe("planHistoryBudget", () => {
     expect(budget.maxCommits).toBe(UNAUTHENTICATED_MAX_COMMITS);
     expect(budget.maxCommitDetails).toBe(UNAUTHENTICATED_MAX_COMMIT_DETAILS);
     expect(budget.quotaLimited).toBe(true);
+    // The fixed unauthenticated caps are not a transient low-quota condition.
+    expect(budget.lowQuota).toBe(false);
     // commits page + contributors + details must leave the reserve untouched
     expect(1 + 1 + budget.maxCommitDetails).toBeLessThanOrEqual(57 - QUOTA_RESERVE);
   });
@@ -35,6 +38,7 @@ describe("planHistoryBudget", () => {
     const budget = planHistoryBudget(limits, quota(QUOTA_RESERVE + 4, false), false);
     expect(budget.maxCommits).toBe(100);
     expect(budget.maxCommitDetails).toBe(2);
+    expect(budget.lowQuota).toBe(true);
   });
 
   it("skips history entirely when only the reserve is left", () => {
@@ -55,6 +59,7 @@ describe("planHistoryBudget", () => {
       maxCommits: 100,
       maxCommitDetails: 6,
       quotaLimited: true,
+      lowQuota: false,
     });
     expect(planHistoryBudget(limits, undefined, true).quotaLimited).toBe(false);
   });
@@ -65,6 +70,7 @@ describe("planHistoryBudget", () => {
       maxCommits: 50,
       maxCommitDetails: 3,
       quotaLimited: false,
+      lowQuota: false,
     });
   });
 });

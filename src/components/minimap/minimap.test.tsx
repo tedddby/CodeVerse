@@ -139,6 +139,34 @@ describe("minimap drawing", () => {
     expect(labels).toEqual(expect.arrayContaining(["src", "docs"]));
   });
 
+  it("draws hidden characters in district labels as visible code points", () => {
+    const rlo = String.fromCodePoint(0x202e);
+    const spoofed = buildGraphIndex({
+      ...mockRepositoryGraph,
+      directories: mockRepositoryGraph.directories.map((directory) =>
+        directory.id === "dir:docs" ? { ...directory, name: `do${rlo}cs` } : directory,
+      ),
+    });
+    const layout = gridLayout();
+    const ctx = recordingContext();
+    drawStaticLayer(
+      ctx,
+      {
+        layout,
+        transform: createMinimapTransform(layout.bounds, 2000, 8),
+        index: spoofed,
+        selection: null,
+        focusedDirectoryId: null,
+        visualMode: "architecture",
+        activeContributorId: null,
+      },
+      1,
+    );
+    const labels = ctx.calls.filter((call) => call.op === "fillText").map((call) => call.args[0]);
+    expect(labels).toContain("do[U+202E]cs");
+    expect(labels.some((label) => String(label).includes(rlo))).toBe(false);
+  });
+
   it("maps selections of symbols to their file's building", () => {
     expect(
       selectionTarget({ kind: "symbol", id: "sym:src/auth/jwt.ts#signToken@22" }, index),
@@ -160,6 +188,22 @@ describe("minimap drawing", () => {
     expect(buildingEmphasis(stripe, index, "contributors", "user:octo-ada")).toBeLessThan(0.2);
     expect(buildingEmphasis(jwt, index, "activity", null)).toBeGreaterThan(
       buildingEmphasis(index.filesById.get("file:README.md"), index, "activity", null),
+    );
+  });
+
+  it("does not darken the map for a contributor with no touched files in the window", () => {
+    const [ada] = mockRepositoryGraph.contributors;
+    if (!ada) throw new Error("fixture has contributors");
+    const quietIndex = buildGraphIndex({
+      ...mockRepositoryGraph,
+      contributors: [
+        ...mockRepositoryGraph.contributors,
+        { ...ada, id: "user:quiet", name: "Quiet", commitCount: 0, fileIds: [] },
+      ],
+    });
+    const jwt = quietIndex.filesById.get("file:src/auth/jwt.ts");
+    expect(buildingEmphasis(jwt, quietIndex, "contributors", "user:quiet")).toBe(
+      buildingEmphasis(jwt, quietIndex, "contributors", null),
     );
   });
 });

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
 import type { ContributorNode } from "@/graph/model/types";
 import { cn } from "@/lib/utils/cn";
 import { initials, isSafeAvatarUrl } from "./contributors-model";
@@ -27,7 +28,7 @@ export function ContributorAvatar({ contributor, size = 28, className }: Contrib
       // eslint-disable-next-line @next/next/no-img-element
       <img
         src={sized}
-        alt={contributor.name}
+        alt={escapeHiddenCharacters(contributor.name)}
         width={size}
         height={size}
         loading="lazy"
@@ -45,7 +46,7 @@ export function ContributorAvatar({ contributor, size = 28, className }: Contrib
   return (
     <span
       role="img"
-      aria-label={contributor.name}
+      aria-label={escapeHiddenCharacters(contributor.name)}
       className={cn(
         "border-line-strong bg-panel-raised text-ink-muted flex shrink-0 items-center justify-center rounded-full border font-mono select-none",
         className,

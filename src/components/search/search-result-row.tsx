@@ -1,4 +1,5 @@
 import { CornerDownLeft } from "lucide-react";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { LanguageDot } from "@/components/ui/primitives";
 import type { SearchResult } from "@/lib/search/search-index";
 import { cn } from "@/lib/utils/cn";
@@ -60,7 +61,9 @@ export function SearchResultRow({
         {result.kind === "file" && result.language ? (
           <LanguageDot language={result.language} className="self-center" />
         ) : null}
-        <span className="text-ink-subtle min-w-0 truncate text-xs">{result.subtitle}</span>
+        <span className="text-ink-subtle min-w-0 truncate text-xs">
+          {revealHiddenCharacters(result.subtitle)}
+        </span>
       </div>
       <span className="sr-only">, {kindLabel}</span>
       <span

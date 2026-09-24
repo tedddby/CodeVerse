@@ -12,10 +12,10 @@ import { isCommitSha } from "@/github/validation";
 import { singleFlight } from "@/lib/cache/single-flight";
 import { logger } from "@/lib/observability/logger";
 import { METRIC_NAMES, recordMetric } from "@/lib/observability/metrics";
-import { getSourceRateLimiter } from "@/lib/rate-limit/limiters";
+import { getSourceRateLimiter, getSourceRefRateLimiter } from "@/lib/rate-limit/limiters";
 import { getClientKey } from "@/lib/rate-limit/token-bucket";
 import { isSourceError } from "@/sources/types";
-import { createGitHubSource, getSharedGitHubClient } from "@/sources/github";
+import { createGitHubSource, getSharedGitHubClient, reservedQuotaError } from "@/sources/github";
 
 /**
  * GET /api/source/{owner}/{repo}?ref={sha|branch|tag}&path={path}
@@ -25,6 +25,10 @@ import { createGitHubSource, getSharedGitHubClient } from "@/sources/github";
  * sanitized before any request: no control characters, no "." / ".."
  * segments, no leading slash, at most 1,024 characters. Identical concurrent
  * reads share one download.
+ *
+ * The viewer always pins a commit. Branch and tag names cost API quota to
+ * resolve, so they have a stricter per-client limit and are refused once the
+ * server's quota falls to the share reserved for analyses.
  */
 
 export const runtime = "nodejs";
@@ -54,20 +58,25 @@ export async function GET(
     return sourceErrorResponse("INVALID_REQUEST", { message: "The file path is not valid." });
   }
 
-  const decision = getSourceRateLimiter().take(getClientKey(request));
-  if (!decision.allowed) {
+  const pinned = isCommitSha(ref);
+  const clientKey = getClientKey(request);
+  const decision = getSourceRateLimiter().take(clientKey);
+  const refDecision = pinned ? decision : getSourceRefRateLimiter().take(clientKey);
+  if (!decision.allowed || !refDecision.allowed) {
     recordMetric(METRIC_NAMES.clientRateLimited, 1, { route: "source" });
+    const retryAfterMs = Math.max(decision.retryAfterMs, refDecision.retryAfterMs);
     return sourceErrorResponse("RATE_LIMITED", {
       message: "Too many files were requested in a short time. Please wait a moment.",
-      headers: { "Retry-After": retryAfterSeconds(decision.retryAfterMs) },
+      headers: { "Retry-After": retryAfterSeconds(retryAfterMs) },
     });
   }
 
   try {
-    const pinned = isCommitSha(ref);
     let { owner, repo } = params;
     let sha = ref.toLowerCase();
     if (!pinned) {
+      const reserved = reservedQuotaError(getSharedGitHubClient());
+      if (reserved) throw reserved;
       // Resolves (and caches for 60 s) the branch/tag, enforcing public visibility.
       const snapshot = await createGitHubSource({ owner, repo, ref }).getSnapshot(request.signal);
       ({ owner, name: repo, commitSha: sha } = snapshot.repository);

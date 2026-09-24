@@ -82,24 +82,51 @@ export interface BandSpan {
 /**
  * Chooses which bands of a building get a text label: largest bands first,
  * skipping any whose centre is closer than `minSpacing` to an already chosen
- * label (so labels never stack on top of each other). Returned in bottom-to-top order.
+ * label (so labels never stack on top of each other). `pinnedId` (the
+ * selected symbol) claims its place first. Returned in bottom-to-top order.
  */
 export function selectSymbolLabels(
   bands: readonly BandSpan[],
   minSpacing: number,
   budget = SYMBOL_LABEL_BUDGET,
+  pinnedId: string | null = null,
 ): BandSpan[] {
   const limit = Math.max(0, Math.min(budget, SYMBOL_LABEL_BUDGET));
   const bySize = [...bands].sort(
     (a, b) =>
       b.y1 - b.y0 - (a.y1 - a.y0) || a.y0 - b.y0 || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),
   );
-  const chosen: BandSpan[] = [];
+  const pinned = pinnedId === null ? undefined : bands.find((band) => band.id === pinnedId);
+  const chosen: BandSpan[] = pinned && limit > 0 ? [pinned] : [];
   for (const band of bySize) {
     if (chosen.length >= limit) break;
+    if (band === pinned) continue;
     const mid = (band.y0 + band.y1) / 2;
     const clashes = chosen.some((other) => Math.abs((other.y0 + other.y1) / 2 - mid) < minSpacing);
     if (!clashes) chosen.push(band);
   }
   return chosen.sort((a, b) => a.y0 - b.y0 || (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
+}
+
+/**
+ * Band spans measured on screen: each band's vertical range, projected along
+ * the building's axis by `projectY` (world height -> screen y, or null when
+ * it does not project), as a pixel span. Feeding these to
+ * `selectSymbolLabels` with a pixel spacing keeps labels apart at any
+ * pitch: a vertical world gap shrinks on screen as the view steepens (with
+ * the sine of the polar angle) and vanishes top-down, where only one label
+ * fits. Bands that do not project are dropped.
+ */
+export function screenBandSpans(
+  bands: readonly BandSpan[],
+  projectY: (worldY: number) => number | null,
+): BandSpan[] {
+  const spans: BandSpan[] = [];
+  for (const band of bands) {
+    const a = projectY(band.y0);
+    const b = projectY(band.y1);
+    if (a === null || b === null || !Number.isFinite(a) || !Number.isFinite(b)) continue;
+    spans.push({ id: band.id, y0: Math.min(a, b), y1: Math.max(a, b) });
+  }
+  return spans;
 }

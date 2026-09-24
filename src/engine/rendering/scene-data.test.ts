@@ -13,7 +13,7 @@ import {
 } from "./district-label-views";
 import { dustPositions, fogDensity, niceStep } from "./environment-math";
 import { bracketPositions, padBox, selectionTarget } from "./selection-geometry";
-import { BandCache, symbolLabelText } from "./symbol-band-data";
+import { BandCache, bandPickRef, symbolLabelText } from "./symbol-band-data";
 import { tooltipContent } from "./tooltip-content";
 
 const index = buildGraphIndex(mockRepositoryGraph);
@@ -28,9 +28,11 @@ function cameraAbove(height: number): LabelCamera {
   return {
     position,
     fovY: 45,
+    viewportWidth: 1600,
     viewportHeight,
     // Top-down stand-in for a perspective projection: screen x from world x, screen y from world z.
     project: (x, _y, z) => ({ x: 800 + (x * focal) / height, y: 450 + (z * focal) / height }),
+    depth: () => height,
   };
 }
 
@@ -48,7 +50,7 @@ describe("computeDistrictLabelViews", () => {
     expect(new Set(views.map((view) => view.id)).size).toBe(views.length);
   });
 
-  it("anchors every label at its own district's slab centre, uppercase", () => {
+  it("anchors every label on its own district's slab top, uppercase", () => {
     const views = computeDistrictLabelViews({
       layout,
       index,
@@ -61,8 +63,8 @@ describe("computeDistrictLabelViews", () => {
       expect(district).toBeDefined();
       if (!district) continue;
       expect(view.y).toBeCloseTo(district.baseY + district.height, 6);
-      expect(view.x).toBe(district.x);
-      expect(view.z).toBe(district.z);
+      expect(Math.abs(view.x - district.x)).toBeLessThanOrEqual(district.width / 2 + 1e-9);
+      expect(Math.abs(view.z - district.z)).toBeLessThanOrEqual(district.depth / 2 + 1e-9);
       expect(view.text).toBe(view.text.toUpperCase());
       expect(view.pixelSize).toBeGreaterThan(10);
     }
@@ -332,5 +334,24 @@ describe("symbolLabelText", () => {
     const long = symbolLabelText("x".repeat(50), 10);
     expect(Array.from(long)).toHaveLength(10);
     expect(long.endsWith("…")).toBe(true);
+  });
+});
+
+describe("bandPickRef", () => {
+  const symbol = { id: "sym:src/auth/auth.ts#login", fileId: fileId("src/auth/auth.ts") };
+
+  it("picks the symbol only on the selected file's bands", () => {
+    expect(bandPickRef(symbol, fileId("src/auth/auth.ts"))).toEqual({
+      kind: "symbol",
+      id: symbol.id,
+    });
+  });
+
+  it("picks the building's file on context bands of other files, or with nothing selected", () => {
+    expect(bandPickRef(symbol, fileId("src/auth/jwt.ts"))).toEqual({
+      kind: "file",
+      id: symbol.fileId,
+    });
+    expect(bandPickRef(symbol, null)).toEqual({ kind: "file", id: symbol.fileId });
   });
 });

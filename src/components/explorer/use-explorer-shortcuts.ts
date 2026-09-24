@@ -20,10 +20,10 @@ import {
  *   handled, so type-ahead and arrow-key navigation keep working.
  * - Ignored entirely while a blocking overlay (search, share, shortcuts, code
  *   viewer) is open: those handle their own keys, including Escape.
- * - Enter and Tab are only taken over when focus is on the page body or the
- *   3D canvas, so buttons and links keep their native keyboard behaviour.
- *   Tab on the body is taken over only after the pointer last interacted with
- *   the canvas; before that, keyboard users can Tab into the toolbar normally.
+ * - Enter is only taken over when focus is on the page body or the 3D canvas,
+ *   so buttons and links keep their native keyboard behaviour.
+ * - Tab is never taken over: it always moves focus, so everything after the
+ *   canvas (selection details, panels, timeline, minimap) stays reachable.
  */
 
 /** Attribute marking the element that wraps the 3D canvas. */
@@ -37,8 +37,6 @@ export type ShortcutKeyEvent = Pick<
 export interface ShortcutContext {
   /** Whether the 3D world is shown; camera, mode and navigation keys need it. */
   worldEnabled: boolean;
-  /** Whether the most recent pointer interaction happened on the canvas. */
-  canvasInteracted: boolean;
   onTogglePerf?: () => void;
 }
 
@@ -152,12 +150,8 @@ export function handleExplorerShortcut(event: ShortcutKeyEvent, context: Shortcu
       if (!context.onTogglePerf) return false;
       return consume(context.onTogglePerf);
     }
-    case "Tab": {
-      if (event.shiftKey) return false;
-      const canvasContext = isInsideCanvas(event.target) || (isPageBody(event.target) && context.canvasInteracted);
-      if (!canvasContext) return false;
+    case "g":
       return consume(() => store.setNavigationMode(store.navigationMode === "orbit" ? "explore" : "orbit"));
-    }
   }
 
   const modeIndex = /^[1-9]$/.test(key) ? Number(key) - 1 : -1;
@@ -178,18 +172,10 @@ export interface ExplorerShortcutOptions {
 export function useExplorerShortcuts({ enabled, worldEnabled, onTogglePerf }: ExplorerShortcutOptions): void {
   useEffect(() => {
     if (!enabled) return;
-    let canvasInteracted = false;
-    const onPointerDown = (event: PointerEvent) => {
-      canvasInteracted = isInsideCanvas(event.target);
-    };
     const onKeyDown = (event: KeyboardEvent) => {
-      handleExplorerShortcut(event, { worldEnabled, canvasInteracted, onTogglePerf });
+      handleExplorerShortcut(event, { worldEnabled, onTogglePerf });
     };
-    window.addEventListener("pointerdown", onPointerDown, true);
     window.addEventListener("keydown", onKeyDown);
-    return () => {
-      window.removeEventListener("pointerdown", onPointerDown, true);
-      window.removeEventListener("keydown", onKeyDown);
-    };
+    return () => window.removeEventListener("keydown", onKeyDown);
   }, [enabled, worldEnabled, onTogglePerf]);
 }

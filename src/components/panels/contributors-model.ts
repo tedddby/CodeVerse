@@ -22,14 +22,37 @@ export function initials(name: string): string {
   return `${words[0]?.charAt(0) ?? ""}${words[words.length - 1]?.charAt(0) ?? ""}`.toUpperCase();
 }
 
-/** Most all-time contributions first, then most commits in the analysed window. */
+/**
+ * Most files touched in the analysed window first, then most commits in it,
+ * then most all-time contributions. The people GitHub ranks first (founders,
+ * bots) often have nothing in a short window, and selecting them would
+ * highlight no files.
+ */
 export function sortContributors(contributors: readonly ContributorNode[]): ContributorNode[] {
   return [...contributors].sort(
     (a, b) =>
-      b.contributions - a.contributions ||
+      b.fileIds.length - a.fileIds.length ||
       b.commitCount - a.commitCount ||
+      b.contributions - a.contributions ||
       a.name.localeCompare(b.name),
   );
+}
+
+/** Whether selecting the contributor highlights anything: they touched files in the analysed window. */
+export function touchedFilesInWindow(contributor: ContributorNode): boolean {
+  return contributor.fileIds.length > 0;
+}
+
+/** Splits (sorted) contributors into those with touched files in the window and the rest, keeping order. */
+export function partitionByWindowActivity(contributors: readonly ContributorNode[]): {
+  active: ContributorNode[];
+  inactive: ContributorNode[];
+} {
+  const active: ContributorNode[] = [];
+  const inactive: ContributorNode[] = [];
+  for (const contributor of contributors)
+    (touchedFilesInWindow(contributor) ? active : inactive).push(contributor);
+  return { active, inactive };
 }
 
 export interface ActiveArea {

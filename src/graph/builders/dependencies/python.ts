@@ -33,6 +33,27 @@ const IDENTIFIER = /^[A-Za-z_][A-Za-z0-9_]*$/;
 const PYTHON_FILE = /\.pyi?$/;
 const PROJECT_FILES: ReadonlySet<string> = new Set(["pyproject.toml", "setup.py", "setup.cfg"]);
 
+/** setup.cfg / setup.py are scanned with regular expressions; only their head is read. */
+export const MAX_SETUP_SCAN_CHARS = 64 * 1024;
+
+/**
+ * package_dir / find-where declarations of setup.cfg and setup.py. Adjacent
+ * whitespace runs never overlap (they are separated by a literal, or limited to
+ * spaces and tabs around a newline), so each pattern runs in linear time on
+ * hostile input. Resolution runs synchronously on the server's event loop.
+ */
+const SETUP_PATTERNS: readonly RegExp[] = [
+  // setup(package_dir={"": "src"}), possibly spread over several lines.
+  /package_dir\s*=\s*\{\s*["']{2}\s*:\s*["']([^"'\n]+)["']/g,
+  // [options]
+  // package_dir =
+  //     = src
+  /package_dir[ \t]*=[ \t]*\r?\n[ \t]*=[ \t]*([^\s#]+)/g,
+  // [options.packages.find]
+  // where = src
+  /where[ \t]*=[ \t]*([A-Za-z0-9_./-]+)[ \t]*\r?$/gm,
+];
+
 interface ModuleCandidate {
   path: string;
   root: string;
@@ -74,13 +95,9 @@ function declaredSourceDirectories(path: string, content: string): string[] {
         if (typeof entry === "string") declared.push(parentPath(entry));
     }
   } else {
-    const patterns = [
-      /package_dir\s*=\s*\{\s*["']{2}\s*:\s*["']([^"']+)["']/g,
-      /package_dir\s*=\s*\n\s*=\s*([^\s#]+)/g,
-      /where\s*=\s*([A-Za-z0-9_./-]+)\s*$/gm,
-    ];
-    for (const pattern of patterns) {
-      for (const match of content.matchAll(pattern)) if (match[1]) declared.push(match[1]);
+    const head = content.slice(0, MAX_SETUP_SCAN_CHARS);
+    for (const pattern of SETUP_PATTERNS) {
+      for (const match of head.matchAll(pattern)) if (match[1]) declared.push(match[1]);
     }
   }
   return declared

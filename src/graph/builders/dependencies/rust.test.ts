@@ -132,3 +132,20 @@ describe("Rust resolution", () => {
     expect(stats.unresolvedImports).toBe(2);
   });
 });
+
+describe("Rust resolution with a hostile manifest", () => {
+  it("keeps every language's edges when a Cargo.toml string holds an invalid unicode escape", () => {
+    const escape = `${String.fromCharCode(92)}u-001`;
+    const repo = resolveMiniRepository({
+      configs: { "Cargo.toml": `[package]\nname = "evil${escape}"\nversion = "0.1.0"\n` },
+      sources: {
+        "web/a.ts": ["./b"],
+        "web/b.ts": [],
+        "src/main.rs": [{ specifier: "util", kind: "module" }],
+        "src/util.rs": [],
+      },
+    });
+    expect(repo.target("web/a.ts", "./b")).toBe("web/b.ts");
+    expect(repo.target("src/main.rs", "util")).toBe("src/util.rs");
+  });
+});

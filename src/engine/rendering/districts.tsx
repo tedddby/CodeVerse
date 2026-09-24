@@ -12,14 +12,15 @@ import {
   type InstancedMesh,
   type ShaderMaterial,
 } from "three";
-import type { WorldLayout } from "@/engine/layout/types";
+import type { DistrictLayout, WorldLayout } from "@/engine/layout/types";
 import type { GraphIndex } from "@/graph/model/graph-index";
-import { useExplorerStore, type ExplorerState } from "@/state/explorer-store";
+import { useExplorerStore } from "@/state/explorer-store";
 import {
   buildOutlinePositions,
   OUTLINE_VERTICES_PER_DISTRICT,
   writeOutlineColor,
 } from "./district-outlines";
+import { districtStateKey, districtsToRewrite, type DistrictStateKey } from "./district-states";
 import { createInstancedBoxes, writeBoxMatrix } from "./instanced-boxes";
 import { createDistrictMaterial, DISTRICT_STATE } from "./materials/district-material";
 import { hexToLinear, mixRgb, SCENE_HEX, scaleRgb, type Rgb } from "./palette";
@@ -31,7 +32,8 @@ import { useWorld, type WorldContextValue } from "./world-context";
  * District slabs (one InstancedMesh) with crisp top outlines (one merged
  * LineSegments). Hover brightens a district's outline in signal cyan, the
  * selected district is outlined in flare amber, and districts outside the
- * focused directory recede.
+ * focused directory recede. Only focus changes rewrite every district; hover
+ * and selection rewrite the (at most four) districts they touch.
  */
 
 const SLAB_BASE = hexToLinear("#0a0f18");
@@ -48,6 +50,8 @@ interface DistrictRuntime {
   slabState: InstancedBufferAttribute;
   outline: LineSegments<BufferGeometry, LineBasicMaterial>;
   outlineColors: BufferAttribute;
+  /** District id -> instance index. */
+  indexById: ReadonlyMap<string, number>;
 }
 
 // ─── Imperative helpers ─────────────────────────────────────────────────────
@@ -121,7 +125,8 @@ function createRuntime(layout: WorldLayout, material: ShaderMaterial): DistrictR
     }),
   );
   outline.name = "district-outlines";
-  return { slabs, slabState, outline, outlineColors };
+  const indexById = new Map(districts.map((district, i) => [district.id, i] as const));
+  return { slabs, slabState, outline, outlineColors, indexById };
 }
 
 function disposeRuntime(runtime: DistrictRuntime): void {
@@ -131,40 +136,64 @@ function disposeRuntime(runtime: DistrictRuntime): void {
   runtime.outline.material.dispose();
 }
 
-/** Rewrites slab emphasis/state and outline colors for the current hover, selection and focus. */
+/** Writes one district's slab emphasis/state and outline color. */
+function writeDistrictState(
+  runtime: DistrictRuntime,
+  district: DistrictLayout,
+  i: number,
+  key: DistrictStateKey,
+  focusChain: ReadonlySet<string> | null,
+  index: GraphIndex,
+): void {
+  const { hoveredId, selectedId, focusedId } = key;
+  // In focus: the focused directory, its subtree, and its ancestors (the ground it stands on).
+  const inFocus =
+    !focusedId ||
+    focusChain?.has(district.id) === true ||
+    index.ancestorsOf(district.id).includes(focusedId);
+  const bits =
+    (district.id === hoveredId ? DISTRICT_STATE.hovered : 0) |
+    (district.id === selectedId ? DISTRICT_STATE.selected : 0) |
+    (district.id === focusedId ? DISTRICT_STATE.focused : 0);
+  const slabState = runtime.slabState.array;
+  slabState[i * 2] = inFocus ? 1 : OUT_OF_FOCUS_SLAB_EMPHASIS;
+  slabState[i * 2 + 1] = bits;
+
+  let color: Rgb = restingOutlineColor(district.level);
+  if (!inFocus) color = scaleRgb(color, 0.45);
+  if (district.id === focusedId) color = SIGNAL_DIM;
+  if (district.id === hoveredId) color = SIGNAL;
+  if (district.id === selectedId) color = FLARE;
+  writeOutlineColor(runtime.outlineColors.array as Float32Array, i, color);
+}
+
+/**
+ * Brings slab state and outline colors from `previous` to `next`, touching
+ * only the districts that changed. Both attributes are small, so they are
+ * still uploaded whole: no update ranges to go stale between two writes.
+ */
 function writeDistrictStates(
   runtime: DistrictRuntime,
   layout: WorldLayout,
   index: GraphIndex,
-  state: ExplorerState,
+  previous: DistrictStateKey | null,
+  next: DistrictStateKey,
 ): void {
-  const hoveredId = state.hovered?.kind === "directory" ? state.hovered.id : null;
-  const selectedId = state.selection?.kind === "directory" ? state.selection.id : null;
-  const focusedId = state.focusedDirectoryId;
-  const focusChain = focusedId ? new Set(index.ancestorsOf(focusedId)) : null;
-  const slabState = runtime.slabState.array;
-  const outlineColors = runtime.outlineColors.array as Float32Array;
-
-  layout.districts.forEach((district, i) => {
-    // In focus: the focused directory, its subtree, and its ancestors (the ground it stands on).
-    const inFocus =
-      !focusedId ||
-      focusChain?.has(district.id) === true ||
-      index.ancestorsOf(district.id).includes(focusedId);
-    const bits =
-      (district.id === hoveredId ? DISTRICT_STATE.hovered : 0) |
-      (district.id === selectedId ? DISTRICT_STATE.selected : 0) |
-      (district.id === focusedId ? DISTRICT_STATE.focused : 0);
-    slabState[i * 2] = inFocus ? 1 : OUT_OF_FOCUS_SLAB_EMPHASIS;
-    slabState[i * 2 + 1] = bits;
-
-    let color: Rgb = restingOutlineColor(district.level);
-    if (!inFocus) color = scaleRgb(color, 0.45);
-    if (district.id === focusedId) color = SIGNAL_DIM;
-    if (district.id === hoveredId) color = SIGNAL;
-    if (district.id === selectedId) color = FLARE;
-    writeOutlineColor(outlineColors, i, color);
-  });
+  const plan = districtsToRewrite(previous, next);
+  if (plan !== "all" && plan.length === 0) return;
+  const focusChain = next.focusedId ? new Set(index.ancestorsOf(next.focusedId)) : null;
+  if (plan === "all") {
+    layout.districts.forEach((district, i) =>
+      writeDistrictState(runtime, district, i, next, focusChain, index),
+    );
+  } else {
+    for (const id of plan) {
+      const i = runtime.indexById.get(id);
+      const district = i === undefined ? undefined : layout.districts[i];
+      if (i !== undefined && district)
+        writeDistrictState(runtime, district, i, next, focusChain, index);
+    }
+  }
   runtime.slabState.needsUpdate = true;
   runtime.outlineColors.needsUpdate = true;
 }
@@ -195,18 +224,12 @@ export function Districts() {
   }, [runtime, layout]);
 
   useEffect(() => {
-    let previous = useExplorerStore.getState();
-    writeDistrictStates(runtime, layout, index, previous);
+    let applied = districtStateKey(useExplorerStore.getState());
+    writeDistrictStates(runtime, layout, index, null, applied);
     return useExplorerStore.subscribe((state) => {
-      if (
-        state.hovered === previous.hovered &&
-        state.selection === previous.selection &&
-        state.focusedDirectoryId === previous.focusedDirectoryId
-      ) {
-        return;
-      }
-      previous = state;
-      writeDistrictStates(runtime, layout, index, state);
+      const next = districtStateKey(state);
+      writeDistrictStates(runtime, layout, index, applied, next);
+      applied = next;
     });
   }, [runtime, layout, index]);
 

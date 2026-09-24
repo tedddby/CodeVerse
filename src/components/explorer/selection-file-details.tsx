@@ -7,7 +7,7 @@ import { githubBlobUrl } from "@/analysis/source-protocol";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { FileNode, SymbolNode } from "@/graph/model/types";
 import { formatBytes, formatDate, formatInteger, formatRelativeTime, pluralize } from "@/lib/utils/format";
-import { useExplorerStore } from "@/state/explorer-store";
+import { useExplorerStore, type DependencyDirection } from "@/state/explorer-store";
 import { GitHubMark } from "@/components/brand/github-mark";
 import {
   FILE_STATUS_COPY,
@@ -60,6 +60,11 @@ function collectImports(file: FileNode, index: GraphIndex): ImportRow[] {
   }
   const order = { internal: 0, external: 1, unresolved: 2 } as const;
   return [...rows.values()].sort((a, b) => order[a.kind] - order[b.kind] || a.label.localeCompare(b.label));
+}
+
+/** Files in the graph that `rows` resolve to, without duplicates. */
+function importedFileIds(rows: readonly ImportRow[]): string[] {
+  return rows.flatMap((row) => (row.resolvedFileId ? [row.resolvedFileId] : []));
 }
 
 function SymbolGroups({ file, index }: { file: FileNode; index: GraphIndex }) {
@@ -121,6 +126,7 @@ export function FileDetails({ file, index }: { file: FileNode; index: GraphIndex
   const openCodeViewer = useExplorerStore((state) => state.openCodeViewer);
   const setVisualMode = useExplorerStore((state) => state.setVisualMode);
   const toggleDependencies = useExplorerStore((state) => state.toggleDependencies);
+  const setDependencyDirection = useExplorerStore((state) => state.setDependencyDirection);
   const issueCameraCommand = useExplorerStore((state) => state.issueCameraCommand);
   const reducedMotion = useExplorerStore((state) => state.reducedMotion);
   const repository = index.graph.repository;
@@ -137,11 +143,21 @@ export function FileDetails({ file, index }: { file: FileNode; index: GraphIndex
     .slice(0, 5);
   const canViewSource = file.status !== "binary";
 
-  const focusDependencyGraph = (sectionId: string) => {
+  /**
+   * Emphasises one side of the file's dependency graph (its imports, or the
+   * files importing it) and frames the file together with those files.
+   */
+  const focusDependencyGraph = (direction: Exclude<DependencyDirection, "both">) => {
+    const related = direction === "outgoing" ? importedFileIds(imports) : dependents;
     setVisualMode("dependencies");
     toggleDependencies(true);
-    issueCameraCommand({ type: "focus-node", ref: { kind: "file", id: file.id } });
-    scrollToSection(sectionId, reducedMotion);
+    setDependencyDirection(direction);
+    issueCameraCommand({
+      type: "focus-node",
+      ref: { kind: "file", id: file.id },
+      include: related.map((id) => ({ kind: "file", id })),
+    });
+    scrollToSection(direction === "outgoing" ? IMPORTS_SECTION_ID : DEPENDENTS_SECTION_ID, reducedMotion);
   };
 
   return (
@@ -183,10 +199,10 @@ export function FileDetails({ file, index }: { file: FileNode; index: GraphIndex
           href={githubBlobUrl(repository.owner, repository.name, repository.commitSha, file.path)}
           label="Open on GitHub"
         />
-        <ActionButton icon={<ArrowUpRight />} onClick={() => focusDependencyGraph(IMPORTS_SECTION_ID)} disabled={imports.length === 0}>
+        <ActionButton icon={<ArrowUpRight />} onClick={() => focusDependencyGraph("outgoing")} disabled={imports.length === 0}>
           Focus dependencies
         </ActionButton>
-        <ActionButton icon={<ArrowDownLeft />} onClick={() => focusDependencyGraph(DEPENDENTS_SECTION_ID)} disabled={dependents.length === 0}>
+        <ActionButton icon={<ArrowDownLeft />} onClick={() => focusDependencyGraph("incoming")} disabled={dependents.length === 0}>
           Focus dependents
         </ActionButton>
         <CopyButton text={file.path} label="Copy path" />

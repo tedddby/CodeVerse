@@ -5,6 +5,7 @@ import {
   readAnalysesPerMinute,
   resetRateLimiters,
 } from "./limiters";
+import { clientAddress, readClientAddressConfig } from "./client-address";
 import { createRateLimiter, getClientKey } from "./token-bucket";
 
 function clock(start = 0) {
@@ -71,8 +72,9 @@ describe("getClientKey", () => {
   const key = (headers: Record<string, string>) =>
     getClientKey(new Request("http://localhost/api", { headers }));
 
-  it("uses the first forwarded address, then x-real-ip, then a shared anonymous key", () => {
-    expect(key({ "x-forwarded-for": "203.0.113.1, 10.0.0.1" })).toBe(
+  it("uses the address appended by the trusted proxy, then x-real-ip, then a shared anonymous key", () => {
+    // An appending proxy (nginx $proxy_add_x_forwarded_for): the client controls the left.
+    expect(key({ "x-forwarded-for": "198.51.100.77, 203.0.113.1" })).toBe(
       key({ "x-forwarded-for": "203.0.113.1" }),
     );
     expect(key({ "x-forwarded-for": "203.0.113.1" })).not.toBe(
@@ -82,11 +84,77 @@ describe("getClientKey", () => {
     expect(key({})).toBe(key({ "x-forwarded-for": " " }));
   });
 
+  it("cannot be rotated by a client prepending forwarded addresses", () => {
+    const keys = new Set(
+      ["10.0.0.1", "10.0.0.2", "10.0.0.3"].map((spoofed) =>
+        key({ "x-forwarded-for": `${spoofed}, 203.0.113.9` }),
+      ),
+    );
+    expect(keys.size).toBe(1);
+  });
+
   it("returns a SHA-256 digest that does not contain the address", () => {
     const digest = key({ "x-forwarded-for": "2001:db8::1" });
     expect(digest).toMatch(/^[0-9a-f]{64}$/);
     expect(digest).not.toContain("2001");
     expect(key({ "x-forwarded-for": "2001:DB8::1" })).toBe(digest);
+  });
+});
+
+describe("clientAddress", () => {
+  const request = (headers: Record<string, string>) =>
+    new Request("http://localhost/api", { headers });
+
+  it("takes the entry the configured number of proxies from the right", () => {
+    const chain = { "x-forwarded-for": "198.51.100.77, 203.0.113.9, 10.0.0.2" };
+    expect(clientAddress(request(chain), { trustedProxyHops: 1 })).toBe("10.0.0.2");
+    expect(clientAddress(request(chain), { trustedProxyHops: 2 })).toBe("203.0.113.9");
+    // A shorter chain than configured yields its leftmost entry.
+    expect(
+      clientAddress(request({ "x-forwarded-for": "203.0.113.9" }), { trustedProxyHops: 3 }),
+    ).toBe("203.0.113.9");
+  });
+
+  it("prefers a configured platform header", () => {
+    const headers = { "x-forwarded-for": "198.51.100.77, 10.0.0.2", "x-real-ip": "203.0.113.5" };
+    expect(
+      clientAddress(request(headers), { trustedProxyHops: 1, clientIpHeader: "x-real-ip" }),
+    ).toBe("203.0.113.5");
+    expect(
+      clientAddress(request({ "x-forwarded-for": "10.0.0.2" }), {
+        trustedProxyHops: 1,
+        clientIpHeader: "x-real-ip",
+      }),
+    ).toBe("10.0.0.2");
+    expect(clientAddress(request({}), { trustedProxyHops: 1 })).toBeNull();
+  });
+
+  it("reads its configuration from the environment, ignoring invalid values", () => {
+    expect(readClientAddressConfig({})).toEqual({ trustedProxyHops: 1 });
+    expect(
+      readClientAddressConfig({
+        CODEVERSE_TRUSTED_PROXY_HOPS: "2",
+        CODEVERSE_CLIENT_IP_HEADER: "X-Real-IP",
+      }),
+    ).toEqual({ trustedProxyHops: 2, clientIpHeader: "x-real-ip" });
+    expect(
+      readClientAddressConfig({
+        CODEVERSE_TRUSTED_PROXY_HOPS: "0",
+        CODEVERSE_CLIENT_IP_HEADER: "bad header",
+      }),
+    ).toEqual({ trustedProxyHops: 1 });
+    expect(readClientAddressConfig({ CODEVERSE_TRUSTED_PROXY_HOPS: "1.5" }).trustedProxyHops).toBe(
+      1,
+    );
+  });
+
+  it("is what getClientKey keys on", () => {
+    const headers = { "x-forwarded-for": "198.51.100.77, 203.0.113.9" };
+    vi.stubEnv("CODEVERSE_TRUSTED_PROXY_HOPS", "2");
+    const twoHops = getClientKey(request(headers));
+    vi.unstubAllEnvs();
+    expect(twoHops).toBe(getClientKey(request({ "x-forwarded-for": "198.51.100.77" })));
+    expect(getClientKey(request(headers), { trustedProxyHops: 2 })).toBe(twoHops);
   });
 });
 

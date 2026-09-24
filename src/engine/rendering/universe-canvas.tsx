@@ -13,6 +13,7 @@ import {
 import { ACESFilmicToneMapping, SRGBColorSpace } from "three";
 import { cn } from "@/lib/utils/cn";
 import { useExplorerStore } from "@/state/explorer-store";
+import { useWebglContextWatch } from "./context-loss";
 import { UniverseScene } from "./universe-scene";
 
 /**
@@ -41,6 +42,14 @@ const INITIAL_CAMERA = {
   position: [120, 100, 120] as [number, number, number],
 };
 
+/**
+ * Size the drawing buffer from the layout box (offsetWidth/Height), not
+ * getBoundingClientRect(): a CSS transform on an ancestor (the explorer's
+ * loading "zoom in" scales the viewport) must not shrink the canvas, and a
+ * transform change never fires ResizeObserver to correct it afterwards.
+ */
+export const CANVAS_RESIZE = { offsetSize: true } as const;
+
 function configureRenderer({ gl }: RootState): void {
   // Filmic tone mapping into sRGB; exposure tuned for the scene's analytic lighting.
   gl.toneMapping = ACESFilmicToneMapping;
@@ -65,6 +74,7 @@ export default function UniverseCanvas({
   const repositoryName = useExplorerStore((state) => state.graph?.repository.fullName ?? null);
   const containerRef = useRef<HTMLDivElement>(null);
   const onScreen = useOnScreen(containerRef);
+  const context = useWebglContextWatch();
 
   const label = repositoryName
     ? `3D map of ${repositoryName}: directories as districts, files as buildings`
@@ -84,8 +94,10 @@ export default function UniverseCanvas({
       ) : (
         <CanvasErrorBoundary>
           <Canvas
+            key={context.generation}
             role="img"
             aria-label={label}
+            resize={CANVAS_RESIZE}
             dpr={[1, 2]}
             gl={{
               antialias: true,
@@ -96,11 +108,21 @@ export default function UniverseCanvas({
             camera={INITIAL_CAMERA}
             // Offscreen canvases (e.g. a scrolled-away landing demo) stop rendering entirely.
             frameloop={onScreen ? "always" : "never"}
-            onCreated={configureRenderer}
+            onCreated={(state) => {
+              configureRenderer(state);
+              context.watch(state.gl.domElement);
+            }}
             onPointerMissed={interactive ? deselectOnEmptyClick : undefined}
           >
             <UniverseScene interactive={interactive} autoRotate={autoRotate} />
           </Canvas>
+          {context.status === "lost" ? <ContextRestoring /> : null}
+          {context.status === "failed" ? (
+            <RendererCrashed
+              message="The graphics context was lost and did not come back. Panels and search still work."
+              onRetry={context.reload}
+            />
+          ) : null}
         </CanvasErrorBoundary>
       )}
     </div>
@@ -140,15 +162,42 @@ function RendererUnavailable() {
   );
 }
 
-function RendererCrashed({ onRetry }: { onRetry: () => void }) {
+/** Shown while the browser may still restore a lost WebGL context (three.js stops drawing meanwhile). */
+function ContextRestoring() {
   return (
-    <div role="alert" className="absolute inset-0 flex items-center justify-center p-6 text-center">
+    <div
+      role="status"
+      className="bg-void/70 absolute inset-0 flex items-center justify-center p-6 text-center"
+    >
+      <div className="max-w-sm space-y-1.5">
+        <p className="text-ink text-sm font-medium">3D view paused</p>
+        <p className="text-ink-muted text-xs leading-relaxed">
+          The graphics context was lost. Restoring…
+        </p>
+      </div>
+    </div>
+  );
+}
+
+const CRASH_MESSAGE = "Something went wrong while drawing the city. Panels and search still work.";
+
+function RendererCrashed({
+  onRetry,
+  message = CRASH_MESSAGE,
+}: {
+  onRetry: () => void;
+  message?: string;
+}) {
+  return (
+    <div
+      role="alert"
+      // Clickable even over a non-interactive (pointer-events: none) preview.
+      className="bg-void pointer-events-auto absolute inset-0 flex items-center justify-center p-6 text-center"
+    >
       <div className="max-w-sm space-y-3">
         <div className="space-y-1.5">
           <p className="text-ink text-sm font-medium">The 3D view stopped</p>
-          <p className="text-ink-muted text-xs leading-relaxed">
-            Something went wrong while drawing the city. Panels and search still work.
-          </p>
+          <p className="text-ink-muted text-xs leading-relaxed">{message}</p>
         </div>
         <button
           type="button"

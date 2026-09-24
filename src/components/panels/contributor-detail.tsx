@@ -1,13 +1,20 @@
 "use client";
 
 import { ExternalLink, FolderOpen, X } from "lucide-react";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { SectionLabel, Stat } from "@/components/ui/primitives";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { ContributorNode } from "@/graph/model/types";
-import { formatCompact, formatInteger, formatRelativeTime } from "@/lib/utils/format";
+import { formatCompact, formatInteger, formatRelativeTime, pluralize } from "@/lib/utils/format";
 import { safeHttpsUrl } from "./analytics-model";
 import { ContributorAvatar } from "./contributor-avatar";
-import { historyWindowDescription, mostActiveAreas, recentCommits } from "./contributors-model";
+import {
+  historyWindowDescription,
+  mostActiveAreas,
+  recentCommits,
+  touchedFilesInWindow,
+} from "./contributors-model";
 
 export interface ContributorDetailProps {
   index: GraphIndex;
@@ -27,10 +34,11 @@ export function ContributorDetail({
   const areas = mostActiveAreas(index, contributor, 3);
   const commits = recentCommits(index.graph, contributor.id, 6);
   const windowText = historyWindowDescription(index.graph);
+  const touchedFiles = touchedFilesInWindow(contributor);
 
   return (
     <section
-      aria-label={`Contributor details: ${contributor.name}`}
+      aria-label={`Contributor details: ${escapeHiddenCharacters(contributor.name)}`}
       className="border-signal/25 bg-signal/[0.04] rounded-xl border p-3"
     >
       <div className="flex items-start gap-3">
@@ -46,15 +54,19 @@ export function ContributorDetail({
               rel="noopener noreferrer"
               className="text-ink hover:text-signal inline-flex max-w-full items-center gap-1 truncate text-sm font-semibold"
             >
-              <span className="truncate">{contributor.name}</span>
+              <span className="truncate">{revealHiddenCharacters(contributor.name)}</span>
               <ExternalLink aria-hidden="true" className="text-ink-subtle size-3 shrink-0" />
               <span className="sr-only">(profile, opens in a new tab)</span>
             </a>
           ) : (
-            <p className="text-ink truncate text-sm font-semibold">{contributor.name}</p>
+            <p className="text-ink truncate text-sm font-semibold">
+              {revealHiddenCharacters(contributor.name)}
+            </p>
           )}
           {contributor.login && contributor.login !== contributor.name ? (
-            <p className="text-ink-subtle truncate font-mono text-[11px]">@{contributor.login}</p>
+            <p className="text-ink-subtle truncate font-mono text-[11px]">
+              @{revealHiddenCharacters(contributor.login)}
+            </p>
           ) : null}
         </div>
         <button
@@ -81,6 +93,14 @@ export function ContributorDetail({
           : "No commit history was available for this analysis."}
       </p>
 
+      {!touchedFiles && windowText ? (
+        <p className="text-warn mt-2 text-[11px] leading-relaxed">
+          {contributor.commitCount > 0
+            ? "None of their commits in the analysed window has file details, so no files are highlighted."
+            : "No files touched in the analysed window, so no files are highlighted."}
+        </p>
+      ) : null}
+
       {areas.length > 0 ? (
         <div className="mt-3">
           <SectionLabel className="mb-1.5">Most active areas</SectionLabel>
@@ -90,11 +110,11 @@ export function ContributorDetail({
                 <button
                   type="button"
                   onClick={() => onFocusDirectory(area.directoryId)}
-                  title={`${formatInteger(area.files)} files touched — fly to ${area.label}`}
+                  title={`${pluralize(area.files, "file")} touched — fly to ${escapeHiddenCharacters(area.label)}`}
                   className="border-line-strong bg-panel-raised/60 text-ink-muted hover:border-signal/40 hover:text-signal flex max-w-[14rem] items-center gap-1 rounded-md border px-2 py-1 font-mono text-[11px] transition-colors"
                 >
                   <FolderOpen aria-hidden="true" className="size-3 shrink-0" />
-                  <span className="truncate">{area.label}</span>
+                  <span className="truncate">{revealHiddenCharacters(area.label)}</span>
                   <span className="text-ink-subtle">{formatInteger(area.files)}</span>
                 </button>
               </li>
@@ -112,7 +132,7 @@ export function ContributorDetail({
               const body = (
                 <>
                   <span className="text-ink-muted group-hover:text-ink min-w-0 flex-1 truncate">
-                    {commit.message || commit.sha.slice(0, 7)}
+                    {revealHiddenCharacters(commit.message || commit.sha.slice(0, 7))}
                   </span>
                   <time dateTime={commit.date} className="text-ink-subtle shrink-0 text-[10.5px]">
                     {formatRelativeTime(commit.date)}
@@ -120,7 +140,7 @@ export function ContributorDetail({
                 </>
               );
               return (
-                <li key={commit.sha} title={commit.message}>
+                <li key={commit.sha} title={escapeHiddenCharacters(commit.message)}>
                   {url ? (
                     <a
                       href={url}

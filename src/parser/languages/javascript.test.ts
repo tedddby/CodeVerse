@@ -136,3 +136,105 @@ describe("JavaScript extraction", () => {
     ]);
   });
 });
+
+describe("Flow-typed JavaScript", () => {
+  const hooks = source(
+    "/**", // 1
+    " * Copyright (c) Meta Platforms, Inc. and affiliates.", // 2
+    " *", // 3
+    " * @flow", // 4
+    " */", // 5
+    "", // 6
+    "import type {Dispatcher} from 'react-reconciler/src/ReactInternalTypes';", // 7
+    "import type {ReactContext} from 'shared/ReactTypes';", // 8
+    "import ReactSharedInternals from 'shared/ReactSharedInternals';", // 9
+    "", // 10
+    "type BasicStateAction<S> = (S => S) | S;", // 11
+    "type Dispatch<A> = A => void;", // 12
+    "", // 13
+    "function resolveDispatcher(): Dispatcher {", // 14
+    "  const dispatcher = ReactSharedInternals.H;", // 15
+    "  return ((dispatcher: any): Dispatcher);", // 16
+    "}", // 17
+    "", // 18
+    "export function useState<S>(", // 19
+    "  initialState: (() => S) | S,", // 20
+    "): [S, Dispatch<BasicStateAction<S>>] {", // 21
+    "  return resolveDispatcher().useState(initialState);", // 22
+    "}", // 23
+    "", // 24
+    "export function useRef<T>(initialValue: T): {current: T} {", // 25
+    "  return resolveDispatcher().useRef(initialValue);", // 26
+    "}", // 27
+    "", // 28
+    "export function useContext<T>(Context: ReactContext<T>): T {", // 29
+    "  return resolveDispatcher().useContext(Context);", // 30
+    "}", // 31
+  );
+
+  it("extracts the declarations of a Flow file (ReactHooks-style) and reports it as JavaScript", async () => {
+    const result = await parseOk("javascript", hooks);
+    expect(result.language).toBe("javascript");
+    const functions = result.symbols.filter((symbol) => symbol.kind === "function");
+    expect(functions.map((symbol) => [symbol.name, symbol.exported])).toEqual([
+      ["resolveDispatcher", false],
+      ["useState", true],
+      ["useRef", true],
+      ["useContext", true],
+    ]);
+    expect(result.symbols.find((symbol) => symbol.name === "useState")).toMatchObject({
+      startLine: 19,
+      endLine: 23,
+    });
+    expect(result.exports).toEqual(["useState", "useRef", "useContext"]);
+    expect(result.imports).toEqual([
+      {
+        specifier: "react-reconciler/src/ReactInternalTypes",
+        kind: "type-import",
+        line: 7,
+        names: ["Dispatcher"],
+      },
+      { specifier: "shared/ReactTypes", kind: "type-import", line: 8, names: ["ReactContext"] },
+      { specifier: "shared/ReactSharedInternals", kind: "import", line: 9, names: ["default"] },
+    ]);
+  });
+
+  it("also recovers Flow syntax in files without a pragma", async () => {
+    const result = await parseOk("javascript", hooks.replace("@flow", ""));
+    expect(result.language).toBe("javascript");
+    expect(result.exports).toEqual(["useState", "useRef", "useContext"]);
+  });
+
+  it("parses a clean Flow component without syntax errors", async () => {
+    const result = await parseOk(
+      "javascript",
+      source(
+        "/* @flow strict */", // 1
+        "import type {Node} from 'react';", // 2
+        "export type Props = {title: string};", // 3
+        "export default function Header(props: Props): Node {", // 4
+        '  return <h1 className="title">{props.title}</h1>;', // 5
+        "}", // 6
+      ),
+    );
+    expect(result.hasErrors).toBe(false);
+    expect(symbolRows(result)).toEqual([
+      { name: "Props", kind: "type", lines: [3, 3], exported: true },
+      { name: "Header", kind: "function", lines: [4, 6], exported: true },
+    ]);
+    expect(result.exports).toEqual(["Props", "default"]);
+  });
+
+  it("keeps plain JavaScript on the JavaScript grammar", async () => {
+    const result = await parseOk(
+      "javascript",
+      source(
+        "// Not Flow: a generic-looking comparison.",
+        "const ok = a < b && c > d;",
+        "export { ok };",
+      ),
+    );
+    expect(result.hasErrors).toBe(false);
+    expect(result.symbols.map((symbol) => symbol.name)).toEqual(["ok"]);
+  });
+});

@@ -81,6 +81,24 @@ line"""
     expect(tomlGet(toml, "lib", "path")).toBe("x.rs");
   });
 
+  it("decodes valid unicode escapes", () => {
+    const toml = parseToml(`a = "caf${"\\"}u00e9"` + "\n" + String.raw`b = "\U0001F600"`);
+    expect(tomlGet(toml, "a")).toBe("café");
+    expect(tomlGet(toml, "b")).toBe("\u{1F600}");
+  });
+
+  it.each([
+    ["a negative 4-digit escape", String.raw`"evil\u-001"`],
+    ["a negative 8-digit escape", String.raw`"evil\U-0000001"`],
+    ["a short escape", String.raw`"\u12"`],
+    ["a surrogate", String.raw`"\uD800"`],
+    ["a code point above U+10FFFF", String.raw`"\U00110000"`],
+  ])("skips a line with %s instead of throwing", (_label, value) => {
+    const toml = parseToml(`[package]\nname = ${value}\nversion = "1.0.0"\n`);
+    expect(tomlGet(toml, "package", "name")).toBeUndefined();
+    expect(tomlGet(toml, "package", "version")).toBe("1.0.0");
+  });
+
   it("keeps prototype-like keys inert", () => {
     const toml = parseToml(`[__proto__]\npolluted = true\n`);
     expect(({} as Record<string, unknown>).polluted).toBeUndefined();

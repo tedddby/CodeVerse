@@ -6,6 +6,7 @@ import { mockRepositoryGraph } from "@/fixtures/mock-repository-graph";
 import type { RepositoryGraph } from "@/graph/model/types";
 import { useExplorerStore } from "@/state/explorer-store";
 import { SelectionPanel } from "./selection-panel";
+import { CANVAS_ATTRIBUTE } from "./use-explorer-shortcuts";
 import { directoryRef, fileRef, loadMockGraph, selectNode, symbolRef } from "./test-utils";
 
 const SHA = mockRepositoryGraph.repository.commitSha;
@@ -103,7 +104,27 @@ describe("SelectionPanel", () => {
       const state = useExplorerStore.getState();
       expect(state.visualMode).toBe("dependencies");
       expect(state.showDependencies).toBe(true);
+      expect(state.dependencyDirection).toBe("incoming");
       expect(state.cameraCommand).toMatchObject({ type: "focus-node", ref: fileRef("src/auth/jwt.ts") });
+      const framedDependents = state.cameraCommand?.type === "focus-node" ? (state.cameraCommand.include ?? []) : [];
+      expect(framedDependents.map((ref) => ref.id).sort()).toEqual(
+        ["src/api/handlers/auth.ts", "src/auth/auth.ts", "tests/auth.test.ts"].map((path) => fileRef(path).id),
+      );
+    });
+
+    it("focuses the imports and the dependents separately", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      selectNode(fileRef("src/auth/jwt.ts"));
+      render(<SelectionPanel />);
+      await user.click(within(panel()).getByRole("button", { name: "Focus dependencies" }));
+      const state = useExplorerStore.getState();
+      expect(state.dependencyDirection).toBe("outgoing");
+      // Only files in the graph are framed; the external "jsonwebtoken" import has no building.
+      expect(state.cameraCommand).toMatchObject({
+        type: "focus-node",
+        ref: fileRef("src/auth/jwt.ts"),
+        include: [fileRef("src/lib/config.ts"), fileRef("src/users/user.ts")],
+      });
     });
 
     it("clears the selection when closed", async () => {
@@ -163,6 +184,20 @@ describe("SelectionPanel", () => {
     expect(useExplorerStore.getState().focusedDirectoryId).toBe("dir:src");
   });
 
+  it("keeps focus on Enter directory once it is inside the directory", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    selectNode(directoryRef("src/auth"));
+    render(<SelectionPanel />);
+    within(panel()).getByRole("button", { name: "Enter directory" }).focus();
+    await user.keyboard("{Enter}");
+    const inside = within(panel()).getByRole("button", { name: "Inside this directory" });
+    expect(inside).toHaveAttribute("aria-disabled", "true");
+    expect(inside).toHaveFocus();
+    const command = useExplorerStore.getState().cameraCommand;
+    await user.keyboard("{Enter}");
+    expect(useExplorerStore.getState().cameraCommand).toBe(command); // inert while disabled
+  });
+
   it("notes files omitted from a directory by analysis limits", () => {
     const graph: RepositoryGraph = {
       ...mockRepositoryGraph,
@@ -182,6 +217,56 @@ describe("SelectionPanel", () => {
     expect(within(panel()).getByText("Repository root")).toBeInTheDocument();
     expect(within(panel()).getByText("acme-platform")).toBeInTheDocument();
     expect(within(panel()).getByRole("button", { name: "Enter directory" })).toBeDisabled();
+  });
+
+  describe("keyboard focus", () => {
+    function renderWithCanvas() {
+      return render(
+        <>
+          <div {...{ [CANVAS_ATTRIBUTE]: "" }} tabIndex={0} aria-label="3D map" />
+          <SelectionPanel />
+        </>,
+      );
+    }
+
+    it("names the panel with a heading for the selected node", () => {
+      selectNode(fileRef("src/auth/jwt.ts"));
+      render(<SelectionPanel />);
+      expect(within(panel()).getByRole("heading", { level: 2, name: "jwt.ts" })).toBeInTheDocument();
+    });
+
+    it("moves focus to the new panel's title after navigating from inside the panel", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      selectNode(fileRef("src/auth/jwt.ts"));
+      renderWithCanvas();
+      within(screen.getByRole("navigation", { name: "Path" })).getByRole("button", { name: "auth" }).focus();
+      await user.keyboard("{Enter}");
+      expect(useExplorerStore.getState().selection).toEqual(directoryRef("src/auth"));
+      expect(within(panel()).getByRole("heading", { level: 2, name: "auth" })).toHaveFocus();
+
+      // Tab continues inside the new panel.
+      await user.tab();
+      expect(panel()).toContainElement(document.activeElement as HTMLElement);
+    });
+
+    it("leaves focus alone when the selection changes from outside the panel", () => {
+      selectNode(fileRef("src/auth/jwt.ts"));
+      const { container } = renderWithCanvas();
+      const canvas = container.querySelector<HTMLElement>(`[${CANVAS_ATTRIBUTE}]`);
+      canvas?.focus();
+      act(() => selectNode(fileRef("src/auth/auth.ts")));
+      expect(canvas).toHaveFocus();
+    });
+
+    it("returns focus to the 3D map when the panel closes", async () => {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      selectNode(fileRef("src/auth/jwt.ts"));
+      const { container } = renderWithCanvas();
+      within(panel()).getByRole("button", { name: "Close panel" }).focus();
+      await user.keyboard("{Enter}");
+      expect(useExplorerStore.getState().selection).toBeNull();
+      expect(container.querySelector(`[${CANVAS_ATTRIBUTE}]`)).toHaveFocus();
+    });
   });
 
   it("describes a symbol with its file, range, signature and members", async () => {

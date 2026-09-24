@@ -10,6 +10,8 @@ import { formatBytes, formatInteger, formatPercent, pluralize } from "@/lib/util
  */
 
 export const REPOSITORY_FOUND = "Repository found";
+/** Connect result when GitHub could not confirm the current commit and a cached graph is served. */
+export const STALE_CONNECT_MESSAGE = "GitHub unavailable · using the cached analysis";
 export const CONSTRUCT_COMPLETE = "Complete";
 
 /** "3,281 files", "1 file", "3,281 files · listing truncated". */
@@ -61,9 +63,10 @@ export function historyMessage(commits: number, contributors: number): string {
 /**
  * Stage events describing a graph served from cache: every stage reports
  * "done" with a result derived from the graph (the caller emits the
- * "complete" event).
+ * "complete" event). A `stale` replay (GitHub could not confirm the current
+ * commit) reports the connect stage as a warning.
  */
-export function cachedStageEvents(graph: RepositoryGraph): StageEvent[] {
+export function cachedStageEvents(graph: RepositoryGraph, stale = false): StageEvent[] {
   const { coverage, history } = graph.analysis;
   const done = (stage: StageEvent["stage"], message: string): StageEvent => ({
     type: "stage",
@@ -73,7 +76,9 @@ export function cachedStageEvents(graph: RepositoryGraph): StageEvent[] {
   });
   const parsed = coverage.filesParsed + coverage.filesPartial;
   return [
-    done("connect", REPOSITORY_FOUND),
+    stale
+      ? { type: "stage", stage: "connect", status: "warning", message: STALE_CONNECT_MESSAGE }
+      : done("connect", REPOSITORY_FOUND),
     done("tree", treeMessage(coverage.filesInRepository, graph.analysis.treeTruncated)),
     done("languages", languageMessage(graph.languages)),
     done("fetch", "Cached"),

@@ -113,7 +113,7 @@ export function loadingAnnouncement(
 export const LOADING_TIPS: readonly string[] = [
   "Every building is a file. Its height is its lines of code.",
   "Press / anywhere in the explorer to search files and symbols.",
-  "Tab switches between Orbit and first-person Explore mode.",
+  "G switches between Orbit and first-person Explore mode.",
   "Large repositories are analysed progressively: structure first, then a prioritized sample of source files.",
   "Press ? inside the explorer to see every keyboard shortcut.",
   "Dependency arcs connect files that import each other. Press L to toggle them.",

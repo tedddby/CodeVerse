@@ -7,7 +7,6 @@ import {
   ExternalLink,
   Gamepad2,
   GitFork,
-  Orbit,
   ScrollText,
   Search,
   Share2,
@@ -149,10 +148,10 @@ export function TopBar({ worldEnabled }: TopBarProps) {
             <>
               <IconButton label="Dependency lines" shortcut="L" pressed={showDependencies} icon={<Spline />} onClick={() => toggleDependencies()} />
               <IconButton
-                label={navigationMode === "orbit" ? "Switch to Explore mode" : "Switch to Orbit mode"}
-                shortcut="Tab"
+                label="Explore mode"
+                shortcut="G"
                 pressed={navigationMode === "explore"}
-                icon={navigationMode === "orbit" ? <Orbit /> : <Gamepad2 />}
+                icon={<Gamepad2 />}
                 onClick={() => setNavigationMode(navigationMode === "orbit" ? "explore" : "orbit")}
               />
               <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line-strong" />
@@ -165,8 +164,16 @@ export function TopBar({ worldEnabled }: TopBarProps) {
             <IconButton label="Text summary" pressed={panels.summary} icon={<ScrollText />} onClick={() => togglePanel("summary")} />
           ) : null}
           <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line-strong" />
-          <IconButton label="Share this view" icon={<Share2 />} onClick={() => setPanel("share", true)} />
-          <IconButton label="Keyboard shortcuts" shortcut="?" pressed={panels.shortcuts} icon={<CircleQuestionMark />} onClick={() => togglePanel("shortcuts")} />
+          {/* Last group: right-aligned tooltips stay on screen at the viewport edge. */}
+          <IconButton label="Share this view" tooltipAlign="end" icon={<Share2 />} onClick={() => setPanel("share", true)} />
+          <IconButton
+            label="Keyboard shortcuts"
+            shortcut="?"
+            tooltipAlign="end"
+            pressed={panels.shortcuts}
+            icon={<CircleQuestionMark />}
+            onClick={() => togglePanel("shortcuts")}
+          />
         </div>
       </nav>
     </header>

@@ -67,7 +67,9 @@ describe("createAnalysisStreamResponse", () => {
   it("writes heartbeats while the producer is busy", async () => {
     const response = createAnalysisStreamResponse(
       async (emit) => {
-        await new Promise((resolve) => setTimeout(resolve, 60));
+        // 25 heartbeat periods: at least 2 must land even when a loaded
+        // machine delays and coalesces timers.
+        await new Promise((resolve) => setTimeout(resolve, 250));
         emit({ type: "error", error: { code: "TIMEOUT", ...ERROR_COPY.TIMEOUT } });
       },
       { heartbeatMs: 10 },

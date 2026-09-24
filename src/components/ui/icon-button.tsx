@@ -1,6 +1,6 @@
 import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from "react";
 import { cn } from "@/lib/utils/cn";
-import { Tooltip } from "./tooltip";
+import { Tooltip, type TooltipAlign, type TooltipSide } from "./tooltip";
 
 export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonElement>, "aria-label"> {
   /** Accessible name; also shown as the tooltip. */
@@ -11,15 +11,17 @@ export interface IconButtonProps extends Omit<ButtonHTMLAttributes<HTMLButtonEle
   pressed?: boolean;
   icon: ReactNode;
   size?: "sm" | "md";
-  tooltipSide?: "top" | "bottom" | "left" | "right";
+  tooltipSide?: TooltipSide;
+  /** Use "end" for buttons near the right screen edge so the tooltip stays on screen. */
+  tooltipAlign?: TooltipAlign;
 }
 
 export const IconButton = forwardRef<HTMLButtonElement, IconButtonProps>(function IconButton(
-  { label, shortcut, pressed, icon, size = "md", tooltipSide = "bottom", className, type = "button", ...props },
+  { label, shortcut, pressed, icon, size = "md", tooltipSide = "bottom", tooltipAlign, className, type = "button", ...props },
   ref,
 ) {
   return (
-    <Tooltip content={label} shortcut={shortcut} side={tooltipSide}>
+    <Tooltip content={label} shortcut={shortcut} side={tooltipSide} align={tooltipAlign}>
       <button
         ref={ref}
         type={type}

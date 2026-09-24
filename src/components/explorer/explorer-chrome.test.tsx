@@ -52,8 +52,12 @@ describe("TopBar", () => {
     await user.click(screen.getByRole("button", { name: "Dependency lines (L)" }));
     expect(state().showDependencies).toBe(true);
     expect(screen.getByRole("button", { name: "Dependency lines (L)" })).toHaveAttribute("aria-pressed", "true");
-    await user.click(screen.getByRole("button", { name: "Switch to Explore mode (Tab)" }));
+    // One static name; the pressed state (not the label) says which mode is on.
+    const exploreToggle = screen.getByRole("button", { name: "Explore mode (G)" });
+    expect(exploreToggle).toHaveAttribute("aria-pressed", "false");
+    await user.click(exploreToggle);
     expect(state().navigationMode).toBe("explore");
+    expect(screen.getByRole("button", { name: "Explore mode (G)" })).toHaveAttribute("aria-pressed", "true");
     await user.click(screen.getByRole("button", { name: "History timeline (T)" }));
     expect(state().timeline.active).toBe(true);
     await user.click(screen.getByRole("button", { name: "Repository statistics (I)" }));

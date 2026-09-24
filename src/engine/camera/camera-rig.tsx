@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { worldFrame } from "@/engine/layout/lookup";
 import type { WorldLayout } from "@/engine/layout/types";
 import { getLayoutLookup } from "@/engine/rendering/layout-lookup-cache";
+import { ViewStamp } from "@/engine/rendering/view-stamp";
 import { isTypingTarget } from "@/lib/shortcuts";
 import {
   selectHasBlockingOverlay,
@@ -15,12 +16,14 @@ import {
 } from "@/state/explorer-store";
 import { createNodeFramer, resolveCameraCommand } from "./camera-commands";
 import { CameraController, EMPTY_WORLD, type WorldInfo } from "./camera-controller";
+import { HoverRefresh } from "./hover-refresh";
 import { overviewPose, posesEqual, roundPose } from "./poses";
 
 /**
  * Owns the camera: orbit/explore navigation, store camera commands, the
- * establishing shot for each new repository, preview auto-rotation and
- * throttled pose reporting (share links, minimap). Rendered inside the Canvas.
+ * establishing shot for each new repository, preview auto-rotation,
+ * throttled pose reporting (share links, minimap) and hover re-evaluation
+ * while the view moves under a resting pointer. Rendered inside the Canvas.
  */
 export interface CameraRigProps {
   /** false = preview: no pointer/keyboard input, no pose reporting. */
@@ -138,16 +141,26 @@ export function CameraRig({ interactive, autoRotate = false }: CameraRigProps) {
     return useExplorerStore.subscribe(sync);
   }, [controller]);
 
+  const hoverRefresh = useMemo(() => new HoverRefresh(), []);
+  const view = useMemo(() => new ViewStamp(), []);
+  useEffect(() => {
+    if (!interactive) return;
+    return hoverRefresh.bind(inputElement, window);
+  }, [hoverRefresh, interactive, inputElement]);
+
   const sinceReportRef = useRef(0);
   const lastReportRef = useRef<CameraPose | null>(null);
 
-  useFrame((_, delta) => {
+  useFrame((state, delta) => {
     controller.update(delta);
     if (!interactive) return;
+    // R3F raycasts only on pointer events: replay the last one while the view moves.
+    const viewChanged = view.update(state.camera, state.size);
+    if (hoverRefresh.frame(state.clock.elapsedTime, viewChanged)) state.events.update?.();
     sinceReportRef.current += delta;
     if (sinceReportRef.current < POSE_REPORT_INTERVAL) return;
     sinceReportRef.current = 0;
-    const pose = roundPose(controller.currentPose());
+    const pose = roundPose(controller.reportedPose());
     if (posesEqual(pose, lastReportRef.current, 5e-3)) return;
     lastReportRef.current = pose;
     useExplorerStore.getState().setCameraPose(pose);

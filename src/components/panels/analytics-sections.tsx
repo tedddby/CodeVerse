@@ -2,6 +2,8 @@
 
 import { ArrowDownLeft, ArrowUpRight, TriangleAlert } from "lucide-react";
 import type { ReactNode } from "react";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { Badge, LanguageDot, ProgressBar, SectionLabel } from "@/components/ui/primitives";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { FileNode, NodeRef } from "@/graph/model/types";
@@ -114,8 +116,11 @@ export function PackagesSection({ index }: { index: GraphIndex }) {
         {packages.map((pkg) => (
           <li key={`${pkg.language}:${pkg.name}`} className="text-xs">
             <div className="flex items-baseline gap-2">
-              <span className="text-ink-muted min-w-0 flex-1 truncate font-mono" title={pkg.name}>
-                {pkg.name}
+              <span
+                className="text-ink-muted min-w-0 flex-1 truncate font-mono"
+                title={escapeHiddenCharacters(pkg.name)}
+              >
+                {revealHiddenCharacters(pkg.name)}
               </span>
               <span
                 className="text-ink font-mono tabular-nums"
@@ -149,12 +154,12 @@ function FileRow({ file, value, onSelect }: FileRowProps) {
       <button
         type="button"
         onClick={() => onSelect({ kind: "file", id: file.id })}
-        title={file.path}
+        title={escapeHiddenCharacters(file.path)}
         className="group hover:bg-panel-raised flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left text-xs transition-colors"
       >
         <LanguageDot language={file.language} />
         <span className="text-ink-muted group-hover:text-ink min-w-0 flex-1 truncate font-mono">
-          {file.name}
+          {revealHiddenCharacters(file.name)}
         </span>
         <span className="text-ink-subtle shrink-0 font-mono tabular-nums">{value}</span>
       </button>
@@ -259,7 +264,7 @@ export function CoverageSection({ index }: { index: GraphIndex }) {
               className="border-warn/25 bg-warn/5 text-ink-muted flex gap-2 rounded-md border px-2 py-1.5 text-[11.5px]"
             >
               <TriangleAlert aria-hidden="true" className="text-warn mt-0.5 size-3.5 shrink-0" />
-              <span>{warning.message}</span>
+              <span>{revealHiddenCharacters(warning.message)}</span>
             </li>
           ))}
         </ul>

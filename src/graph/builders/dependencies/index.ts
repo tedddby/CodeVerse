@@ -74,6 +74,21 @@ function resolveSafely(
   }
 }
 
+/** Resolver used for a language whose resolver could not be built: every import stays unresolved. */
+const UNRESOLVING: LanguageResolver = { resolve: () => UNRESOLVED };
+
+/**
+ * Builds a language's resolver. Factories read untrusted manifests (Cargo.toml,
+ * pyproject.toml, go.mod, ...): a failure only costs that language its edges.
+ */
+function createResolverSafely(family: ResolverFamily, context: ResolverContext): LanguageResolver {
+  try {
+    return RESOLVER_FACTORIES[family](context);
+  } catch {
+    return UNRESOLVING;
+  }
+}
+
 function emptyStats(): ImportStats {
   return { importsFound: 0, importsResolved: 0, externalImports: 0, unresolvedImports: 0 };
 }
@@ -128,7 +143,7 @@ export function resolveDependencies(input: DependencyResolutionInput): Dependenc
     if (!family) return null;
     let resolver = resolvers.get(family);
     if (!resolver) {
-      resolver = RESOLVER_FACTORIES[family](context);
+      resolver = createResolverSafely(family, context);
       resolvers.set(family, resolver);
     }
     return resolver;

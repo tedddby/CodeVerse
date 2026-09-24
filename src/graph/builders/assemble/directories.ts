@@ -3,13 +3,16 @@ import type { DirectoryNode, FileNode } from "@/graph/model/types";
 import type { InventoryFile } from "../inventory";
 import { estimateLines } from "../line-estimate";
 import { compareStrings, sortRecordKeys } from "../sort";
+import { isOwnFile } from "./own-files";
 
 /**
  * DirectoryNode construction. Every directory of the repository becomes a
  * node — including directories whose files were all omitted from the graph —
  * so directory-first mode can still draw districts for them. Statistics always
  * describe the whole repository (omitted files included); `fileIds` lists only
- * the files that are FileNodes.
+ * the files that are FileNodes. Line totals count the repository's own code
+ * only (see `isOwnFile`): a lockfile or a vendored tree would otherwise dwarf
+ * it. As for language statistics, everything counts when nothing else exists.
  */
 
 export interface DirectoryBuildInput {
@@ -77,17 +80,20 @@ export function buildDirectories(input: DirectoryBuildInput): DirectoryNode[] {
     nodes.get(parentPath(node.path))?.childDirectoryIds.push(node.id);
   }
 
+  const countAllLines = !input.inventoryFiles.some(isOwnFile);
   for (const file of input.inventoryFiles) {
     const directory = nodes.get(parentPath(file.path));
     if (!directory) continue;
     const graphNode = input.graphFiles.get(file.path);
     const stats = directory.stats;
-    const contribution = linesContribution(file, graphNode);
     stats.fileCount += 1;
     stats.directFileCount += 1;
     stats.totalBytes += file.size;
-    stats.totalLines += contribution.lines;
-    stats.linesEstimated ||= contribution.estimated;
+    if (countAllLines || isOwnFile(file)) {
+      const contribution = linesContribution(file, graphNode);
+      stats.totalLines += contribution.lines;
+      stats.linesEstimated ||= contribution.estimated;
+    }
     stats.languageBytes[file.language] = (stats.languageBytes[file.language] ?? 0) + file.size;
     if (graphNode) {
       directory.fileIds.push(graphNode.id);

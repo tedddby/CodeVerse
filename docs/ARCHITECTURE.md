@@ -182,8 +182,10 @@ lines `[start, end]` becomes a band at the matching height, with nested symbols 
   bounding sphere, so whole chunks are frustum-culled and raycasting skips chunks the pointer cannot hit.
 - **Encodings.** Each mode (architecture, dependencies, activity, contributors, complexity) maps files to a color,
   an emphasis and a glow; focus, selection and hover are layered on top. Amber (`flare`) is reserved for selection.
-- **Labels.** District labels lie flat on their slabs and are chosen by projected size, hierarchy and a hard
-  budget, then de-overlapped.
+- **Labels.** District labels are camera-facing billboards standing on their slabs, drawn at a constant on-screen
+  size (larger for top-level districts) over the city. Which districts get one is re-evaluated a few times per
+  second from projected size, hierarchy and a hard budget, then de-overlapped on screen. Symbol labels beside the
+  selected building work the same way (at most 25, largest symbols first).
 - **Edges.** Only a bounded, meaningful subset of dependency arcs is drawn: the selection's own edges, edges
   inside the focused directory, or the heaviest edges of the repository.
 - **Symbol bands.** Shown only for the selected building and a small set of buildings near the camera.

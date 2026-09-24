@@ -1,3 +1,4 @@
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
 import type { WorldLayout } from "@/engine/layout/types";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { FileNode, NodeRef } from "@/graph/model/types";
@@ -69,9 +70,15 @@ export function buildingEmphasis(
 ): number {
   if (!file) return 0.5;
   switch (visualMode) {
-    case "contributors":
-      if (!activeContributorId) return 0.8;
+    case "contributors": {
+      // A contributor with no touched files in the analysed window highlights
+      // nothing, so the map keeps its unfiltered look instead of going dark.
+      const touched = activeContributorId
+        ? index.contributorsById.get(activeContributorId)?.fileIds.length
+        : undefined;
+      if (!activeContributorId || !touched) return 0.8;
       return file.activity?.contributorIds.includes(activeContributorId) ? 1 : 0.14;
+    }
     case "activity": {
       const range = index.activityRange;
       const last = file.activity?.lastModified
@@ -179,7 +186,7 @@ export function drawStaticLayer(
     const rect = rectToMinimap(transform, district.x, district.z, district.width, district.depth);
     if (rect.height < 14) continue;
     const name = index.directoriesById.get(district.id)?.name;
-    const label = name ? fitLabel(ctx, name, rect.width - 6) : null;
+    const label = name ? fitLabel(ctx, escapeHiddenCharacters(name), rect.width - 6) : null;
     if (!label) continue;
     ctx.fillStyle = MINIMAP_COLORS.background;
     ctx.globalAlpha = 0.7;

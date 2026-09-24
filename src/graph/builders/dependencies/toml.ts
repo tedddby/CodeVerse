@@ -71,6 +71,20 @@ const ESCAPES: Readonly<Record<string, string>> = {
   "\\": "\\",
 };
 
+const HEX_DIGITS = /^[0-9A-Fa-f]+$/;
+
+/** Code point of a \uXXXX / \UXXXXXXXX escape: exactly `length` hex digits, a Unicode scalar value. */
+function unicodeScalar(hex: string, length: number): number {
+  if (hex.length !== length || !HEX_DIGITS.test(hex)) {
+    throw new TomlSyntaxError("Invalid unicode escape");
+  }
+  const point = Number.parseInt(hex, 16);
+  if (point > 0x10ffff || (point >= 0xd800 && point <= 0xdfff)) {
+    throw new TomlSyntaxError("Invalid unicode escape");
+  }
+  return point;
+}
+
 function readBasicString(cursor: Cursor): string {
   const multiline = cursor.startsWith('"""');
   cursor.index += multiline ? 3 : 1;
@@ -88,8 +102,7 @@ function readBasicString(cursor: Cursor): string {
       if (code === "u" || code === "U") {
         const length = code === "u" ? 4 : 8;
         const hex = cursor.text.slice(cursor.index + 2, cursor.index + 2 + length);
-        const point = Number.parseInt(hex, 16);
-        value += Number.isNaN(point) || point > 0x10ffff ? "" : String.fromCodePoint(point);
+        value += String.fromCodePoint(unicodeScalar(hex, length));
         cursor.index += 2 + length;
         continue;
       }
@@ -263,8 +276,8 @@ export function parseToml(text: string): TomlTable {
       cursor.skipInline();
       if (cursor.peek() === "#") cursor.skipLine();
       if (!cursor.done && cursor.peek() !== "\n") throw new TomlSyntaxError("Trailing characters");
-    } catch (error) {
-      if (!(error instanceof TomlSyntaxError)) throw error;
+    } catch {
+      // Any failure, expected (TomlSyntaxError) or not, skips the line: manifests are untrusted.
       // Keys below a broken table header must not leak into the previous table.
       if (cursor.text[lineStart] === "[") current = createTable();
       cursor.index = lineStart;

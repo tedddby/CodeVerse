@@ -6,13 +6,22 @@ import { createRateLimiter, type RateLimiter } from "./token-bucket";
  * development hot reloads keep their state.
  *
  * - Analyses: `CODEVERSE_RATE_LIMIT_PER_MINUTE` per client (default 12; 0 disables).
- * - Source viewer: 120 files per minute per client (bursts of 60).
- * - Repository summaries: 60 per minute per client.
+ * - Source viewer: 120 files per minute per client (bursts of 60). Files are
+ *   read from GitHub's raw host at a pinned commit, which costs no API quota.
+ * - Source files by branch or tag name: 10 per minute per client (each
+ *   resolution costs API quota; the viewer itself always pins a commit).
+ * - Repository summaries: 20 per minute per client.
+ *
+ * GitHub allows 60 API requests per hour without a token (5,000 with one) for
+ * the whole server, far less than these per-client limits: routes that only
+ * enrich pages also stop calling GitHub once the quota falls to the share
+ * reserved for analyses (`reservedQuotaError`).
  */
 
 export const DEFAULT_ANALYSES_PER_MINUTE = 12;
 export const SOURCE_REQUESTS_PER_MINUTE = 120;
-export const SUMMARY_REQUESTS_PER_MINUTE = 60;
+export const SOURCE_REF_RESOLUTIONS_PER_MINUTE = 10;
+export const SUMMARY_REQUESTS_PER_MINUTE = 20;
 
 type Env = Record<string, string | undefined>;
 
@@ -31,6 +40,7 @@ const LIMITERS_KEY = Symbol.for("codeverse.rateLimiters");
 interface Limiters {
   analyze: RateLimiter | null;
   source: RateLimiter;
+  sourceRef: RateLimiter;
   summary: RateLimiter;
 }
 
@@ -50,6 +60,10 @@ function limiters(): Limiters {
         capacity: SOURCE_REQUESTS_PER_MINUTE / 2,
         refillPerMinute: SOURCE_REQUESTS_PER_MINUTE,
       }),
+      sourceRef: createRateLimiter({
+        capacity: SOURCE_REF_RESOLUTIONS_PER_MINUTE,
+        refillPerMinute: SOURCE_REF_RESOLUTIONS_PER_MINUTE,
+      }),
       summary: createRateLimiter({
         capacity: SUMMARY_REQUESTS_PER_MINUTE / 2,
         refillPerMinute: SUMMARY_REQUESTS_PER_MINUTE,
@@ -67,6 +81,11 @@ export function getAnalyzeRateLimiter(): RateLimiter | null {
 
 export function getSourceRateLimiter(): RateLimiter {
   return limiters().source;
+}
+
+/** Extra limiter for source requests naming a branch or tag (resolved through the API). */
+export function getSourceRefRateLimiter(): RateLimiter {
+  return limiters().sourceRef;
 }
 
 export function getSummaryRateLimiter(): RateLimiter {

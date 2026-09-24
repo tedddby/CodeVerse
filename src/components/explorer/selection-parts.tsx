@@ -93,21 +93,30 @@ export function ActionButton({
   children,
   onClick,
   disabled,
+  focusableWhenDisabled = false,
   title,
 }: {
   icon: ReactNode;
   children: ReactNode;
   onClick: () => void;
   disabled?: boolean;
+  /**
+   * Render the disabled state with aria-disabled instead of `disabled`, for
+   * buttons that disable themselves when activated: a natively disabled
+   * button loses keyboard focus to <body>.
+   */
+  focusableWhenDisabled?: boolean;
   title?: string;
 }) {
+  const softDisabled = disabled === true && focusableWhenDisabled;
   return (
     <button
       type="button"
-      onClick={onClick}
-      disabled={disabled}
+      onClick={disabled ? undefined : onClick}
+      disabled={disabled && !softDisabled}
+      aria-disabled={softDisabled || undefined}
       title={title}
-      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-panel-raised/60 px-2.5 text-xs text-ink-muted transition-colors hover:border-signal/40 hover:text-ink disabled:pointer-events-none disabled:opacity-40"
+      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-line-strong bg-panel-raised/60 px-2.5 text-xs text-ink-muted transition-colors hover:border-signal/40 hover:text-ink disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40"
     >
       <span aria-hidden="true" className="flex [&>svg]:size-3.5">
         {icon}

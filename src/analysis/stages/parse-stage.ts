@@ -3,8 +3,16 @@ import type { FetchPlan, InventoryFile } from "@/graph/builders/inventory";
 import { formatInteger, pluralize } from "@/lib/utils/format";
 import { countLines } from "@/parser/lines";
 import type { SourceParser } from "@/parser";
-import type { ParseFailure } from "@/parser/types";
+import type { ParseFailure, ParseResult } from "@/parser/types";
 import { BUDGET_FRACTIONS, monotonicNow, yieldToEventLoop, type PipelineContext } from "./context";
+import {
+  MAX_GRAPH_SYMBOLS,
+  MAX_IMPORTS_PER_FILE,
+  MAX_SYMBOLS_PER_FILE,
+  capExtraction,
+  createExtractionBudget,
+  type CappedExtraction,
+} from "./extraction-limits";
 import { parseMessage, progressMessage } from "./messages";
 
 /**
@@ -14,6 +22,8 @@ import { parseMessage, progressMessage } from "./messages";
  * Parsing one file is synchronous CPU work, so the stage yields to the event
  * loop every `YIELD_EVERY_FILES` files or `YIELD_EVERY_MS` milliseconds; this
  * keeps the NDJSON response (and other requests) flowing on large batches.
+ * Extraction results are capped per file and per graph (see
+ * `extraction-limits.ts`), in parse (priority) order.
  */
 
 export const YIELD_EVERY_FILES = 20;
@@ -41,6 +51,27 @@ export interface ParseStageResult {
   failed: number;
   /** Parse files that were only line-counted because the time budget ran out. */
   budgetSkipped: number;
+  /** Parsed files whose symbols, imports or exports were capped. */
+  limited: number;
+}
+
+/** "Symbol limit reached: kept 2,000 of 9,412 symbols and 1,000 of 3,100 imports". */
+function limitReason(original: ParseResult, capped: CappedExtraction): string {
+  const parts: string[] = [];
+  const describe = (kept: number, dropped: number, noun: string) => {
+    if (dropped > 0)
+      parts.push(`${formatInteger(kept)} of ${formatInteger(kept + dropped)} ${noun}`);
+  };
+  describe(capped.parse.symbols.length, capped.droppedSymbols, "symbols");
+  describe(capped.parse.imports.length, capped.droppedImports, "imports");
+  describe(capped.parse.exports.length, capped.droppedExports, "exports");
+  const kept =
+    parts.length > 1
+      ? `${parts.slice(0, -1).join(", ")} and ${parts.at(-1) ?? ""}`
+      : parts.join("");
+  return original.hasErrors
+    ? `Parsed with syntax errors; symbol limit reached: kept ${kept}`
+    : `Symbol limit reached: kept ${kept}`;
 }
 
 function failureReason(failure: ParseFailure, timeoutMs: number): string {
@@ -60,7 +91,14 @@ export async function runParseStage(
   input: ParseStageInput,
 ): Promise<ParseStageResult> {
   const { limits } = context;
-  const result: ParseStageResult = { parsed: 0, partial: 0, failed: 0, budgetSkipped: 0 };
+  const result: ParseStageResult = {
+    parsed: 0,
+    partial: 0,
+    failed: 0,
+    budgetSkipped: 0,
+    limited: 0,
+  };
+  const extractionBudget = createExtractionBudget();
   const parseQueue = input.plan.parseFiles.filter((path) => input.contents.has(path));
   const countQueue = input.plan.contentOnlyFiles.filter(
     (path) => input.contents.has(path) && !input.analyses.has(path),
@@ -111,13 +149,21 @@ export async function runParseStage(
         });
       if (outcome.ok) {
         const { ok: _ok, ...parse } = outcome;
-        if (parse.hasErrors) result.partial += 1;
+        const capped = capExtraction(parse, extractionBudget);
+        const limited = capped.droppedSymbols + capped.droppedImports + capped.droppedExports > 0;
+        const partial = parse.hasErrors || limited;
+        if (partial) result.partial += 1;
         else result.parsed += 1;
-        input.analyses.set(path, {
-          status: parse.hasErrors ? "partial" : "parsed",
-          parse,
+        const analysis: FileAnalysisResult = {
+          status: partial ? "partial" : "parsed",
+          parse: capped.parse,
           lines: parse.lines,
-        });
+        };
+        if (limited) {
+          result.limited += 1;
+          analysis.statusReason = limitReason(parse, capped);
+        }
+        input.analyses.set(path, analysis);
       } else if (outcome.reason === "too-large") {
         // Larger than the parse limit once decoded: keep the exact line count.
         input.analyses.set(path, { status: "content-only", lines: outcome.lines });
@@ -139,6 +185,14 @@ export async function runParseStage(
       lines: countLines(input.contents.get(path) ?? ""),
     });
     await step();
+  }
+
+  if (result.limited > 0) {
+    context.addWarning({
+      code: "SYMBOL_LIMIT",
+      message: `${pluralize(result.limited, "file")} declared more symbols or imports than CodeVerse shows (${formatInteger(MAX_SYMBOLS_PER_FILE)} symbols and ${formatInteger(MAX_IMPORTS_PER_FILE)} imports per file, ${formatInteger(MAX_GRAPH_SYMBOLS)} symbols per repository); top-level declarations were kept first.`,
+      detail: { files: result.limited },
+    });
   }
 
   const analysed = result.parsed + result.partial;

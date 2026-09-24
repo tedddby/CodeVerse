@@ -16,6 +16,7 @@ import { fetchRepositorySummaryWith } from "./summary";
 export { GitHubSource, GitHubClient, type GitHubSourceOptions, type GitHubClientOptions };
 export { GitHubApiError } from "@/github/errors";
 export type { GitHubSourceTree } from "./tree";
+export { reservedQuotaError } from "./summary";
 export type { RepositorySummary };
 
 const SHARED_CLIENT_KEY = Symbol.for("codeverse.github.sharedClient");

@@ -86,6 +86,7 @@ export function DirectoryDetails({ directory, index }: { directory: DirectoryNod
           icon={<CornerDownRight />}
           onClick={() => focusDirectory(directory.id)}
           disabled={isFocused || isRoot}
+          focusableWhenDisabled={!isRoot}
           title={isRoot ? "This is the repository root" : "Shortcut: Enter"}
         >
           {isFocused ? "Inside this directory" : "Enter directory"}

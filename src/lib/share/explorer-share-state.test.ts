@@ -96,6 +96,26 @@ describe("applyShareState", () => {
     expect(state.timeline).toMatchObject({ active: true, cursor: 1_700_000_000_000 });
   });
 
+  it("round-trips the timeline in the mode it was shared in", () => {
+    const store = useExplorerStore.getState();
+    store.setTimeline({ active: true, cursor: 1_700_000_000_000 });
+    expect(captureShareState(useExplorerStore.getState(), allOptions)).toEqual({ mode: "activity", t: 1_700_000_000_000 });
+
+    // The user may switch mode while the timeline stays open; the link names that mode.
+    store.setVisualMode("architecture");
+    const url = encodeShareState(captureShareState(useExplorerStore.getState(), allOptions));
+    loadMockGraph();
+    applyShareState(useExplorerStore.getState(), decodeShareState(url), { worldEnabled: true });
+    expect(useExplorerStore.getState()).toMatchObject({
+      visualMode: "architecture",
+      timeline: { active: true, cursor: 1_700_000_000_000 },
+    });
+
+    loadMockGraph();
+    applyShareState(useExplorerStore.getState(), { t: 1_700_000_000_000 }, { worldEnabled: true });
+    expect(useExplorerStore.getState().visualMode).toBe("activity");
+  });
+
   it("ignores nodes and contributors that do not exist in the graph", () => {
     applyShareState(
       useExplorerStore.getState(),

@@ -58,8 +58,9 @@ revalidate them with ETags (this saves API quota). It never holds file contents 
 - The explorer keeps the graph and any source files you open in memory for the duration of the visit.
 - `localStorage` stores a single flag that remembers you have seen the first-visit navigation hint.
 - Contributor avatars are loaded directly from `avatars.githubusercontent.com`, so GitHub sees those image requests.
-- In-world labels are drawn with a web font. Operators can self-host it with `NEXT_PUBLIC_LABEL_FONT_URL`; otherwise
-  the label renderer's default font resolver may request font files from a public CDN.
+- In-world labels are drawn with Geist Mono, served from the site's own origin (`/fonts/GeistMono-Medium.ttf`). The
+  label renderer requests nothing from third parties: glyphs the font lacks (for example CJK file names) render
+  blank instead of being fetched from a font CDN. `NEXT_PUBLIC_LABEL_FONT_URL` only swaps in another font file.
 
 ## GitHub token
 

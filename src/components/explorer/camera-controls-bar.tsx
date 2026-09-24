@@ -1,6 +1,6 @@
 "use client";
 
-import { Crosshair, Gamepad2, Orbit, RotateCcw, Scan } from "lucide-react";
+import { Crosshair, Gamepad2, RotateCcw, Scan } from "lucide-react";
 import { IconButton } from "@/components/ui/icon-button";
 import { cn } from "@/lib/utils/cn";
 import { useExplorerStore } from "@/state/explorer-store";
@@ -23,23 +23,40 @@ export function CameraControlsBar({ className }: { className?: string }) {
         className,
       )}
     >
-      <IconButton label="Reset camera" shortcut="R" tooltipSide="top" icon={<RotateCcw />} onClick={() => issueCameraCommand({ type: "reset" })} />
+      {/* The bar sits at the right screen edge: tooltips align to their button's right edge. */}
+      <IconButton
+        label="Reset camera"
+        shortcut="R"
+        tooltipSide="top"
+        tooltipAlign="end"
+        icon={<RotateCcw />}
+        onClick={() => issueCameraCommand({ type: "reset" })}
+      />
       <IconButton
         label="Focus selected"
         shortcut="F"
         tooltipSide="top"
+        tooltipAlign="end"
         icon={<Crosshair />}
         disabled={!hasSelection}
         onClick={() => issueCameraCommand({ type: "focus-selected" })}
       />
-      <IconButton label="Frame whole repository" shortcut="H" tooltipSide="top" icon={<Scan />} onClick={() => issueCameraCommand({ type: "focus-repository" })} />
+      <IconButton
+        label="Frame whole repository"
+        shortcut="H"
+        tooltipSide="top"
+        tooltipAlign="end"
+        icon={<Scan />}
+        onClick={() => issueCameraCommand({ type: "focus-repository" })}
+      />
       <span aria-hidden="true" className="mx-0.5 h-5 w-px bg-line-strong" />
       <IconButton
-        label={navigationMode === "orbit" ? "Orbit mode — switch to Explore" : "Explore mode — switch to Orbit"}
-        shortcut="Tab"
+        label="Explore mode"
+        shortcut="G"
         tooltipSide="top"
+        tooltipAlign="end"
         pressed={navigationMode === "explore"}
-        icon={navigationMode === "orbit" ? <Orbit /> : <Gamepad2 />}
+        icon={<Gamepad2 />}
         onClick={() => setNavigationMode(navigationMode === "orbit" ? "explore" : "orbit")}
       />
     </div>

@@ -1,23 +1,40 @@
 # Media for the README
 
-The project README references the files below. They must be real captures of a running CodeVerse build, never
-mock-ups. Capture them after UI changes that make the current ones inaccurate.
+The project README embeds the files below. They must be real captures of a running CodeVerse build, never
+mock-ups. Capture them again after UI changes that make the current ones inaccurate, and keep every image the
+README references in this directory, so no link renders broken.
 
-| File                          | Shows                                                                             |
-| ----------------------------- | --------------------------------------------------------------------------------- |
-| `demo.gif`                    | The core journey in 20–30 s (see the storyboard below)                            |
-| `screenshot-architecture.png` | Architecture mode on a well-known repository, a district focused, labels readable |
-| `screenshot-dependencies.png` | Dependencies mode with a selected file and its import arcs                        |
-| `screenshot-source.png`       | The source viewer open on a selected file, a symbol highlighted                   |
+| File                        | Shows                                                                                       |
+| --------------------------- | ------------------------------------------------------------------------------------------- |
+| `explorer-architecture.png` | Hero: Architecture mode on a well-known repository, the whole city in view, labels readable |
+| `explorer-dependencies.png` | Dependencies mode with a selection, its import arcs and the details panel                   |
+| `explorer-source.png`       | The source viewer open at a highlighted symbol, the outline beside the code                 |
+| `explorer-search.png`       | The search palette (`/`) with results for a common name                                     |
+| `explorer-statistics.png`   | The repository statistics panel (`I`) over the city                                         |
+| `explorer-complexity.png`   | Complexity mode: hotspots across the whole repository                                       |
+| `landing.png`               | The landing page hero at desktop size                                                       |
+
+The current set shows `facebook/react` (served by GitHub as `react/react`) at commit `d083ec1`, analyzed without a
+token, in Chromium at 1440 × 900.
 
 ## Capture setup
 
-- Production build: `pnpm build && pnpm start`, with a `GITHUB_TOKEN` so history is complete.
-- Browser window at **1440 × 900**, device pixel ratio 2 for screenshots; no extensions or bookmarks bar visible.
-- Use a real, well-known public repository (for example `vercel/next.js` or `facebook/react`) and mention it in
-  the image's alt text. Do not edit, composite or retouch the UI.
+- A production build (`pnpm build && pnpm start`). A `GITHUB_TOKEN` gives complete history, which matters for
+  Activity and Contributors shots; the current set avoids those modes because it was captured without one.
+- Browser window at **1440 × 900** with device pixel ratio 1 (each PNG stays around 1 MB; GitHub scales them to
+  the README's width anyway). No extensions, bookmarks bar or development overlays visible.
+- Use a real, well-known public repository (for example `facebook/react` or `vercel/next.js`) and name it in the
+  image's alt text. Do not edit, composite or retouch the UI.
+- Dismiss the first-visit navigation hint and move the pointer off the canvas so no hover tooltip shows.
 
-## `demo.gif` storyboard
+Suggested journey for the explorer shots: let the intro camera settle for the hero, press `5` for complexity and
+`I` for statistics, then press `/`, search for a symbol, press Enter to fly to it, press `2` for dependencies and
+`V` to open the source viewer at that symbol.
+
+## Demo GIF
+
+The README does not embed a GIF yet. A 20–30 s recording of the core journey would sit above the screenshot
+table as `demo.gif`; add it to this directory and to the README together. Storyboard:
 
 1. Landing page hero; paste `https://github.com/facebook/react` and press **Explore** (2 s).
 2. The loading experience: stages ticking, the preview city forming behind it (4 s).
@@ -37,12 +54,16 @@ ffmpeg -i capture.mp4 -i palette.png -lavfi "fps=15,scale=1200:-1:flags=lanczos 
 
 ## Quick captures from the test suite
 
-The Playwright suite can capture the explorer on the bundled demo repository, which is handy for reviewing UI
-changes (not for the README, which should show a real repository):
+`e2e/screenshots.spec.ts` captures the landing page and every explorer mode on the bundled demo repository
+(the API is mocked, so no GitHub quota is used). It is handy for reviewing UI changes, not for the README, which
+should show a real repository:
 
 ```bash
 SCREENSHOTS=1 pnpm test:e2e screenshots
 # → test-results/screenshots/landing-*.png and explorer-*.png
+
+# Against a server that is already running, instead of building one:
+E2E_BASE_URL=http://127.0.0.1:3000 SCREENSHOTS=1 pnpm test:e2e screenshots
 ```
 
 ## Brand assets

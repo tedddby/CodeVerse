@@ -150,6 +150,64 @@ describe("ContributorsPanel", () => {
     expect(screen.getByRole("complementary", { name: "Contributors" })).toBeInTheDocument();
   });
 
+  it("lists contributors without files in the analysed window last, muted, and explains an empty highlight", async () => {
+    const user = userEvent.setup();
+    const [ada] = mockRepositoryGraph.contributors;
+    if (!ada) throw new Error("fixture has contributors");
+    const founder = {
+      ...ada,
+      id: "user:founder",
+      name: "Founder Person",
+      login: "founder",
+      contributions: 3_600,
+      commitCount: 0,
+      fileIds: [],
+    };
+    const bot = {
+      ...founder,
+      id: "user:bot",
+      name: "renovate[bot]",
+      login: "renovate[bot]",
+      commitCount: 2,
+    };
+    load({
+      ...mockRepositoryGraph,
+      contributors: [founder, bot, ...mockRepositoryGraph.contributors],
+    });
+    openPanel("contributors");
+    render(<ContributorsPanel />);
+
+    // The founder has the most all-time contributions but touched nothing in the window.
+    const withFiles = screen.getByRole("list", { name: "Contributors" });
+    expect(within(withFiles).getAllByRole("button")[0]).toHaveAccessibleName(/Ada Octo/);
+    expect(within(withFiles).queryByRole("button", { name: /Founder/ })).not.toBeInTheDocument();
+    const quiet = screen.getByRole("list", { name: "No files touched in the analysed window" });
+    expect(
+      within(quiet)
+        .getAllByRole("button")
+        .map((button) => button.textContent),
+    ).toEqual([
+      expect.stringContaining("renovate[bot]"),
+      expect.stringContaining("Founder Person"),
+    ]);
+
+    await user.click(within(quiet).getByRole("button", { name: /Founder Person/ }));
+    const detail = screen.getByRole("region", { name: "Contributor details: Founder Person" });
+    expect(
+      within(detail).getByText(
+        "No files touched in the analysed window, so no files are highlighted.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(detail).queryByText("Most active areas")).not.toBeInTheDocument();
+
+    await user.click(within(quiet).getByRole("button", { name: /renovate/ }));
+    expect(
+      within(screen.getByRole("region", { name: /Contributor details/ })).getByText(
+        "None of their commits in the analysed window has file details, so no files are highlighted.",
+      ),
+    ).toBeInTheDocument();
+  });
+
   it("explains when there is no contributor data", () => {
     load({ ...mockRepositoryGraph, contributors: [] });
     openPanel("contributors");

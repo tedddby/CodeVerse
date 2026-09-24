@@ -9,11 +9,16 @@ import { RESOLVED_SHA, SHA, params, request, setupRouteTests } from "./support/h
  * caching headers, coalescing and rate limiting are real.
  */
 
-const mocks = vi.hoisted(() => ({ getRawFile: vi.fn(), getSnapshot: vi.fn() }));
+const mocks = vi.hoisted(() => ({
+  getRawFile: vi.fn(),
+  getSnapshot: vi.fn(),
+  reservedQuotaError: vi.fn(),
+}));
 
 vi.mock("@/sources/github", () => ({
   createGitHubSource: () => ({ getSnapshot: mocks.getSnapshot }),
   getSharedGitHubClient: () => ({ getRawFile: mocks.getRawFile }),
+  reservedQuotaError: mocks.reservedQuotaError,
 }));
 
 const { GET: source } = await import("@/app/api/source/[owner]/[repo]/route");
@@ -182,5 +187,45 @@ describe("GET /api/source/[owner]/[repo]", () => {
     expect(limited).toBeDefined();
     expect(limited?.headers.get("retry-after")).toBeTruthy();
     expect(mocks.getRawFile.mock.calls.length).toBeLessThan(100);
+  });
+
+  it("limits branch and tag resolutions per client more strictly than pinned reads", async () => {
+    mocks.getSnapshot.mockResolvedValue({
+      repository: { owner: "acme", name: "polyglot", commitSha: RESOLVED_SHA },
+    });
+    mocks.getRawFile.mockResolvedValue({ kind: "text", content: "x\n", size: 2 });
+    const statuses: number[] = [];
+    for (let index = 0; index < 12; index += 1) {
+      const response = await sourceRequest(
+        { ref: "main", path: `f${index}.ts` },
+        "acme",
+        "polyglot",
+        "192.0.2.10",
+      );
+      statuses.push(response.status);
+    }
+    expect(statuses.slice(0, 10).every((status) => status === 200)).toBe(true);
+    expect(statuses.slice(10)).toEqual([429, 429]);
+    // Pinned reads by the same client are still served.
+    const pinned = await sourceRequest(
+      { ref: SHA, path: "a.ts" },
+      "acme",
+      "polyglot",
+      "192.0.2.10",
+    );
+    expect(pinned.status).toBe(200);
+  });
+
+  it("refuses branch names once the API quota is reserved for analyses", async () => {
+    const retryAt = new Date(Date.now() + 600_000).toISOString();
+    mocks.reservedQuotaError.mockReturnValue(
+      new SourceError("RATE_LIMITED", "reserved for analyses", { retryAt }),
+    );
+    mocks.getRawFile.mockResolvedValue({ kind: "text", content: "x\n", size: 2 });
+    const byBranch = await sourceRequest({ ref: "main", path: "a.ts" });
+    expect(byBranch.status).toBe(429);
+    expect(mocks.getSnapshot).not.toHaveBeenCalled();
+    const pinned = await sourceRequest({ ref: SHA, path: "a.ts" });
+    expect(pinned.status).toBe(200);
   });
 });

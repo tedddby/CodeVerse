@@ -2,7 +2,7 @@ import type { LayoutLookup } from "@/engine/layout/lookup";
 import { layoutSymbolBands } from "@/engine/layout/symbol-bands";
 import type { BuildingLayout, SymbolBandLayout } from "@/engine/layout/types";
 import type { GraphIndex } from "@/graph/model/graph-index";
-import type { SymbolNode } from "@/graph/model/types";
+import type { NodeRef, SymbolNode } from "@/graph/model/types";
 
 /**
  * Symbol-band data for the renderer: each band joined with its symbol and
@@ -49,4 +49,18 @@ export class BandCache {
 export function symbolLabelText(name: string, maxChars = 36): string {
   const chars = Array.from(name);
   return chars.length > maxChars ? `${chars.slice(0, maxChars - 1).join("")}…` : name;
+}
+
+/**
+ * What a hit on a symbol band picks. Only the selected file's bands are
+ * symbols; the faint context bands on neighbouring buildings stand out from
+ * their facades, so a hit on one must act exactly like a hit on its building.
+ */
+export function bandPickRef(
+  symbol: Pick<SymbolNode, "id" | "fileId">,
+  selectedFileId: string | null,
+): NodeRef {
+  return symbol.fileId === selectedFileId
+    ? { kind: "symbol", id: symbol.id }
+    : { kind: "file", id: symbol.fileId };
 }

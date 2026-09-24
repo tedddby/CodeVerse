@@ -1,6 +1,8 @@
 import { NodeIcon, SYMBOL_KIND_LABELS } from "@/components/search/node-icon";
 import type { SymbolNode } from "@/graph/model/types";
 import { cn } from "@/lib/utils/cn";
+import { escapeHiddenCharacters } from "./hidden-characters";
+import { revealHiddenCharacters } from "./revealed-text";
 
 export interface OutlineEntry {
   symbol: SymbolNode;
@@ -62,7 +64,7 @@ export function SymbolOutline({ outline, activeSymbolId, onSelect }: SymbolOutli
                 type="button"
                 onClick={() => onSelect(symbol)}
                 aria-current={active ? "location" : undefined}
-                title={symbol.signature ?? symbol.name}
+                title={escapeHiddenCharacters(symbol.signature ?? symbol.name)}
                 className={cn(
                   "flex w-full items-center gap-2 py-1 pr-3 text-left text-xs transition-colors",
                   active
@@ -72,7 +74,9 @@ export function SymbolOutline({ outline, activeSymbolId, onSelect }: SymbolOutli
                 style={{ paddingLeft: `${0.75 + depth * 0.85}rem` }}
               >
                 <NodeIcon kind="symbol" symbolKind={symbol.kind} className="size-3.5" />
-                <span className="min-w-0 flex-1 truncate font-mono">{symbol.name}</span>
+                <span className="min-w-0 flex-1 truncate font-mono">
+                  {revealHiddenCharacters(symbol.name)}
+                </span>
                 <span className="sr-only">{SYMBOL_KIND_LABELS[symbol.kind]},</span>
                 <span className="text-ink-subtle shrink-0 font-mono text-[10.5px] tabular-nums">
                   <span className="sr-only">line </span>

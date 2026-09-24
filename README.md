@@ -25,18 +25,27 @@
   <a href="CONTRIBUTING.md">Contribute</a>
 </p>
 
-<!-- Media is captured from a running build; see docs/media/README.md for the shot list. -->
+<!-- Media is captured from a running build; see docs/media/README.md for the shot list and how to recapture it. -->
 <p align="center">
-  <img src="docs/media/demo.gif" alt="Flying through a repository in CodeVerse: pasting a URL, the city assembling, selecting a file and opening its source" width="100%">
+  <img src="docs/media/explorer-architecture.png" alt="CodeVerse showing facebook/react as a city: 7,252 files as buildings colored by language, grouped into labeled districts such as packages, compiler and scripts" width="100%">
 </p>
 
 <table>
   <tr>
-    <td><img src="docs/media/screenshot-architecture.png" alt="Architecture mode: directories as districts and files as buildings colored by language"></td>
-    <td><img src="docs/media/screenshot-dependencies.png" alt="Dependency mode: import arcs between buildings for the selected file"></td>
-    <td><img src="docs/media/screenshot-source.png" alt="Source viewer opened on a selected file at a highlighted symbol"></td>
+    <td width="50%"><img src="docs/media/explorer-dependencies.png" alt="Dependencies mode on facebook/react: import arcs fan out from the selected runWithEnvironment function in the compiler's Pipeline.ts, with its details panel open"></td>
+    <td width="50%"><img src="docs/media/explorer-source.png" alt="Source viewer on facebook/react's Pipeline.ts, scrolled to the highlighted runWithEnvironment function, with the symbol outline beside the code"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/explorer-search.png" alt="Search palette over the facebook/react city, listing files that match useEffect"></td>
+    <td><img src="docs/media/explorer-statistics.png" alt="Repository statistics panel for facebook/react: stars, forks, files analyzed, lines of code, dependencies and language breakdown"></td>
+  </tr>
+  <tr>
+    <td><img src="docs/media/explorer-complexity.png" alt="Complexity mode on facebook/react: large files with many symbols and dependencies glow as hotspots"></td>
+    <td><img src="docs/media/landing.png" alt="The CodeVerse landing page: the headline Explore any codebase as a 3D universe and the repository input"></td>
   </tr>
 </table>
+
+<p align="center"><sub>Real captures of <code>facebook/react</code> (which GitHub now serves as <code>react/react</code>), analyzed without a GitHub token. Not mock-ups.</sub></p>
 
 ## What it is
 
@@ -94,10 +103,10 @@ The first `pnpm test:e2e` run needs a browser: `pnpm exec playwright install chr
 CodeVerse works without credentials, but a token makes it much better. It is read on the server only, sent
 exclusively to `api.github.com`, redacted from every log line and never reaches the browser.
 
-| Without a token                                          | With `GITHUB_TOKEN`                                                                          |
-| -------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
-| 60 GitHub API requests per hour, shared by the server IP | 5,000 requests per hour                                                                      |
-| History sampled from the most recent commits             | GraphQL history: per-file last-modified dates and exact commit counts for the whole timeline |
+| Without a token                                          | With `GITHUB_TOKEN`                                                                                                  |
+| -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| 60 GitHub API requests per hour, shared by the server IP | 5,000 requests per hour                                                                                              |
+| History from the latest 100 commits, 6 of them in detail | History from the latest 300 commits, 40 in detail, plus GraphQL per-file last-modified dates and exact commit counts |
 
 Create a [fine-grained personal access token](https://github.com/settings/personal-access-tokens/new) with
 **Public repositories (read-only)** access and no permissions, or a classic token with no scopes. Then set it
@@ -117,7 +126,7 @@ all limits fall back to their defaults and a warning is logged.
 | `GITHUB_TOKEN`                    | –                                            | Server-side GitHub token: higher rate limits and GraphQL history (see above).                       |
 | `NEXT_PUBLIC_SITE_URL`            | `http://localhost:3000`                      | Public URL of the deployment, used for Open Graph images, canonical links and the sitemap.          |
 | `NEXT_PUBLIC_REPOSITORY_URL`      | `https://github.com/codeverse-oss/codeverse` | Where "View on GitHub" and documentation links point.                                               |
-| `NEXT_PUBLIC_LABEL_FONT_URL`      | –                                            | Self-hosted `.ttf`/`.otf`/`.woff` for in-world labels (see [Privacy](docs/PRIVACY.md)).             |
+| `NEXT_PUBLIC_LABEL_FONT_URL`      | `/fonts/GeistMono-Medium.ttf`                | Label font (`.ttf`/`.otf`/`.woff`); the default is self-hosted (see [Privacy](docs/PRIVACY.md)).    |
 | `CODEVERSE_MAX_FILES`             | `25000`                                      | Maximum files kept as buildings. Beyond it, the most meaningful files per directory are kept.       |
 | `CODEVERSE_MAX_PARSED_FILES`      | `1500`                                       | Maximum files downloaded and AST-parsed per analysis.                                               |
 | `CODEVERSE_MAX_FILE_BYTES`        | `524288` (512 KB)                            | Largest single file downloaded (hard ceiling 2 MB).                                                 |
@@ -125,8 +134,8 @@ all limits fall back to their defaults and a warning is logged.
 | `CODEVERSE_MAX_PARSE_BYTES`       | `262144` (256 KB)                            | Larger files are counted but not parsed.                                                            |
 | `CODEVERSE_PARSE_TIMEOUT_MS`      | `2000`                                       | Per-file parse timeout.                                                                             |
 | `CODEVERSE_FETCH_CONCURRENCY`     | `16`                                         | Concurrent file downloads (max 64).                                                                 |
-| `CODEVERSE_MAX_COMMITS`           | `300`                                        | Commits listed for history (max 5,000).                                                             |
-| `CODEVERSE_MAX_COMMIT_DETAILS`    | `40`                                         | Commits whose changed files are fetched (max 500, at most `MAX_COMMITS`).                           |
+| `CODEVERSE_MAX_COMMITS`           | `300`                                        | Commits listed for history (max 5,000; at most 100 without a `GITHUB_TOKEN`).                       |
+| `CODEVERSE_MAX_COMMIT_DETAILS`    | `40`                                         | Commits whose changed files are fetched (max 500, at most `MAX_COMMITS`; 6 without a token).        |
 | `CODEVERSE_TIER_FULL_MAX`         | `1000`                                       | Up to this many files, everything eligible is parsed.                                               |
 | `CODEVERSE_TIER_PROGRESSIVE_MAX`  | `10000`                                      | Above this many files, directory-first mode is used.                                                |
 | `CODEVERSE_CACHE_MAX_MB`          | `256`                                        | In-memory cache budget for analyzed graphs.                                                         |
@@ -225,8 +234,12 @@ coverage report with warnings such as a truncated GitHub tree, parse limits or r
 ## Limitations
 
 - **Public GitHub repositories only.** GitLab, local folders and archives are on the roadmap.
-- **History is recent, not complete.** By default the latest 300 commits are listed and 40 are inspected in
-  detail; with a token, per-file last-modified dates and exact commit counts are added.
+- **History is recent, not complete.** With a token, the latest 300 commits are listed, 40 are inspected in
+  detail, and per-file last-modified dates and exact commit counts are added. Without one, history is kept to a
+  few requests to spare GitHub's 60-requests-per-hour quota: 100 commits are listed and only 6 inspected, so
+  Activity mode, "Last modified" and contributor highlights cover few files. Raising `CODEVERSE_MAX_COMMITS` or
+  `CODEVERSE_MAX_COMMIT_DETAILS` does not lift this cap; adding a token does. Either way, history shrinks
+  further when little API quota is left.
 - **Import resolution is static and best effort.** Build-time aliases, generated code and dynamic module loading
   that cannot be read from configuration files stay unresolved (and are counted as such).
 - **Very large repositories are sampled.** GitHub truncates tree listings above roughly 100,000 entries, and the

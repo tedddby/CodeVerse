@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils/cn";
 import { formatInteger } from "@/lib/utils/format";
 import { CODEVERSE_THEME_COLORS } from "./codeverse-theme";
 import type { HighlightedLine } from "./highlighter";
+import { revealHiddenCharacters } from "./revealed-text";
 import {
   MAX_RENDERED_LINE_LENGTH,
   maxVisualWidth,
@@ -39,6 +40,8 @@ export interface CodeViewProps {
   highlightEnd?: number;
   scrollRequest: ScrollRequest | null;
   label: string;
+  /** Id of an element describing the listing (the hidden-characters notice). */
+  describedBy?: string;
 }
 
 const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
@@ -46,7 +49,8 @@ const useIsomorphicLayoutEffect = typeof window === "undefined" ? useEffect : us
 /**
  * Virtualized, read-only code listing: fixed-height rows, only the visible lines
  * (plus overscan) are in the DOM, so 20k-line files scroll smoothly. Tokens are
- * rendered as plain React spans — never as HTML.
+ * rendered as plain React spans — never as HTML — with bidi controls and
+ * zero-width characters shown as visible markers (see hidden-characters.ts).
  */
 export function CodeView({
   lines,
@@ -55,6 +59,7 @@ export function CodeView({
   highlightEnd,
   scrollRequest,
   label,
+  describedBy,
 }: CodeViewProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
@@ -122,6 +127,7 @@ export function CodeView({
       ref={scrollRef}
       role="region"
       aria-label={label}
+      aria-describedby={describedBy}
       tabIndex={0}
       onScroll={(event) => setScrollTop(event.currentTarget.scrollTop)}
       className="relative min-h-0 flex-1 overflow-auto overscroll-contain font-mono text-[12.5px] focus-visible:outline-offset-[-2px]"
@@ -200,12 +206,10 @@ const CodeRow = memo(function CodeRow({
                       : undefined,
                 }}
               >
-                {token.content}
+                {revealHiddenCharacters(token.content)}
               </span>
             ))
-          : truncated
-            ? text.slice(0, MAX_RENDERED_LINE_LENGTH)
-            : text}
+          : revealHiddenCharacters(truncated ? text.slice(0, MAX_RENDERED_LINE_LENGTH) : text)}
         {truncated ? (
           <span className="border-line-strong text-ink-subtle ml-2 rounded border px-1 font-sans text-[10.5px]">
             +{formatInteger(text.length - MAX_RENDERED_LINE_LENGTH)} characters

@@ -1,8 +1,11 @@
 "use client";
 
 import { FileLock, FileText } from "lucide-react";
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { githubBlobUrl, sourceApiUrl } from "@/analysis/source-protocol";
+import { CANVAS_ATTRIBUTE } from "@/components/explorer/use-explorer-shortcuts";
+import { NARROW_VIEWPORT_QUERY, useMediaQuery } from "@/components/explorer/use-media-query";
+import { useFocusTrap } from "@/components/ui/use-focus-trap";
 import type { GraphIndex } from "@/graph/model/graph-index";
 import type { FileNode, SymbolNode } from "@/graph/model/types";
 import { cn } from "@/lib/utils/cn";
@@ -10,10 +13,20 @@ import { formatInteger } from "@/lib/utils/format";
 import { useExplorerStore, type CodeViewerState } from "@/state/explorer-store";
 import { CodeView, type ScrollRequest } from "./code-view";
 import { CodeViewerHeader } from "./code-viewer-header";
-import { CodeSkeleton, SourceErrorState, SourceMessage } from "./code-viewer-states";
+import {
+  CodeSkeleton,
+  HiddenCharactersNotice,
+  SourceErrorState,
+  SourceMessage,
+} from "./code-viewer-states";
+import {
+  escapeHiddenCharacters,
+  summarizeHiddenCharacters,
+  type HiddenCharacterSummary,
+} from "./hidden-characters";
 import { loadShikiHighlighter, type HighlighterLoader } from "./highlighter";
 import { shikiLanguageFor } from "./language-map";
-import { MAX_HIGHLIGHTED_LINES, splitSourceLines } from "./source-lines";
+import { MAX_HIGHLIGHTED_LINES, splitSourceLines, stripByteOrderMark } from "./source-lines";
 import { buildOutline, symbolAtLine, SymbolOutline } from "./symbol-outline";
 import { useCopyToClipboard } from "./use-copy-to-clipboard";
 import { useHighlightedLines, type HighlightState } from "./use-highlighted-lines";
@@ -28,6 +41,20 @@ export interface CodeViewerProps {
 }
 
 /**
+ * Where focus goes once the viewer has closed: back to the element it was
+ * opened from, else to the 3D map. Focus the user moved elsewhere is left alone.
+ */
+function restoreFocus(opener: HTMLElement | null) {
+  const active = document.activeElement;
+  if (active && active !== document.body) return;
+  const target =
+    opener?.isConnected === true
+      ? opener
+      : document.querySelector<HTMLElement>(`[${CANVAS_ATTRIBUTE}][tabindex="0"]`);
+  target?.focus({ preventScroll: true });
+}
+
+/**
  * Right-hand source slide-over. Opens whenever `store.codeViewer` is set,
  * lazily fetches the file at the analysed commit and highlights it progressively.
  * Esc or the close button calls `store.closeCodeViewer()`.
@@ -38,13 +65,20 @@ export function CodeViewer({ loadHighlighter = loadShikiHighlighter }: CodeViewe
   const file = request && index ? index.filesById.get(request.fileId) : undefined;
   const isOpen = Boolean(request && index && file);
 
-  // Restore focus to whatever was focused before the viewer opened.
-  useEffect(() => {
+  // The element focus came from, recorded by the panel just before it takes
+  // focus. By then an opener that closed in the same update (the search
+  // palette) has already handed focus back to its own trigger.
+  const openerRef = useRef<HTMLElement | null>(null);
+  const rememberOpener = useCallback((element: HTMLElement) => {
+    openerRef.current = element;
+  }, []);
+
+  // A layout effect, so focus is restored in the same commit that removes the viewer.
+  useLayoutEffect(() => {
     if (!isOpen) return;
-    const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     return () => {
-      if (previous && previous !== document.body && document.contains(previous))
-        previous.focus({ preventScroll: true });
+      restoreFocus(openerRef.current);
+      openerRef.current = null;
     };
   }, [isOpen]);
 
@@ -70,6 +104,7 @@ export function CodeViewer({ loadHighlighter = loadShikiHighlighter }: CodeViewe
       file={file}
       request={request}
       loadHighlighter={loadHighlighter}
+      onTakeFocus={rememberOpener}
     />
   );
 }
@@ -79,13 +114,21 @@ interface CodeViewerPanelProps {
   file: FileNode;
   request: CodeViewerState;
   loadHighlighter: HighlighterLoader;
+  /** Called with the element that had focus before the panel took it. */
+  onTakeFocus: (previous: HTMLElement) => void;
 }
 
 function isDefined<T>(value: T | undefined): value is T {
   return value !== undefined;
 }
 
-function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPanelProps) {
+function CodeViewerPanel({
+  index,
+  file,
+  request,
+  loadHighlighter,
+  onTakeFocus,
+}: CodeViewerPanelProps) {
   const repository = index.graph.repository;
   const reducedMotion = useExplorerStore((state) => state.reducedMotion);
   const closeCodeViewer = useExplorerStore((state) => state.closeCodeViewer);
@@ -95,6 +138,8 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
   const panelRef = useRef<HTMLElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const [outlineOpen, setOutlineOpen] = useState(true);
+  // Below md the viewer covers the whole screen, so it behaves as a modal.
+  const isNarrow = useMediaQuery(NARROW_VIEWPORT_QUERY);
 
   const isGitHub = repository.provider === "github";
   const url = isGitHub
@@ -103,6 +148,10 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
   const { state, retry } = useSourceFile(url);
   const content = state.status === "ready" ? state.file.content : null;
   const lines = useMemo(() => (content === null ? null : splitSourceLines(content)), [content]);
+  const hiddenCharacters = useMemo(
+    () => (content === null ? null : summarizeHiddenCharacters(stripByteOrderMark(content))),
+    [content],
+  );
   const language = useMemo(
     () => shikiLanguageFor(file.language, file.path),
     [file.language, file.path],
@@ -133,8 +182,19 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
   );
 
   useEffect(() => {
-    panelRef.current?.focus({ preventScroll: true });
-  }, []);
+    const panel = panelRef.current;
+    if (!panel) return;
+    const previous = document.activeElement;
+    if (previous instanceof HTMLElement && previous !== document.body && !panel.contains(previous))
+      onTakeFocus(previous);
+    panel.focus({ preventScroll: true });
+  }, [onTakeFocus]);
+  // Declared after the focus effect, so on narrow screens the trap then moves
+  // focus on to the close button.
+  useFocusTrap(panelRef, isNarrow, closeButtonRef);
+  // The outline column only exists from lg. Below md it is not rendered at all,
+  // so the focus trap never counts its hidden buttons as the first or last stop.
+  const showOutline = outline.length > 0 && !isNarrow;
 
   const onSelectSymbol = useCallback(
     (symbol: SymbolNode) => {
@@ -148,11 +208,11 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
     <section
       ref={panelRef}
       role="dialog"
-      aria-modal="false"
+      aria-modal={isNarrow}
       aria-labelledby={titleId}
       tabIndex={-1}
       className={cn(
-        "fixed inset-0 z-40 flex flex-col overflow-hidden border border-line-strong bg-abyss shadow-2xl outline-none",
+        "border-line-strong bg-abyss fixed inset-0 z-40 flex flex-col overflow-hidden border shadow-2xl outline-none",
         "md:inset-y-3 md:right-3 md:left-auto md:w-[min(58vw,72rem)] md:rounded-2xl",
         !reducedMotion && "animate-slide-in-right",
       )}
@@ -170,7 +230,7 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
           if (content !== null) void copy(content);
         }}
         outline={{
-          available: outline.length > 0,
+          available: showOutline,
           open: outlineOpen,
           toggle: () => setOutlineOpen((open) => !open),
         }}
@@ -178,7 +238,7 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
         closeButtonRef={closeButtonRef}
       />
       <div className="flex min-h-0 flex-1">
-        {outline.length > 0 && outlineOpen ? (
+        {showOutline && outlineOpen ? (
           <aside className="border-line/70 bg-abyss/40 hidden w-60 shrink-0 flex-col border-r lg:flex">
             <SymbolOutline
               outline={outline}
@@ -197,6 +257,7 @@ function CodeViewerPanel({ index, file, request, loadHighlighter }: CodeViewerPa
             scrollRequest={scrollRequest}
             githubUrl={githubUrl}
             filePath={file.path}
+            hiddenCharacters={hiddenCharacters}
             onRetry={retry}
             animate={!reducedMotion}
           />
@@ -222,6 +283,7 @@ interface CodeViewerBodyProps {
   scrollRequest: ScrollRequest | null;
   githubUrl: string | null;
   filePath: string;
+  hiddenCharacters: HiddenCharacterSummary | null;
   onRetry: () => void;
   animate: boolean;
 }
@@ -235,9 +297,11 @@ function CodeViewerBody({
   scrollRequest,
   githubUrl,
   filePath,
+  hiddenCharacters,
   onRetry,
   animate,
 }: CodeViewerBodyProps) {
+  const noticeId = useId();
   if (!isGitHub) {
     return (
       <SourceMessage
@@ -259,14 +323,20 @@ function CodeViewerBody({
       />
     );
   return (
-    <CodeView
-      lines={lines}
-      tokens={highlight.tokens}
-      highlightStart={request.line}
-      highlightEnd={request.endLine}
-      scrollRequest={scrollRequest}
-      label={`Source code of ${filePath}`}
-    />
+    <>
+      {hiddenCharacters ? (
+        <HiddenCharactersNotice id={noticeId} summary={hiddenCharacters} />
+      ) : null}
+      <CodeView
+        lines={lines}
+        tokens={highlight.tokens}
+        highlightStart={request.line}
+        highlightEnd={request.endLine}
+        scrollRequest={scrollRequest}
+        label={`Source code of ${escapeHiddenCharacters(filePath)}`}
+        describedBy={hiddenCharacters ? noticeId : undefined}
+      />
+    </>
   );
 }
 

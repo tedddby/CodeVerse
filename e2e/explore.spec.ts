@@ -59,6 +59,32 @@ test.describe("explore a repository", () => {
     await expect(page.getByRole("button", { name: /dependencies/i, pressed: true }).first()).toBeVisible();
   });
 
+  test("glass panels keep their blur and focus rings can be inset", async ({ page }) => {
+    await gotoHydrated(page, `/explore/${FIXTURE_OWNER}/${FIXTURE_REPO}`);
+    await expect(repoLink(page)).toBeVisible(WORLD_TIMEOUT);
+
+    // The production minifier once kept only `-webkit-backdrop-filter`, which Chromium ignores.
+    const glass = page.locator(".glass").first();
+    await expect
+      .poll(() => glass.evaluate((element) => getComputedStyle(element).backdropFilter))
+      .toContain("blur");
+
+    // The global ring lives in the base layer, so the minimap's inset offset utility wins
+    // and the ring is not clipped by the minimap's rounded, overflow-hidden frame.
+    const minimap = page.getByRole("application", { name: /repository map/i });
+    await expect(minimap).toBeVisible();
+    for (let step = 0; step < 60; step++) {
+      if (await minimap.evaluate((element) => element === document.activeElement)) break;
+      await page.keyboard.press("Tab");
+    }
+    await expect(minimap).toBeFocused();
+    const ring = await minimap.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { style: style.outlineStyle, offset: style.outlineOffset };
+    });
+    expect(ring).toEqual({ style: "solid", offset: "-2px" });
+  });
+
   test("invalid input shows an inline validation error", async ({ page }) => {
     await gotoHydrated(page, "/");
     const input = page.getByRole("textbox", { name: /repository/i }).first();

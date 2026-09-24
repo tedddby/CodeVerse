@@ -3,11 +3,7 @@ import { getLanguage, isParseableLanguage } from "@/lib/languages/registry";
 import type { InventoryFile } from "../inventory";
 import { compareTuples } from "../sort";
 import { linesContribution } from "./directories";
-
-/** Lockfiles, bundles, vendored code and binaries don't describe what a repository is written in. */
-function countsTowardLanguages(file: InventoryFile): boolean {
-  return !file.isGenerated && !file.isBinary && file.category !== "vendor";
-}
+import { isOwnFile } from "./own-files";
 
 /**
  * Language statistics over the repository's own files (omitted files included,
@@ -19,7 +15,7 @@ export function buildLanguageStats(
   inventoryFiles: readonly InventoryFile[],
   graphFiles: ReadonlyMap<string, FileNode>,
 ): LanguageStat[] {
-  const ownFiles = inventoryFiles.filter(countsTowardLanguages);
+  const ownFiles = inventoryFiles.filter(isOwnFile);
   const counted = ownFiles.length > 0 ? ownFiles : inventoryFiles;
   const totalBytes = counted.reduce((sum, file) => sum + file.size, 0);
   const stats = new Map<string, LanguageStat>();

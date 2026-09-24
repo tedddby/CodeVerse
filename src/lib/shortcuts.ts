@@ -21,7 +21,7 @@ export const KEYBOARD_SHORTCUTS: readonly KeyboardShortcut[] = [
   { keys: ["Shift"], action: "Move faster", group: "Navigation" },
   { keys: ["Drag"], action: "Look around / orbit", group: "Navigation" },
   { keys: ["Scroll"], action: "Zoom", group: "Navigation" },
-  { keys: ["Tab"], action: "Switch Orbit / Explore mode", group: "Navigation" },
+  { keys: ["G"], action: "Switch Orbit / Explore mode", group: "Navigation" },
   { keys: ["R"], action: "Reset camera", group: "Navigation" },
   { keys: ["H"], action: "Focus whole repository", group: "Navigation" },
   { keys: ["Click"], action: "Select", group: "Selection" },

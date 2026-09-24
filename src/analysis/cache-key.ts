@@ -11,9 +11,9 @@ import { ANALYZER_VERSION } from "./version";
  *   latest:  `${ANALYZER_VERSION}:latest:${lower-case repository.id}`
  *
  * The limits hash covers every setting that changes the graph for the same
- * commit: the limits snapshot, plus the provider capabilities (a server that
- * gains a token produces richer history, so it must not reuse graphs built
- * without one).
+ * commit: the limits snapshot, the per-file parse timeout (files that time out
+ * become "failed"), plus the provider capabilities (a server that gains a token
+ * produces richer history, so it must not reuse graphs built without one).
  */
 
 function stableStringify(value: Record<string, unknown>): string {
@@ -30,6 +30,7 @@ function stableStringify(value: Record<string, unknown>): string {
 export function limitsHash(limits: AnalysisLimits, capabilities?: SourceCapabilities): string {
   const settings = stableStringify({
     ...snapshotLimits(limits),
+    parseTimeoutMs: limits.parseTimeoutMs,
     fileHistory: capabilities?.fileHistory ?? false,
     commitCounts: capabilities?.commitCounts ?? false,
   });

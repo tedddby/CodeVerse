@@ -22,11 +22,13 @@ import type { AssembleInput } from "./types";
 
 /** Display order of warnings, most fundamental first. */
 const WARNING_ORDER: readonly AnalysisWarningCode[] = [
+  "STALE_ANALYSIS",
   "EMPTY_REPOSITORY",
   "TREE_TRUNCATED",
   "LARGE_REPOSITORY",
   "FILE_NODE_LIMIT",
   "PARSE_LIMIT",
+  "SYMBOL_LIMIT",
   "BYTE_LIMIT",
   "UNSUPPORTED_LANGUAGES",
   "PARSE_FAILURES",

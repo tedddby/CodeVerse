@@ -14,6 +14,7 @@ import {
 import {
   MIN_CAMERA_Y,
   establishingPose,
+  legalOrbitTarget,
   lookTarget,
   overviewPose,
   type Vec3,
@@ -48,6 +49,8 @@ const AUTO_ROTATE_SPEED = 0.07;
 const AUTO_ROTATE_RESUME_SECONDS = 2.5;
 /** Duration of the cinematic establishing shot. */
 const INTRO_SECONDS = 1.9;
+/** Duration of the turn toward a legal orbit target when leaving explore mode. */
+const ORBIT_TURN_SECONDS = 0.6;
 /**
  * Largest frame delta integrated at once: avoids jumps after a stalled tab,
  * while transitions still finish on time down to ~4 fps.
@@ -161,11 +164,15 @@ export class CameraController implements CameraInputHandlers {
     if (mode === "explore") {
       this.drone.syncLook(this.cameraDirection());
     } else {
-      // Keep exactly what the drone was looking at: orbit around that point.
-      const [px, py, pz] = this.cameraPosition();
-      const [tx, ty, tz] = this.exploreTarget();
-      void this.controls.setLookAt(px, py, pz, tx, ty, tz, false);
+      // Orbit around what the drone was looking at. Looking level or up, that
+      // point is outside the orbit's polar limits (the first drag would snap
+      // the view), so turn smoothly toward a legal target instead.
+      const position = this.cameraPosition();
+      const looked = this.exploreTarget();
+      const legal = this.orbitTarget();
+      void this.controls.setLookAt(...position, ...looked, false);
       this.controls.update(0);
+      if (!sameVec3(looked, legal)) this.turnTo({ position, target: legal });
     }
     this.applyInputMode();
   }
@@ -189,6 +196,15 @@ export class CameraController implements CameraInputHandlers {
     return { position, target: this.exploreTarget() };
   }
 
+  /**
+   * The pose to share (links, minimap). Same as `currentPose()`, except that
+   * in explore mode the target is always one orbit mode can start from.
+   */
+  reportedPose(): CameraPose {
+    if (this.mode === "orbit") return this.currentPose();
+    return { position: this.cameraPosition(), target: this.orbitTarget() };
+  }
+
   /** Moves to a pose immediately. */
   jumpTo(pose: CameraPose): void {
     this.tween = null;
@@ -209,6 +225,16 @@ export class CameraController implements CameraInputHandlers {
     this.tween = createTween(from, pose, transitionDuration(from, pose, this.world.size), {
       lift: transitionLift(from, pose),
     });
+  }
+
+  /** A short turn in place (no fly-to arc); instant with reduced motion. */
+  private turnTo(pose: CameraPose): void {
+    if (this.reducedMotion) {
+      this.jumpTo(pose);
+      return;
+    }
+    this.drone.haltMomentum();
+    this.tween = createTween(this.currentPose(), pose, ORBIT_TURN_SECONDS);
   }
 
   /** Cinematic establishing shot: high and far, easing down into the 3/4 overview. */
@@ -279,12 +305,28 @@ export class CameraController implements CameraInputHandlers {
   /** What the drone looks at: its ground hit, or a point ahead scaled to altitude. */
   private exploreTarget(): Vec3 {
     const position = this.cameraPosition();
-    const altitude = Math.max(MIN_CAMERA_Y, position[1]);
-    const fallback = Math.min(
-      this.world.size * 0.5,
-      Math.max(this.controls.minDistance * 4, altitude * 1.5),
+    return lookTarget(
+      position,
+      this.cameraDirection(),
+      this.world.size * 3,
+      this.lookFallbackDistance(position),
     );
-    return lookTarget(position, this.cameraDirection(), this.world.size * 3, fallback);
+  }
+
+  /** Where orbit mode can take over from the drone without clamping (see `legalOrbitTarget`). */
+  private orbitTarget(): Vec3 {
+    const position = this.cameraPosition();
+    return legalOrbitTarget(position, this.cameraDirection(), {
+      maxDistance: this.world.size * 3,
+      fallbackDistance: this.lookFallbackDistance(position),
+      minDistance: this.controls.minDistance,
+      worldSize: this.world.size,
+    });
+  }
+
+  private lookFallbackDistance(position: Vec3): number {
+    const altitude = Math.max(MIN_CAMERA_Y, position[1]);
+    return Math.min(this.world.size * 0.5, Math.max(this.controls.minDistance * 4, altitude * 1.5));
   }
 
   private markUserInput(): void {
@@ -360,4 +402,12 @@ export class CameraController implements CameraInputHandlers {
   readonly onBlur = () => {
     this.drone.clearKeys();
   };
+}
+
+function sameVec3(a: Vec3, b: Vec3, epsilon = 1e-6): boolean {
+  return (
+    Math.abs(a[0] - b[0]) <= epsilon &&
+    Math.abs(a[1] - b[1]) <= epsilon &&
+    Math.abs(a[2] - b[2]) <= epsilon
+  );
 }

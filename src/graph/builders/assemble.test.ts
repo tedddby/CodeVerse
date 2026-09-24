@@ -276,7 +276,12 @@ describe("assembleGraph", () => {
     });
     const root = graph.directories.find((directory) => directory.path === "");
     expect(root?.name).toBe("platform");
-    expect(root?.stats.linesEstimated).toBe(true);
+    // The size-estimated pnpm-lock.yaml is not code: it neither adds lines nor makes them estimates.
+    expect(root?.stats.linesEstimated).toBe(false);
+    expect(root?.stats.totalLines).toBe(
+      graph.languages.reduce((sum, language) => sum + language.lines, 0),
+    );
+    expect(root?.stats.fileCount).toBe(platformFiles.length);
     expect(Object.keys(root?.stats.languageBytes ?? {})).toEqual(
       [...Object.keys(root?.stats.languageBytes ?? {})].sort(),
     );

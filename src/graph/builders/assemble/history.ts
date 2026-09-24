@@ -178,6 +178,12 @@ function collectActivity(
     }
   }
 
+  // Start of the analysed history window: the oldest listed commit.
+  let windowStart = Number.POSITIVE_INFINITY;
+  for (const record of records) {
+    if (!Number.isNaN(record.time)) windowStart = Math.min(windowStart, record.time);
+  }
+
   const lookups = [...(history?.fileActivity ?? new Map()).entries()].sort(([a], [b]) =>
     compareStrings(a, b),
   );
@@ -186,6 +192,11 @@ function collectActivity(
     const date = isoDate(source.lastModified);
     const id = authorIdOf(source.authorLogin, source.authorName);
     const entry = touch(path);
+    // A last commit inside the window is at least one commit in it, even when it
+    // was not among the commits whose changed files were fetched.
+    if (date !== null && Date.parse(date) >= windowStart && entry.commitCount === 0) {
+      entry.commitCount = 1;
+    }
     if (id) {
       const contributor = registry.ensure(id, source.authorLogin);
       if (contributor.commitName === undefined && source.authorName?.trim()) {

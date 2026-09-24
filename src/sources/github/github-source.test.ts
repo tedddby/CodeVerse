@@ -223,19 +223,20 @@ describe("GitHubSource.getSnapshot", () => {
     expect(second.repository.stars).toBe(239000);
     expect(requests).toHaveLength(2);
 
+    // Another ref reuses the metadata loaded moments ago: only the ref is resolved.
     await new GitHubSource({
       owner: "facebook",
       repo: "react",
       ref: "v18.2.0",
       client,
     }).getSnapshot();
-    expect(requests).toHaveLength(4);
+    expect(requests).toHaveLength(3);
 
     vi.setSystemTime(Date.now() + SNAPSHOT_TTL_MS + 1);
     await new GitHubSource({ owner: "facebook", repo: "react", client }).getSnapshot();
-    expect(requests).toHaveLength(6);
+    expect(requests).toHaveLength(5);
     // The metadata call was conditional thanks to the ETag cache.
-    expect(requests[4]?.headers["if-none-match"]).toBe('"repo-v1"');
+    expect(requests[3]?.headers["if-none-match"]).toBe('"repo-v1"');
   });
 
   it("de-duplicates concurrent snapshot resolution", async () => {

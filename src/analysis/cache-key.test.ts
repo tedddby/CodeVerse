@@ -22,6 +22,9 @@ describe("graphCacheKey", () => {
       graphCacheKey(REPOSITORY, { ...DEFAULT_LIMITS, maxParsedFiles: 10 }, CAPABILITIES),
     ).not.toBe(base);
     expect(
+      graphCacheKey(REPOSITORY, { ...DEFAULT_LIMITS, parseTimeoutMs: 10_000 }, CAPABILITIES),
+    ).not.toBe(base);
+    expect(
       graphCacheKey(REPOSITORY, DEFAULT_LIMITS, { fileHistory: false, commitCounts: false }),
     ).not.toBe(base);
     expect(

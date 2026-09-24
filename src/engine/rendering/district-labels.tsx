@@ -3,15 +3,16 @@
 import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
-import type { Camera, Group } from "three";
+import type { Group } from "three";
 import { LABEL_LETTER_SPACING_EM } from "@/engine/lod/district-labels";
 import { useExplorerStore } from "@/state/explorer-store";
 import { snapshotCamera } from "./camera-snapshot";
 import {
-  SUBLINE_SCALE,
+  BASELINE_LIFT_PX,
   computeDistrictLabelViews,
   labelViewsSignature,
   nameOffset,
+  placeOnEdge,
   type DistrictLabelView,
 } from "./district-label-views";
 import { LABEL_FONT_URL } from "./label-font";
@@ -24,16 +25,16 @@ import { useWorld } from "./world-context";
 
 /**
  * District labels as map annotations: uppercase, letter-spaced names that
- * stand above each district's slab, always face the viewer, keep a constant
- * on-screen size (larger for top-level districts) and draw over the city.
- * Which districts get a label is re-evaluated at most 4×/s (projected size,
- * hierarchy, budget ≤ 40, no on-screen overlaps).
+ * stand on each district's slab (at its centre, or along its near edge when
+ * sub-districts are labelled, see district-label-views), always face the
+ * viewer, keep a constant on-screen size (larger for top-level districts) and
+ * draw over the city with a dark halo that keeps them legible over bright
+ * buildings. Which districts get a label is re-evaluated at most 4×/s
+ * (projected size, hierarchy, budget ≤ 40, no on-screen overlaps).
  */
 
 const LABEL_HZ = 4;
 const RENDER_ORDER = 20;
-/** Lift of the label's baseline above the slab (px), so it never touches the slab outline. */
-const BASELINE_LIFT_PX = 6;
 
 export function DistrictLabels() {
   const { layout, index } = useWorld();
@@ -79,10 +80,10 @@ export function DistrictLabels() {
             color={
               view.id === selectedId
                 ? SCENE_HEX.flare
-                : view.id === hoveredId
-                  ? SCENE_HEX.ink
-                  : view.id === focusedId
-                    ? SCENE_HEX.signal
+                : view.id === hoveredId || view.id === focusedId
+                  ? SCENE_HEX.signal
+                  : view.inFocus
+                    ? SCENE_HEX.ink
                     : SCENE_HEX.inkMuted
             }
           />
@@ -92,53 +93,62 @@ export function DistrictLabels() {
   );
 }
 
-/** Shared text props; the overlay base material keeps labels on top, unlit and unfogged. */
+/**
+ * Shared text props; the overlay base material keeps labels on top, unlit and
+ * unfogged. The opaque, slightly blurred outline is a halo in the void color:
+ * it keeps names and statistics readable over bright language colors.
+ */
 const LABEL_TEXT_PROPS = {
   font: LABEL_FONT_URL,
   letterSpacing: LABEL_LETTER_SPACING_EM,
   anchorX: "center",
   anchorY: "bottom",
   whiteSpace: "nowrap",
-  outlineWidth: "6%",
+  outlineWidth: "16%",
+  outlineBlur: "6%",
   outlineColor: SCENE_HEX.void,
-  outlineOpacity: 0.75,
   renderOrder: RENDER_ORDER,
 } as const;
 
-/** Scales a label group so one unit spans `view.pixelSize` screen pixels at the anchor. */
-function applyScreenSize(
-  group: Group,
-  camera: Camera,
-  viewportHeight: number,
-  view: DistrictLabelView,
-): void {
-  const perPixel = applyScreenScale(group, camera, viewportHeight, view, view.pixelSize);
-  group.position.y = BASELINE_LIFT_PX * perPixel;
-}
-
 function DistrictLabel({ view, color }: { view: DistrictLabelView; color: string }) {
+  const anchorRef = useRef<Group>(null);
   const scaleRef = useRef<Group>(null);
   // One base material per label: troika keeps derived materials alive until their base is disposed.
   const material = useMemo(() => createOverlayLabelMaterial(), []);
   useEffect(() => () => material.dispose(), [material]);
-  const opacity = view.inFocus ? 0.95 : 0.4;
+  const opacity = view.inFocus ? 0.95 : 0.45;
 
-  // Constant on-screen size: world units per pixel at the anchor's distance.
-  useFrame(({ camera, size }) => {
+  useFrame((state) => {
+    const anchor = anchorRef.current;
     const group = scaleRef.current;
-    if (group) applyScreenSize(group, camera, size.height, view);
+    if (!anchor || !group) return;
+    // Labels slid along their slab's near edge follow the camera smoothly.
+    if (view.slide) {
+      const placed = placeOnEdge(view.slide, snapshotCamera(state));
+      if (placed) anchor.position.set(placed.x, placed.y, placed.z);
+    }
+    // Constant on-screen size: world units per pixel at the anchor's depth.
+    const perPixel = applyScreenScale(
+      group,
+      state.camera,
+      state.size.height,
+      anchor.position,
+      view.pixelSize,
+    );
+    group.position.y = BASELINE_LIFT_PX * perPixel;
   });
 
   return (
-    <Billboard position={[view.x, view.y, view.z]}>
+    <Billboard ref={anchorRef} position={[view.x, view.y, view.z]}>
       <group ref={scaleRef}>
         <Text
           {...LABEL_TEXT_PROPS}
           material={material}
-          position={[0, nameOffset(view.subline !== null), 0]}
+          position={[0, nameOffset(view), 0]}
           fontSize={1}
           color={color}
           fillOpacity={opacity}
+          outlineOpacity={opacity}
         >
           {view.text}
         </Text>
@@ -146,9 +156,10 @@ function DistrictLabel({ view, color }: { view: DistrictLabelView; color: string
           <Text
             {...LABEL_TEXT_PROPS}
             material={material}
-            fontSize={SUBLINE_SCALE}
-            color={SCENE_HEX.inkSubtle}
+            fontSize={view.sublineScale}
+            color={SCENE_HEX.inkMuted}
             fillOpacity={opacity}
+            outlineOpacity={opacity}
           >
             {view.subline}
           </Text>

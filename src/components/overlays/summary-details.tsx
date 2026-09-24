@@ -3,6 +3,8 @@
 import { Code, ExternalLink } from "lucide-react";
 import { useId } from "react";
 import { githubBlobUrl } from "@/analysis/source-protocol";
+import { escapeHiddenCharacters } from "@/components/code-viewer/hidden-characters";
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { NodeIcon, SYMBOL_KIND_LABELS } from "@/components/search/node-icon";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { Badge, LanguageDot, Stat } from "@/components/ui/primitives";
@@ -82,7 +84,7 @@ function FileLink({
       className="text-ink-muted hover:bg-panel-raised hover:text-ink flex w-full items-center gap-2 rounded px-1 py-0.5 text-left text-xs"
     >
       <LanguageDot language={file.language} />
-      <span className="truncate font-mono">{file.path}</span>
+      <span className="truncate font-mono">{revealHiddenCharacters(file.path)}</span>
     </button>
   );
 }
@@ -127,7 +129,7 @@ function FileDetails({
     <article aria-labelledby={titleId}>
       <p className="text-ink-subtle font-mono text-[10px] tracking-[0.2em] uppercase">File</p>
       <h3 id={titleId} className="text-ink mt-0.5 font-mono text-sm font-semibold break-all">
-        {file.path}
+        {revealHiddenCharacters(file.path)}
       </h3>
       <div className="mt-2 flex flex-wrap items-center gap-1.5">
         <Badge>
@@ -162,7 +164,7 @@ function FileDetails({
       </dl>
       {contributors.length > 0 ? (
         <p className="text-ink-subtle mt-1.5 text-xs">
-          Touched by {contributors.slice(0, 5).join(", ")}
+          Touched by {revealHiddenCharacters(contributors.slice(0, 5).join(", "))}
         </p>
       ) : null}
 
@@ -194,7 +196,9 @@ function FileDetails({
               const content = (
                 <>
                   <NodeIcon kind="symbol" symbolKind={symbol.kind} className="size-3.5" />
-                  <span className="min-w-0 flex-1 truncate font-mono">{symbol.name}</span>
+                  <span className="min-w-0 flex-1 truncate font-mono">
+                    {revealHiddenCharacters(symbol.name)}
+                  </span>
                   <span className="sr-only">{SYMBOL_KIND_LABELS[symbol.kind]}, line</span>
                   <span className="text-ink-subtle shrink-0 font-mono text-[10.5px]">
                     L{symbol.startLine}
@@ -209,7 +213,7 @@ function FileDetails({
                   {canViewSource ? (
                     <button
                       type="button"
-                      title={`View ${symbol.name} in the source`}
+                      title={`View ${escapeHiddenCharacters(symbol.name)} in the source`}
                       onClick={() => onViewSource(file.id, symbol.startLine, symbol.endLine)}
                       className={`${rowClass} hover:bg-panel-raised hover:text-ink`}
                     >
@@ -248,7 +252,7 @@ function FileDetails({
                   key={specifier}
                   className="border-line-strong text-ink-subtle rounded border px-1.5 font-mono text-[11px]"
                 >
-                  {specifier}
+                  {revealHiddenCharacters(specifier)}
                 </li>
               ))}
             </ul>

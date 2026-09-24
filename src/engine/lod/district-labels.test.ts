@@ -112,6 +112,47 @@ describe("selectDistrictLabels", () => {
     ).toHaveLength(1);
   });
 
+  it("lets oversized parents yield to their sub-districts, without a subline", () => {
+    const picks = selectDistrictLabels(
+      [
+        district("parent", { level: 1, width: 120, depth: 120, hasChildren: true }),
+        district("child-a", { level: 2, width: 40 }),
+        district("child-b", { level: 2, width: 30 }),
+      ],
+      { ...baseOptions, yieldPixelSize: 1_000 },
+    );
+    expect(picks.map((p) => p.id)).toEqual(["child-a", "child-b", "parent"]);
+    expect(picks.find((p) => p.id === "parent")?.subline).toBe(false);
+  });
+
+  it("keeps hierarchy order for parents that are not oversized, and for leaves", () => {
+    const picks = selectDistrictLabels(
+      [
+        district("child", { level: 2, width: 40 }),
+        district("parent", { level: 1, width: 60, hasChildren: true }),
+        district("huge-leaf", { level: 1, width: 120, depth: 120 }),
+      ],
+      { ...baseOptions, yieldPixelSize: 1_000 },
+    );
+    expect(picks.map((p) => p.id)).toEqual(["huge-leaf", "parent", "child"]);
+    expect(picks.find((p) => p.id === "parent")?.subline).toBe(true);
+  });
+
+  it("runs the visibility test only for districts that pass the size tests", () => {
+    const tested: string[] = [];
+    selectDistrictLabels(
+      [district("big", { width: 60 }), district("tiny", { width: 1, depth: 1 })],
+      {
+        ...baseOptions,
+        isVisible: (candidate) => {
+          tested.push(candidate.id);
+          return true;
+        },
+      },
+    );
+    expect(tested).toEqual(["big"]);
+  });
+
   it("respects the visibility test except for the pinned district", () => {
     const options = { ...baseOptions, isVisible: () => false, pinnedId: "p" };
     const picks = selectDistrictLabels(

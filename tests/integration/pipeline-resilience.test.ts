@@ -12,7 +12,7 @@ import {
   realParser,
   runPipeline,
 } from "./support/harness";
-import { FILES, polyglotSpec } from "./support/polyglot-repository";
+import { COMMITS, FILES, polyglotSpec } from "./support/polyglot-repository";
 
 /**
  * The pipeline degrades instead of failing: limits are honoured, per-file and
@@ -96,6 +96,10 @@ describe("limits", () => {
     expect(warningCodes(graph)).toEqual(
       expect.arrayContaining(["FETCH_FAILURES", "HISTORY_LIMITED"]),
     );
+    // Both gaps are transient: the graph is marked for an early re-analysis.
+    const byCode = new Map(graph.analysis.warnings.map((entry) => [entry.code, entry]));
+    expect(byCode.get("FETCH_FAILURES")?.detail?.timeBudget).toBeGreaterThan(0);
+    expect(byCode.get("HISTORY_LIMITED")?.detail?.reason).toBe("time-budget");
     expect(finalOf(events, "fetch")?.status).toBe("warning");
     expect(finalOf(events, "history")?.status).toBe("warning");
     expect(events[events.length - 1]?.type).toBe("complete");
@@ -320,5 +324,53 @@ describe("optional history", () => {
     );
     expect(graph.analysis.history.perFileHistory).toBe(false);
     expect(graph.timeline.coverage).toBe("sampled");
+  });
+});
+
+describe("extraction limits", () => {
+  it("caps symbols and imports of a generated file and marks it partial", async () => {
+    const functions = Array.from({ length: 2_600 }, (_, index) => `export function f${index}() {}`);
+    const imports = Array.from({ length: 1_200 }, (_, index) => `import "./m${index}";`);
+    const spec = polyglotSpec();
+    const generated = "packages/gen/src/api.ts";
+    const { graph } = await runPipeline(
+      memorySource({
+        ...spec,
+        files: { ...spec.files, [generated]: `${[...imports, ...functions].join("\n")}\n` },
+      }),
+      { limits: { maxParseBytes: 256 * 1024, maxFileBytes: 256 * 1024 } },
+    );
+    expectConsistent(graph);
+    const file = fileByPath(graph, generated);
+    expect(file.status).toBe("partial");
+    expect(file.symbolIds).toHaveLength(2_000);
+    expect(file.imports).toHaveLength(1_000);
+    expect(file.statusReason).toBe(
+      "Symbol limit reached: kept 2,000 of 2,600 symbols, 1,000 of 1,200 imports and 2,000 of 2,600 exports",
+    );
+    expect(warningCodes(graph)).toContain("SYMBOL_LIMIT");
+    // Other files are untouched.
+    expect(fileByPath(graph, "apps/web/src/index.ts").status).toBe("parsed");
+  });
+});
+
+describe("imported history", () => {
+  it("keeps commits older than the repository's creation date in the full-history timeline", async () => {
+    const spec = polyglotSpec();
+    const [latest] = COMMITS;
+    if (!latest) throw new Error("fixture has commits");
+    const imported = {
+      ...latest,
+      sha: "f".repeat(40),
+      message: "Initial import from the old VCS",
+      date: "2019-05-01T00:00:00Z",
+      files: [],
+    };
+    const { graph } = await runPipeline(memorySource({ ...spec, commits: [...COMMITS, imported] }));
+    expect(graph.timeline.coverage).toBe("full-history");
+    expect(graph.timeline.start).toBe("2019-01-01T00:00:00.000Z");
+    expect(graph.timeline.buckets.reduce((sum, bucket) => sum + bucket.commits, 0)).toBe(
+      COMMITS.length + 1,
+    );
   });
 });

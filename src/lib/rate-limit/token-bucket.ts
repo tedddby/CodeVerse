@@ -1,4 +1,5 @@
 import { createHmac, randomBytes } from "node:crypto";
+import { clientAddress, type ClientAddressConfig } from "./client-address";
 
 /**
  * In-process token-bucket rate limiting per client.
@@ -98,17 +99,13 @@ const CLIENT_KEY_SECRET = randomBytes(32);
 const MAX_ADDRESS_LENGTH = 100;
 
 /**
- * Identifies the client of a request for rate limiting: the first
- * `x-forwarded-for` entry, else `x-real-ip`, else "anonymous". Returns a keyed
- * SHA-256 digest, never the raw address.
- *
- * Forwarding headers are trusted as set by the platform's proxy (Vercel,
- * nginx, ...). Deploy behind a proxy that overwrites them; a server exposed
- * directly lets clients choose their own key.
+ * Identifies the client of a request for rate limiting: the address added by
+ * the deployment's trusted proxies (see `client-address.ts`), else
+ * "anonymous". Returns a keyed SHA-256 digest, never the raw address.
  */
-export function getClientKey(request: Request): string {
-  const forwarded = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
-  const realIp = request.headers.get("x-real-ip")?.trim();
-  const address = (forwarded || realIp || "anonymous").slice(0, MAX_ADDRESS_LENGTH).toLowerCase();
+export function getClientKey(request: Request, config?: ClientAddressConfig): string {
+  const address = (clientAddress(request, config) ?? "anonymous")
+    .slice(0, MAX_ADDRESS_LENGTH)
+    .toLowerCase();
   return createHmac("sha256", CLIENT_KEY_SECRET).update(address, "utf8").digest("hex");
 }

@@ -5,6 +5,8 @@ import { Badge, LanguageDot } from "@/components/ui/primitives";
 import type { FileNode } from "@/graph/model/types";
 import { getLanguage } from "@/lib/languages/registry";
 import { formatBytes, formatInteger } from "@/lib/utils/format";
+import { escapeHiddenCharacters } from "./hidden-characters";
+import { revealHiddenCharacters } from "./revealed-text";
 import type { CopyState } from "./use-copy-to-clipboard";
 
 export interface CodeViewerHeaderProps {
@@ -48,10 +50,16 @@ export function CodeViewerHeader({
         <h2
           id={titleId}
           className="mt-0.5 flex min-w-0 items-baseline font-mono text-sm"
-          title={file.path}
+          title={escapeHiddenCharacters(file.path)}
         >
-          {directory ? <span className="text-ink-subtle min-w-0 truncate">{directory}</span> : null}
-          <span className="text-ink shrink-0 font-semibold">{file.name}</span>
+          {directory ? (
+            <span className="text-ink-subtle min-w-0 truncate">
+              {revealHiddenCharacters(directory)}
+            </span>
+          ) : null}
+          <span className="text-ink shrink-0 font-semibold">
+            {revealHiddenCharacters(file.name)}
+          </span>
         </h2>
         <div className="text-ink-subtle mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[11px]">
           <span className="text-ink-muted flex items-center gap-1.5">

@@ -40,7 +40,7 @@ describe("Timeline", () => {
       /\(latest\), showing the 30 days up to that date$/,
     );
     const summary = bar.querySelector("p[aria-live]");
-    expect(summary?.textContent).toMatch(/\d+ commits\d+ files changed\d+ contributors?/);
+    expect(summary?.textContent).toMatch(/\d+ commits?\d+ files? changed\d+ contributors?/);
     expect(
       within(bar).getByRole("list", { name: "Most changed files in this window" }),
     ).toBeInTheDocument();
@@ -78,6 +78,57 @@ describe("Timeline", () => {
     act(() => useExplorerStore.getState().setTimeline({ cursor: REFERENCE - 50 * DAY_MS }));
     await user.click(screen.getByRole("button", { name: "Jump to latest" }));
     expect(useExplorerStore.getState().timeline.cursor).toBeNull();
+  });
+
+  it("uses singular words for single commits, files and contributors", () => {
+    activate();
+    // A 7-day window ending 44 days before the fixture's reference date holds one
+    // commit (45 days ago) by one contributor that changed one file.
+    act(() =>
+      useExplorerStore.getState().setTimeline({ windowDays: 7, cursor: REFERENCE - 44 * DAY_MS }),
+    );
+    render(<Timeline />);
+    const summary = screen.getByRole("region", { name: "History timeline" }).querySelector("p");
+    expect(summary?.textContent).toMatch(/1 commit1 file changed1 contributor$/);
+  });
+
+  it("operates the window length as a radio group: one Tab stop, arrows move and select", async () => {
+    const user = userEvent.setup();
+    activate();
+    render(<Timeline />);
+    const group = screen.getByRole("radiogroup", { name: "Window length" });
+    const radios = within(group).getAllByRole("radio");
+    expect(radios.map((radio) => radio.tabIndex)).toEqual([-1, 0, -1, -1]);
+
+    const thirty = screen.getByRole("radio", { name: "30 days" });
+    thirty.focus();
+    await user.keyboard("{ArrowRight}");
+    expect(useExplorerStore.getState().timeline.windowDays).toBe(90);
+    const ninety = screen.getByRole("radio", { name: "90 days" });
+    expect(ninety).toHaveFocus();
+    expect(ninety).toHaveAttribute("aria-checked", "true");
+    expect(ninety.tabIndex).toBe(0);
+    expect(thirty.tabIndex).toBe(-1);
+
+    await user.keyboard("{ArrowDown}{ArrowDown}");
+    expect(useExplorerStore.getState().timeline.windowDays).toBe(7);
+    expect(screen.getByRole("radio", { name: "7 days" })).toHaveFocus();
+    await user.keyboard("{ArrowLeft}");
+    expect(useExplorerStore.getState().timeline.windowDays).toBe(365);
+    await user.keyboard("{Home}");
+    expect(useExplorerStore.getState().timeline.windowDays).toBe(7);
+    await user.keyboard("{End}");
+    expect(useExplorerStore.getState().timeline.windowDays).toBe(365);
+    expect(screen.getByRole("radio", { name: "1 year" })).toHaveFocus();
+  });
+
+  it("keeps the radio group reachable when the window length matches no option", () => {
+    activate();
+    act(() => useExplorerStore.getState().setTimeline({ windowDays: 14 }));
+    render(<Timeline />);
+    const radios = within(screen.getByRole("radiogroup")).getAllByRole("radio");
+    expect(radios.map((radio) => radio.tabIndex)).toEqual([0, -1, -1, -1]);
+    expect(radios.every((radio) => radio.getAttribute("aria-checked") === "false")).toBe(true);
   });
 
   it("selects and focuses a changed file", async () => {

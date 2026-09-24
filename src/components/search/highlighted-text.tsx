@@ -1,3 +1,4 @@
+import { revealHiddenCharacters } from "@/components/code-viewer/revealed-text";
 import { cn } from "@/lib/utils/cn";
 
 export interface HighlightedTextProps {
@@ -33,7 +34,10 @@ export function splitByMatches(text: string, matches: readonly number[]): Segmen
   return segments;
 }
 
-/** Renders text with fuzzy-matched characters emphasized. Text is rendered as text only. */
+/**
+ * Renders text with fuzzy-matched characters emphasized. Text is rendered as
+ * text only, with bidi controls and zero-width characters shown as markers.
+ */
 export function HighlightedText({
   text,
   matches,
@@ -46,10 +50,10 @@ export function HighlightedText({
       {segments.map((segment, i) =>
         segment.matched ? (
           <mark key={i} className={cn("text-signal bg-transparent font-semibold", matchClassName)}>
-            {segment.text}
+            {revealHiddenCharacters(segment.text)}
           </mark>
         ) : (
-          <span key={i}>{segment.text}</span>
+          <span key={i}>{revealHiddenCharacters(segment.text)}</span>
         ),
       )}
     </span>

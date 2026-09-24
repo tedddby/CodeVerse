@@ -45,6 +45,10 @@ export const FRAME_MAX_POLAR = 64 * DEG2RAD;
 export const FRAME_PADDING = 1.5;
 /** Lowest camera altitude in any mode (world units). */
 export const MIN_CAMERA_Y = 0.5;
+/** Elevation of the fallback orbit target when leaving explore mode: 15° below the horizon. */
+export const ORBIT_FALLBACK_POLAR = 75 * DEG2RAD;
+/** Orbit targets must stay this far inside MAX_POLAR (rad). */
+const ORBIT_POLAR_MARGIN = 0.01;
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
@@ -164,6 +168,56 @@ export function lookTarget(
     position[0] + d[0] * fallbackDistance,
     position[1] + d[1] * fallbackDistance,
     position[2] + d[2] * fallbackDistance,
+  ];
+}
+
+/** Polar angle (from +Y) of a camera at `position` orbiting `target`. */
+export function orbitPolar(position: Vec3, target: Vec3): number {
+  const horizontal = Math.hypot(position[0] - target[0], position[2] - target[2]);
+  return Math.atan2(horizontal, position[1] - target[1]);
+}
+
+export interface OrbitTargetOptions {
+  /** Farthest ground hit accepted along the view ray. */
+  maxDistance: number;
+  /** Distance of the look point when the ray misses the ground. */
+  fallbackDistance: number;
+  /** Orbit distance limits: the fallback target keeps at least `minDistance` away... */
+  minDistance: number;
+  /** ...and never reaches further than the world is wide. */
+  worldSize: number;
+}
+
+/**
+ * An orbit target for a free-flying camera that orbit controls accept as is.
+ * It is what the camera looks at when that point lies below it within the
+ * orbit's polar limit. Looking level or up there is no such point (the orbit
+ * controls would clamp the pose on the first drag and snap the view), so the
+ * target becomes the ground point ahead along the horizontal heading, seen
+ * 15° below the horizon.
+ */
+export function legalOrbitTarget(
+  position: Vec3,
+  direction: Vec3,
+  options: OrbitTargetOptions,
+): Vec3 {
+  const looked = lookTarget(position, direction, options.maxDistance, options.fallbackDistance);
+  const maxPolar = MAX_POLAR - ORBIT_POLAR_MARGIN;
+  if (orbitPolar(position, looked) <= maxPolar) return looked;
+  const heading = Math.hypot(direction[0], direction[2]);
+  if (heading < 1e-6) return [position[0], 0, position[2]];
+  const altitude = Math.max(MIN_CAMERA_Y, position[1]);
+  const reach = clamp(
+    altitude * Math.tan(ORBIT_FALLBACK_POLAR),
+    options.minDistance,
+    Math.max(options.minDistance, options.worldSize),
+  );
+  // Never beyond the polar limit, even when the minimum distance pushes the target out.
+  const horizontal = Math.min(reach, altitude * Math.tan(maxPolar));
+  return [
+    position[0] + (direction[0] / heading) * horizontal,
+    0,
+    position[2] + (direction[2] / heading) * horizontal,
   ];
 }
 

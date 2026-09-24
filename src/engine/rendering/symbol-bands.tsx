@@ -18,7 +18,7 @@ import { hexToLinear } from "./palette";
 import { isDragClick } from "./pointer";
 import { reportLayerCount } from "./render-stats";
 import { bandBox, symbolKindHex } from "./symbol-band-geometry";
-import { BandCache, type BandEntry } from "./symbol-band-data";
+import { BandCache, bandPickRef, type BandEntry } from "./symbol-band-data";
 import { SymbolLabels } from "./symbol-labels";
 import { useThrottledFrame } from "./use-throttled-frame";
 import { refFileId, useWorld, type WorldContextValue } from "./world-context";
@@ -27,7 +27,8 @@ import { refFileId, useWorld, type WorldContextValue } from "./world-context";
  * Symbol bands: when the camera is close (or a file is selected), classes,
  * functions, types... appear as translucent colored collars on the building
  * at their line ranges. Computed lazily for ≤ 30 buildings; the selected
- * building also gets up to 25 labels (see SymbolLabels).
+ * building also gets up to 25 labels (see SymbolLabels). Only the selected
+ * file's bands pick as symbols; bands on nearby buildings pick their file.
  */
 
 const BAND_HZ = 4;
@@ -163,7 +164,9 @@ export function SymbolBands() {
 
   return (
     <group name="symbol-bands">
-      {runtime ? <BandMesh runtime={runtime} world={world} /> : null}
+      {runtime ? (
+        <BandMesh runtime={runtime} world={world} selectedFileId={selectedFileId} />
+      ) : null}
       {labelEntries.length > 0 ? (
         <SymbolLabels entries={labelEntries} selectedSymbolId={selectedSymbolId} />
       ) : null}
@@ -171,28 +174,36 @@ export function SymbolBands() {
   );
 }
 
-function BandMesh({ runtime, world }: { runtime: BandRuntime; world: WorldContextValue }) {
+function BandMesh({
+  runtime,
+  world,
+  selectedFileId,
+}: {
+  runtime: BandRuntime;
+  world: WorldContextValue;
+  selectedFileId: string | null;
+}) {
   if (!world.interactive) return <primitive object={runtime.mesh} />;
-  const symbolAt = (instanceId: number | undefined) =>
-    instanceId === undefined ? undefined : runtime.entries[instanceId]?.symbol;
+  const refAt = (instanceId: number | undefined) => {
+    const symbol = instanceId === undefined ? undefined : runtime.entries[instanceId]?.symbol;
+    return symbol ? bandPickRef(symbol, selectedFileId) : null;
+  };
 
   const onPointerMove = (event: ThreeEvent<PointerEvent>) => {
     event.stopPropagation();
-    const symbol = symbolAt(event.instanceId);
-    world.hover.set(symbol ? { kind: "symbol", id: symbol.id } : null);
+    world.hover.set(refAt(event.instanceId));
   };
   const onPointerOut = () => world.hover.set(null);
   const onClick = (event: ThreeEvent<MouseEvent>) => {
     if (isDragClick(event.delta)) return;
     event.stopPropagation();
-    const symbol = symbolAt(event.instanceId);
-    if (symbol) useExplorerStore.getState().select({ kind: "symbol", id: symbol.id });
+    const ref = refAt(event.instanceId);
+    if (ref) useExplorerStore.getState().select(ref);
   };
   const onDoubleClick = (event: ThreeEvent<MouseEvent>) => {
     event.stopPropagation();
-    const symbol = symbolAt(event.instanceId);
-    if (symbol)
-      useExplorerStore.getState().select({ kind: "symbol", id: symbol.id }, { focus: true });
+    const ref = refAt(event.instanceId);
+    if (ref) useExplorerStore.getState().select(ref, { focus: true });
   };
   return (
     <primitive

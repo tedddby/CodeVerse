@@ -53,6 +53,8 @@ export interface FetchStageResult {
   rateLimitedFiles: number;
   /** Files not downloaded because the time or byte budget ran out. */
   budgetSkippedFiles: number;
+  /** The part of `budgetSkippedFiles` skipped because the time budget ran out. */
+  timeBudgetSkippedFiles: number;
 }
 
 type StopReason = "rate-limit" | "time-budget" | "byte-budget";
@@ -88,6 +90,7 @@ export async function runFetchStage(
     failedFiles: 0,
     rateLimitedFiles: 0,
     budgetSkippedFiles: 0,
+    timeBudgetSkippedFiles: 0,
   };
   const stage = context.startStage("fetch");
   if (downloads.length === 0) {
@@ -173,6 +176,7 @@ export async function runFetchStage(
       setStatus(path, { status: "metadata-only", statusReason: FETCH_REASONS.rateLimited });
     } else {
       result.budgetSkippedFiles += 1;
+      if (stopReason === "time-budget") result.timeBudgetSkippedFiles += 1;
       setStatus(path, {
         status: "metadata-only",
         statusReason: stopReason === "byte-budget" ? byteBudgetReason : FETCH_REASONS.timeBudget,
@@ -200,7 +204,10 @@ export async function runFetchStage(
 
 /** FETCH_FAILURES warning describing every file the fetch stage could not download. */
 export function fetchWarning(
-  result: Pick<FetchStageResult, "rateLimitedFiles" | "failedFiles" | "budgetSkippedFiles">,
+  result: Pick<
+    FetchStageResult,
+    "rateLimitedFiles" | "failedFiles" | "budgetSkippedFiles" | "timeBudgetSkippedFiles"
+  >,
 ): AnalysisWarning | null {
   const parts: string[] = [];
   const { rateLimitedFiles: limited, failedFiles: failed, budgetSkippedFiles: skipped } = result;
@@ -221,6 +228,11 @@ export function fetchWarning(
   return {
     code: "FETCH_FAILURES",
     message: parts.join(" "),
-    detail: { rateLimited: limited, failed, notDownloaded: skipped },
+    detail: {
+      rateLimited: limited,
+      failed,
+      notDownloaded: skipped,
+      timeBudget: result.timeBudgetSkippedFiles,
+    },
   };
 }

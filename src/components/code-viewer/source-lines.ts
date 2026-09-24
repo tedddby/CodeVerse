@@ -6,14 +6,22 @@ export const MAX_RENDERED_LINE_LENGTH = 3_000;
 /** Lines highlighted at most; the rest of a very long file renders as plain text. */
 export const MAX_HIGHLIGHTED_LINES = 3_000;
 
+const BYTE_ORDER_MARK = 0xfeff;
+
+/** Content without a leading byte order mark, which is encoding metadata rather than text. */
+export function stripByteOrderMark(content: string): string {
+  return content.charCodeAt(0) === BYTE_ORDER_MARK ? content.slice(1) : content;
+}
+
 /**
- * Splits content into lines (LF, CRLF or CR). A trailing newline does not
- * produce an extra empty line, matching how editors and GitHub number lines.
- * Empty content yields no lines.
+ * Splits content into lines (LF, CRLF or CR). A leading byte order mark is
+ * dropped, and a trailing newline does not produce an extra empty line,
+ * matching how editors and GitHub number lines. Empty content yields no lines.
  */
 export function splitSourceLines(content: string): string[] {
-  if (content === "") return [];
-  const lines = content.split(/\r\n|\r|\n/);
+  const text = stripByteOrderMark(content);
+  if (text === "") return [];
+  const lines = text.split(/\r\n|\r|\n/);
   if (lines.length > 1 && lines[lines.length - 1] === "") lines.pop();
   return lines;
 }

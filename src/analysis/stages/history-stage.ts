@@ -1,6 +1,5 @@
 import type { FileAnalysisResult, HistoryInput } from "@/graph/builders/assemble";
 import type { InventoryFile } from "@/graph/builders/inventory";
-import { planTimelineRanges } from "@/graph/builders/timeline";
 import type { RateLimitSnapshot } from "@/graph/model/types";
 import { formatInteger } from "@/lib/utils/format";
 import {
@@ -12,6 +11,7 @@ import {
   type SourceFileActivity,
   type SourceSnapshot,
 } from "@/sources/types";
+import { countCommitsOverHistory } from "./commit-counts";
 import { BUDGET_FRACTIONS, abortError, isAbortError, type PipelineContext } from "./context";
 import { historyMessage } from "./messages";
 import { runPool } from "./pool";
@@ -41,6 +41,11 @@ export interface HistoryBudget {
   maxCommitDetails: number;
   /** True when the plan is smaller than the configured limits because of API quota. */
   quotaLimited: boolean;
+  /**
+   * True when the provider's remaining quota, rather than the fixed caps for
+   * unauthenticated servers, shrank the plan: a transient condition.
+   */
+  lowQuota: boolean;
 }
 
 /**
@@ -61,6 +66,7 @@ export function planHistoryBudget(
     maxCommits = Math.min(maxCommits, UNAUTHENTICATED_MAX_COMMITS);
     maxCommitDetails = Math.min(maxCommitDetails, UNAUTHENTICATED_MAX_COMMIT_DETAILS);
   }
+  const capped = { maxCommits, maxCommitDetails };
   if (rateLimit) {
     const available = Math.max(0, rateLimit.remaining - QUOTA_RESERVE);
     // One call for contributors, one per page of commits, the rest for details.
@@ -72,6 +78,7 @@ export function planHistoryBudget(
     maxCommits,
     maxCommitDetails,
     quotaLimited: maxCommits < limits.maxCommits || maxCommitDetails < limits.maxCommitDetails,
+    lowQuota: maxCommits < capped.maxCommits || maxCommitDetails < capped.maxCommitDetails,
   };
 }
 
@@ -87,6 +94,8 @@ export interface CommitHistory {
   trimmed: boolean;
   /** History was reduced to preserve the provider's API quota. */
   quotaLimited: boolean;
+  /** ... because the remaining quota was low (see `HistoryBudget.lowQuota`). */
+  lowQuota: boolean;
 }
 
 function isRateLimited(error: unknown): boolean {
@@ -113,6 +122,7 @@ async function collectCommitHistory(
     commitCounts: null,
     trimmed: false,
     quotaLimited: budget.quotaLimited,
+    lowQuota: budget.lowQuota,
   };
   const overBudget = () => {
     const exceeded = context.budgetExceeded(BUDGET_FRACTIONS.history);
@@ -166,6 +176,11 @@ async function collectCommitHistory(
       if (!isAbortError(error)) throw error;
     });
     if (context.aborted) return { ...history, status: "aborted" };
+    if (state.rateLimited) {
+      // The quota ran out while reading details: a transient gap, like a low-quota plan.
+      history.quotaLimited = true;
+      history.lowQuota = true;
+    }
     // Newest first, like the commit list.
     history.details = targets.flatMap((commit) => bySha.get(commit.sha) ?? []);
   }
@@ -180,21 +195,19 @@ async function collectCommitHistory(
     }
   }
 
-  if (source.capabilities.commitCounts && source.getCommitCounts && !overBudget()) {
-    const plan = planTimelineRanges(
-      snapshot.repository.createdAt,
-      new Date(context.now()).toISOString(),
-    );
-    if (plan.ranges.length > 0) {
-      try {
-        const buckets = await source.getCommitCounts(snapshot, plan.ranges, signal);
-        history.commitCounts = { granularity: plan.granularity, buckets };
-      } catch (error) {
-        if (isAbortError(error) || context.aborted) return { ...history, status: "aborted" };
-        // The timeline falls back to the sampled commits.
-        context.recordSourceFailure(error, "getCommitCounts");
-        context.logger.info("exact commit counts unavailable", { error });
-      }
+  const getCommitCounts = source.getCommitCounts?.bind(source);
+  if (source.capabilities.commitCounts && getCommitCounts && !overBudget()) {
+    try {
+      history.commitCounts = await countCommitsOverHistory(
+        (ranges) => getCommitCounts(snapshot, ranges, signal),
+        snapshot.repository.createdAt,
+        new Date(context.now()).toISOString(),
+      );
+    } catch (error) {
+      if (isAbortError(error) || context.aborted) return { ...history, status: "aborted" };
+      // The timeline falls back to the sampled commits.
+      context.recordSourceFailure(error, "getCommitCounts");
+      context.logger.info("exact commit counts unavailable", { error });
     }
   }
   return history;
@@ -217,6 +230,7 @@ export function prefetchCommitHistory(
       commitCounts: null,
       trimmed: false,
       quotaLimited: false,
+      lowQuota: false,
     } satisfies CommitHistory;
   });
 }
@@ -310,14 +324,22 @@ export async function runHistoryStage(
     context.addWarning({
       code: "HISTORY_LIMITED",
       message: `Activity is based on the latest ${formatInteger(history.commits.length)} commits; some history lookups were skipped to keep the analysis within its time budget.`,
-      detail: { commits: history.commits.length, commitsWithDetails: history.details.length },
+      detail: {
+        commits: history.commits.length,
+        commitsWithDetails: history.details.length,
+        reason: "time-budget",
+      },
     });
     stage.finish("warning", "History trimmed to fit the analysis budget");
   } else if (history.quotaLimited) {
     context.addWarning({
       code: "HISTORY_LIMITED",
       message: `Activity is based on the latest ${formatInteger(history.commits.length)} commits (file changes from the latest ${formatInteger(history.details.length)}) to conserve GitHub API quota. Configure a GitHub token for deeper history.`,
-      detail: { commits: history.commits.length, commitsWithDetails: history.details.length },
+      detail: {
+        commits: history.commits.length,
+        commitsWithDetails: history.details.length,
+        reason: history.lowQuota ? "low-quota" : "unauthenticated",
+      },
     });
     stage.finish("done", historyMessage(history.commits.length, history.contributors.length));
   } else {

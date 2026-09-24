@@ -13,6 +13,9 @@ import {
 import type { ReactNode } from "react";
 import { Button, ButtonLink } from "@/components/ui/button";
 import { cn } from "@/lib/utils/cn";
+import { pluralize } from "@/lib/utils/format";
+import type { HiddenCharacterSummary } from "./hidden-characters";
+import { HiddenCharacterMarker } from "./revealed-text";
 import type { SourceViewerError, SourceViewerErrorCode } from "./source-cache";
 
 /** Deterministic widths so the skeleton looks like code without randomness. */
@@ -130,6 +133,41 @@ export function SourceErrorState({ error, githubUrl, onRetry }: SourceErrorState
           </>
         }
       />
+    </div>
+  );
+}
+
+/**
+ * Warning above a listing that contains bidi controls or invisible characters
+ * (they are rendered as markers, see revealed-text.tsx), like GitHub's
+ * "hidden or bidirectional Unicode text" banner.
+ */
+export function HiddenCharactersNotice({
+  id,
+  summary,
+}: {
+  id: string;
+  summary: HiddenCharacterSummary;
+}) {
+  const counts = [
+    summary.bidi > 0 ? pluralize(summary.bidi, "bidirectional formatting character") : null,
+    summary.invisible > 0 ? pluralize(summary.invisible, "invisible character") : null,
+  ].filter((part): part is string => part !== null);
+  return (
+    <div
+      id={id}
+      role="note"
+      className="border-warn/30 bg-warn/[0.07] flex shrink-0 items-start gap-2.5 border-b px-4 py-2.5 text-xs"
+    >
+      <TriangleAlert aria-hidden="true" className="text-warn mt-px size-4 shrink-0" />
+      <p className="text-ink-muted leading-relaxed">
+        <span className="text-ink font-semibold">
+          This file contains hidden or bidirectional Unicode characters.
+        </span>{" "}
+        Its {counts.join(" and ")} can make code display differently from how it is interpreted.
+        Each one is shown as its code point, like{" "}
+        <HiddenCharacterMarker character={summary.first} />.
+      </p>
     </div>
   );
 }

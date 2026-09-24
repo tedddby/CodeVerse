@@ -65,6 +65,68 @@ describe("explorer store", () => {
     expect(store().panels.contributors).toBe(true);
   });
 
+  describe("history timeline", () => {
+    it("switches to Activity mode when opened and restores the previous mode when closed", () => {
+      store().setVisualMode("complexity");
+      store().setTimeline({ active: true });
+      expect(store()).toMatchObject({ visualMode: "activity", modeBeforeTimeline: "complexity" });
+      store().setTimeline({ cursor: 1_700_000_000_000, windowDays: 7 });
+      expect(store().visualMode).toBe("activity");
+      store().setTimeline({ active: false });
+      expect(store()).toMatchObject({ visualMode: "complexity", modeBeforeTimeline: null });
+      expect(store().timeline).toEqual({ active: false, cursor: 1_700_000_000_000, windowDays: 7 });
+    });
+
+    it("hands dependency lines back to Dependencies mode across the round trip", () => {
+      store().setVisualMode("dependencies");
+      store().setTimeline({ active: true });
+      expect(store().showDependencies).toBe(false);
+      store().setTimeline({ active: false });
+      expect(store()).toMatchObject({ visualMode: "dependencies", showDependencies: true, dependenciesFromMode: true });
+    });
+
+    it("keeps a mode the user picks while the timeline is open", () => {
+      store().setTimeline({ active: true });
+      store().setVisualMode("complexity");
+      expect(store().timeline.active).toBe(true);
+      store().setTimeline({ active: false });
+      expect(store().visualMode).toBe("complexity");
+
+      store().setTimeline({ active: true });
+      store().setActiveContributor("user:octo-ada");
+      store().setTimeline({ active: false });
+      expect(store()).toMatchObject({ visualMode: "contributors", modeBeforeTimeline: null });
+    });
+
+    it("stays in Activity mode when the timeline was opened by choosing Activity", () => {
+      store().setVisualMode("activity");
+      expect(store().timeline.active).toBe(true);
+      store().setTimeline({ active: false });
+      expect(store().visualMode).toBe("activity");
+    });
+
+    it("does not re-open panels when restoring the previous mode", () => {
+      store().setVisualMode("contributors");
+      store().setPanel("contributors", false);
+      store().setTimeline({ active: true });
+      store().setTimeline({ active: false });
+      expect(store().visualMode).toBe("contributors");
+      expect(store().panels.contributors).toBe(false);
+    });
+  });
+
+  it("resets the dependency direction when the selection changes", () => {
+    store().select(authFile);
+    store().setDependencyDirection("incoming");
+    store().select(authFile);
+    expect(store().dependencyDirection).toBe("incoming");
+    store().select({ kind: "file", id: "file:src/auth/jwt.ts" });
+    expect(store().dependencyDirection).toBe("both");
+    store().setDependencyDirection("outgoing");
+    store().select(null);
+    expect(store().dependencyDirection).toBe("both");
+  });
+
   it("switches to contributors mode when a contributor is chosen", () => {
     store().setActiveContributor("user:octo-ada");
     expect(store().visualMode).toBe("contributors");
@@ -87,6 +149,8 @@ describe("explorer store", () => {
   it("clears repository state on reset", () => {
     store().select(authFile);
     store().setVisualMode("dependencies");
+    store().setDependencyDirection("outgoing");
+    store().setTimeline({ active: true });
     store().reset();
     expect(store()).toMatchObject({
       graph: null,
@@ -94,6 +158,9 @@ describe("explorer store", () => {
       visualMode: "architecture",
       showDependencies: false,
       dependenciesFromMode: false,
+      dependencyDirection: "both",
+      modeBeforeTimeline: null,
+      timeline: { active: false },
     });
   });
 });

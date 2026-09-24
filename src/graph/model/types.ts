@@ -63,7 +63,11 @@ export interface DirectoryStats {
   directFileCount: number;
   /** Sub-directories directly inside this directory. */
   directDirectoryCount: number;
-  /** Lines of code below this directory (sum of FileNode.lines, which may be estimated). */
+  /**
+   * Lines of code below this directory: the lines of the repository's own files
+   * (generated, vendored and binary files excluded, unless nothing else exists),
+   * size-estimated for files whose content was not downloaded.
+   */
   totalLines: number;
   /** True when any contributing line count is an estimate. */
   linesEstimated: boolean;
@@ -352,9 +356,12 @@ export interface LanguageStat {
 export type AnalysisTier = "full" | "progressive" | "directory-first";
 
 export type AnalysisWarningCode =
+  /** A cached analysis served because the provider could not confirm the current commit. */
+  | "STALE_ANALYSIS"
   | "TREE_TRUNCATED"
   | "FILE_NODE_LIMIT"
   | "PARSE_LIMIT"
+  | "SYMBOL_LIMIT"
   | "BYTE_LIMIT"
   | "LARGE_REPOSITORY"
   | "UNSUPPORTED_LANGUAGES"

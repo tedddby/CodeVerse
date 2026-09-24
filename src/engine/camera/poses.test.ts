@@ -2,7 +2,9 @@ import type { CameraPose } from "@/state/explorer-store";
 import {
   FRAME_MAX_POLAR,
   FRAME_MIN_POLAR,
+  MAX_POLAR,
   MIN_CAMERA_Y,
+  ORBIT_FALLBACK_POLAR,
   OVERVIEW_AZIMUTH,
   OVERVIEW_POLAR,
   clippingPlanes,
@@ -11,7 +13,9 @@ import {
   fitDistance,
   focusPointPose,
   framePose,
+  legalOrbitTarget,
   lookTarget,
+  orbitPolar,
   overviewPose,
   overviewTarget,
   poseFromSpherical,
@@ -20,6 +24,7 @@ import {
   sanitizePose,
   sphericalOf,
   type FrameSphere,
+  type Vec3,
 } from "./poses";
 
 const view = { fovY: 45, aspect: 16 / 9 };
@@ -119,6 +124,53 @@ describe("lookTarget", () => {
   it("falls back when the ground hit is too far away", () => {
     const target = lookTarget([0, 10, 0], [0, -0.001, -1], 100, 50);
     expect(target[1]).toBeGreaterThan(9);
+  });
+});
+
+describe("legalOrbitTarget", () => {
+  const options = { maxDistance: 1_000, fallbackDistance: 50, minDistance: 2, worldSize: 400 };
+  const position: Vec3 = [5, 20, 5];
+
+  it("keeps the ground point the camera looks down at", () => {
+    const direction: Vec3 = [0, -1, -1];
+    const target = legalOrbitTarget(position, direction, options);
+    expect(target).toEqual(lookTarget(position, direction, 1_000, 50));
+    expect(target[1]).toBe(0);
+  });
+
+  it.each([
+    ["level", [1, 0, 0] as Vec3],
+    ["up", [1, 0.386, 0] as Vec3],
+    ["almost straight up", [0.05, 1, 0] as Vec3],
+  ])("targets the ground ahead, 15° below the horizon, when looking %s", (_, direction) => {
+    const target = legalOrbitTarget(position, direction, options);
+    expect(target[1]).toBe(0);
+    // Ahead along the heading (+X here), same Z.
+    expect(target[0]).toBeGreaterThan(position[0]);
+    expect(target[2]).toBeCloseTo(position[2], 9);
+    expect(orbitPolar(position, target)).toBeCloseTo(ORBIT_FALLBACK_POLAR, 9);
+    expect(orbitPolar(position, target)).toBeLessThan(MAX_POLAR);
+  });
+
+  it("replaces a ground hit that lies beyond the polar limit", () => {
+    // Barely looking down: the ground hit is ~1,000 units out, almost horizontal.
+    const direction: Vec3 = [1, -0.02, 0];
+    const target = legalOrbitTarget(position, direction, { ...options, maxDistance: 5_000 });
+    expect(orbitPolar(position, target)).toBeLessThan(MAX_POLAR);
+  });
+
+  it("stays within the world and outside the minimum orbit distance", () => {
+    const high: Vec3 = [0, 300, 0];
+    const far = legalOrbitTarget(high, [0, 0.2, 1], options);
+    expect(Math.hypot(far[0], far[2])).toBeCloseTo(400, 9);
+    const low: Vec3 = [0, MIN_CAMERA_Y, 0];
+    const near = legalOrbitTarget(low, [0, 0, 1], { ...options, minDistance: 6 });
+    expect(Math.hypot(near[0], near[2])).toBeCloseTo(6, 9);
+    expect(orbitPolar(low, near)).toBeLessThan(MAX_POLAR);
+  });
+
+  it("falls back to the point below when there is no heading", () => {
+    expect(legalOrbitTarget(position, [0, 1, 0], options)).toEqual([5, 0, 5]);
   });
 });
 

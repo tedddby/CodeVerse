@@ -27,6 +27,8 @@ export interface LabelCandidate {
   level: number;
   /** Inside the focused subtree (or no focus). */
   inFocus: boolean;
+  /** Has sub-districts (whose labels it may yield to, see `yieldPixelSize`). */
+  hasChildren?: boolean;
 }
 
 export interface LabelSelectionOptions {
@@ -44,7 +46,16 @@ export interface LabelSelectionOptions {
    * right above them; their label would only cover what the user is looking at).
    */
   maxPixelSize?: number;
-  /** Optional frustum test for the district's bounding circle. */
+  /**
+   * Parents larger than this on screen yield to their sub-districts: the
+   * camera is inside them, so their children's names matter more. They are
+   * ranked after every other candidate of their focus group and get no subline.
+   */
+  yieldPixelSize?: number;
+  /**
+   * Optional visibility test (frustum, on-screen anchor), evaluated only for
+   * candidates that pass the size tests.
+   */
   isVisible?: (candidate: LabelCandidate, radius: number) => boolean;
   /** Labels shown in the previous pass keep their place down to `hysteresis` × threshold. */
   previous?: ReadonlySet<string>;
@@ -61,8 +72,9 @@ export interface LabelPick {
 
 /**
  * Picks the districts that should carry a label, in priority order:
- * pinned first, then in-focus before out-of-focus, top-level before nested,
- * larger on screen before smaller. Result length never exceeds the budget.
+ * pinned first, then in-focus before out-of-focus, oversized parents last,
+ * top-level before nested, larger on screen before smaller. Result length
+ * never exceeds the budget.
  */
 export function selectDistrictLabels(
   candidates: readonly LabelCandidate[],
@@ -75,13 +87,14 @@ export function selectDistrictLabels(
   if (budget === 0) return [];
   const hysteresis = options.hysteresis ?? 0.85;
   const maxPixelSize = options.maxPixelSize ?? Number.POSITIVE_INFINITY;
-  const scored: Array<LabelPick & { level: number; inFocus: boolean; pinned: boolean }> = [];
+  const yieldPixelSize = options.yieldPixelSize ?? Number.POSITIVE_INFINITY;
+  const scored: Array<
+    LabelPick & { level: number; inFocus: boolean; pinned: boolean; yields: boolean }
+  > = [];
 
   for (const candidate of candidates) {
     const size = Math.max(candidate.width, candidate.depth);
-    const radius = Math.hypot(candidate.width, candidate.depth) / 2;
     const pinned = candidate.id === options.pinnedId;
-    if (!pinned && options.isVisible && !options.isVisible(candidate, radius)) continue;
     const center = { x: candidate.x, y: candidate.topY, z: candidate.z };
     const projected = projectedSizePx(
       size,
@@ -93,13 +106,17 @@ export function selectDistrictLabels(
       ? options.minPixelSize * hysteresis
       : options.minPixelSize;
     if (!pinned && (projected < threshold || projected > maxPixelSize)) continue;
+    const radius = Math.hypot(candidate.width, candidate.depth) / 2;
+    if (!pinned && options.isVisible && !options.isVisible(candidate, radius)) continue;
+    const yields = !pinned && candidate.hasChildren === true && projected > yieldPixelSize;
     scored.push({
       id: candidate.id,
       projectedSize: projected,
-      subline: pinned || projected >= options.sublinePixelSize,
+      subline: pinned || (!yields && projected >= options.sublinePixelSize),
       level: candidate.level,
       inFocus: candidate.inFocus,
       pinned,
+      yields,
     });
   }
 
@@ -107,6 +124,7 @@ export function selectDistrictLabels(
     (a, b) =>
       Number(b.pinned) - Number(a.pinned) ||
       Number(b.inFocus) - Number(a.inFocus) ||
+      Number(a.yields) - Number(b.yields) ||
       a.level - b.level ||
       b.projectedSize - a.projectedSize ||
       (a.id < b.id ? -1 : a.id > b.id ? 1 : 0),

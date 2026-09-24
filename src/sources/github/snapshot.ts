@@ -14,6 +14,7 @@ import {
 } from "@/github/validation";
 import { isValidOwner, isValidRepoName } from "@/lib/validation/repository-url";
 import { SourceError, isSourceError, type SourceSnapshot } from "@/sources/types";
+import { recentMetadata, rememberMetadata } from "./metadata-cache";
 
 /** Repository metadata without the analysed ref/commit (what page metadata and OG images need). */
 export type RepositorySummary = Omit<RepositoryInfo, "ref" | "commitSha">;
@@ -95,7 +96,10 @@ export function mapRepository(data: GitHubRepository): RepositorySummary {
   return summary;
 }
 
-/** One ETag-cached REST call: GET /repos/{owner}/{repo}. */
+/** Metadata loaded this recently (by a summary or another snapshot) is reused by snapshots. */
+export const METADATA_REUSE_MS = 60_000;
+
+/** One ETag-cached REST call: GET /repos/{owner}/{repo}. Successes are remembered (`metadata-cache.ts`). */
 export async function fetchRepositoryMetadata(
   client: GitHubClient,
   owner: string,
@@ -106,7 +110,9 @@ export async function fetchRepositoryMetadata(
     signal,
     useEtag: true,
   });
-  return mapRepository(data);
+  const summary = mapRepository(data);
+  rememberMetadata(client, owner, repo, summary);
+  return summary;
 }
 
 /**
@@ -156,13 +162,18 @@ export interface SnapshotRequest {
   ref?: string;
 }
 
-/** Fetches metadata, enforces public visibility and pins the exact commit. */
+/**
+ * Fetches metadata (or reuses metadata loaded in the last minute), enforces
+ * public visibility and pins the exact commit.
+ */
 export async function resolveSnapshot(
   client: GitHubClient,
   request: SnapshotRequest,
   signal?: AbortSignal,
 ): Promise<SourceSnapshot> {
-  const summary = await fetchRepositoryMetadata(client, request.owner, request.repo, signal);
+  const summary =
+    recentMetadata(client, request.owner, request.repo, METADATA_REUSE_MS) ??
+    (await fetchRepositoryMetadata(client, request.owner, request.repo, signal));
   const ref = request.ref ?? summary.defaultBranch;
   // Use the canonical names from the API so renamed repositories do not redirect.
   const commitSha = await resolveCommitSha(

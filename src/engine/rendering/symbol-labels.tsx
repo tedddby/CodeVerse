@@ -4,12 +4,13 @@ import { Billboard, Text } from "@react-three/drei";
 import { useFrame } from "@react-three/fiber";
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import type { Group } from "three";
-import { selectSymbolLabels } from "@/engine/lod/symbols";
+import { screenBandSpans, selectSymbolLabels } from "@/engine/lod/symbols";
+import { snapshotCamera } from "./camera-snapshot";
 import { LABEL_FONT_URL } from "./label-font";
 import { createSceneLabelMaterial } from "./materials/label-materials";
 import { SCENE_HEX } from "./palette";
 import { reportLayerCount } from "./render-stats";
-import { applyScreenScale, worldUnitsPerPixel } from "./screen-size";
+import { applyScreenScale } from "./screen-size";
 import { bandProtrusion, symbolKindHex } from "./symbol-band-geometry";
 import { symbolLabelText, type BandEntry } from "./symbol-band-data";
 import { useThrottledFrame } from "./use-throttled-frame";
@@ -17,8 +18,8 @@ import { useThrottledFrame } from "./use-throttled-frame";
 /**
  * Labels for the selected building's symbol bands, beside the facade on the
  * viewer's right. Constant on-screen size; which bands get a label (≤ 25,
- * largest first, never stacked closer than a line of text on screen) is
- * re-evaluated at most 4×/s as the camera zooms.
+ * largest first, never stacked closer than a line of text on screen, at any
+ * pitch) is re-evaluated at most 4×/s as the camera moves.
  */
 
 const LABEL_HZ = 4;
@@ -42,22 +43,19 @@ export function SymbolLabels({
   useThrottledFrame(
     LABEL_HZ,
     `${building?.id ?? ""}|${selectedSymbolId ?? ""}|${entries.length}`,
-    ({ camera, size }) => {
+    (state) => {
       if (!building) return;
-      const perPixel = worldUnitsPerPixel(
-        camera,
-        size.height,
-        building.x,
-        building.baseY + building.height / 2,
-        building.z,
+      // Spacing is measured on screen: labels sit beside the facade, so their
+      // screen y is the band's projected height on the building's axis.
+      const camera = snapshotCamera(state);
+      const spans = screenBandSpans(
+        entries.map((entry) => ({ id: entry.band.id, y0: entry.band.y0, y1: entry.band.y1 })),
+        (y) => camera.project(building.x, y, building.z)?.y ?? null,
       );
-      const spans = entries.map((entry) => ({
-        id: entry.band.id,
-        y0: entry.band.y0,
-        y1: entry.band.y1,
-      }));
       const ids = new Set(
-        selectSymbolLabels(spans, LABEL_SPACING_PX * perPixel).map((span) => span.id),
+        selectSymbolLabels(spans, LABEL_SPACING_PX, undefined, selectedSymbolId).map(
+          (span) => span.id,
+        ),
       );
       if (selectedSymbolId && entries.some((entry) => entry.band.id === selectedSymbolId))
         ids.add(selectedSymbolId);

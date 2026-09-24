@@ -1,5 +1,11 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createFakeFetch, jsonResponse, type FakeHandler } from "@/github/__fixtures__/fake-fetch";
+import {
+  createFakeFetch,
+  jsonResponse,
+  rateLimitHeaders,
+  textResponse,
+  type FakeHandler,
+} from "@/github/__fixtures__/fake-fetch";
 import { repositoryFixture } from "@/github/__fixtures__/github-fixtures";
 import { GitHubClient } from "@/github/client";
 import { SourceError } from "@/sources/types";
@@ -10,7 +16,13 @@ import {
   fetchRepositorySummary,
   getSharedGitHubClient,
 } from "./index";
-import { SUMMARY_ERROR_TTL_MS, SUMMARY_TTL_MS, fetchRepositorySummaryWith } from "./summary";
+import {
+  STALE_SUMMARY_MAX_AGE_MS,
+  SUMMARY_ERROR_TTL_MS,
+  SUMMARY_TTL_MS,
+  fetchRepositorySummaryWith,
+  reservedQuotaError,
+} from "./summary";
 
 function setup(handler: FakeHandler) {
   const fake = createFakeFetch(handler);
@@ -107,6 +119,87 @@ describe("fetchRepositorySummaryWith", () => {
       code: "UPSTREAM_ERROR",
     });
     expect(flaky.requests).toHaveLength(2);
+  });
+});
+
+describe("quota reserved for analyses", () => {
+  /** Answers every request with the given remaining quota (of 60, like an unauthenticated server). */
+  function quotaSetup(remaining: () => number, status: () => number = () => 200) {
+    return setup(() =>
+      status() === 200
+        ? jsonResponse(repositoryFixture, {
+            headers: rateLimitHeaders({ limit: 60, remaining: remaining() }),
+          })
+        : jsonResponse({ message: "Server Error" }, { status: status() }),
+    );
+  }
+
+  it("stops calling GitHub for summaries once half of the quota is left", async () => {
+    const { client, requests } = quotaSetup(() => 29);
+    expect(reservedQuotaError(client)).toBeNull();
+    await fetchRepositorySummaryWith(client, "facebook", "react");
+    expect(requests).toHaveLength(1);
+    expect(reservedQuotaError(client)).toMatchObject({ code: "RATE_LIMITED" });
+
+    // Made-up names cost nothing once the quota is reserved.
+    for (const name of ["a1", "a2", "a3"]) {
+      await expect(fetchRepositorySummaryWith(client, "someone", name)).rejects.toMatchObject({
+        code: "RATE_LIMITED",
+      });
+    }
+    expect(requests).toHaveLength(1);
+  });
+
+  it("serves the last known summary while the quota is reserved", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-23T12:00:00Z"));
+    let remaining = 45;
+    const { client, requests } = quotaSetup(() => remaining);
+    const fresh = await fetchRepositorySummaryWith(client, "facebook", "react");
+    // Another lookup brings the quota reading down to the reserve.
+    remaining = 10;
+    await fetchRepositorySummaryWith(client, "vercel", "ms");
+    vi.setSystemTime(Date.now() + SUMMARY_TTL_MS + 1);
+    expect(await fetchRepositorySummaryWith(client, "facebook", "react")).toEqual(fresh);
+    expect(requests).toHaveLength(2);
+  });
+
+  it("serves the last known summary during an outage, for at most a day", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-09-23T12:00:00Z"));
+    let status = 200;
+    const { client, requests } = quotaSetup(
+      () => 59,
+      () => status,
+    );
+    const fresh = await fetchRepositorySummaryWith(client, "facebook", "react");
+    status = 502;
+    vi.setSystemTime(Date.now() + SUMMARY_TTL_MS + 1);
+    expect(await fetchRepositorySummaryWith(client, "facebook", "react")).toEqual(fresh);
+    expect(requests).toHaveLength(2);
+    vi.setSystemTime(Date.now() + STALE_SUMMARY_MAX_AGE_MS);
+    await expect(fetchRepositorySummaryWith(client, "facebook", "react")).rejects.toMatchObject({
+      code: "UPSTREAM_ERROR",
+    });
+  });
+
+  it("shares one metadata call between a summary and the snapshot of the same repository", async () => {
+    const { client, requests } = setup((request) =>
+      request.url.pathname.includes("/commits/")
+        ? textResponse("c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00")
+        : jsonResponse(repositoryFixture),
+    );
+    await fetchRepositorySummaryWith(client, "facebook", "react");
+    const snapshot = await new GitHubSource({
+      owner: "facebook",
+      repo: "react",
+      client,
+    }).getSnapshot();
+    expect(snapshot.repository.commitSha).toBe("c0ffee00c0ffee00c0ffee00c0ffee00c0ffee00");
+    expect(requests.map((request) => request.url.pathname)).toEqual([
+      "/repos/facebook/react",
+      "/repos/facebook/react/commits/main",
+    ]);
   });
 });
 
