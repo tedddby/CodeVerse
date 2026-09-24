@@ -10,6 +10,23 @@ updates:
       prefix: "chore(deps)"
     labels:
       - dependencies
+    ignore:
+      # typescript-eslint 8.x (loaded by eslint-config-next) supports TypeScript <6.1 and
+      # refuses to run on TypeScript 7 (the Go-native compiler). 6.0.x is verified to pass.
+      - dependency-name: "typescript"
+        versions: [">=6.1.0"]
+      # ESLint 10 removed context.getFilename(), which eslint-plugin-react 7.x (bundled by
+      # eslint-config-next) still calls. Revisit when eslint-config-next supports ESLint 10.
+      - dependency-name: "eslint"
+        versions: [">=10.0.0"]
+      # Node typings follow the runtime (Node 22 in CI/Docker, 22/24 on Vercel); bump majors by hand.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+      # @react-three/fiber 9.x declares react/react-dom <19.4. Drop this once it widens the range.
+      - dependency-name: "react"
+        versions: [">=19.4.0"]
+      - dependency-name: "react-dom"
+        versions: [">=19.4.0"]
     groups:
       next:
         patterns: ["next", "eslint-config-next", "@next/*"]
