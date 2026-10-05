@@ -31,7 +31,7 @@
     "next": "16.3.6",
     "react": "19.3.0",
     "react-dom": "19.3.0",
-    "shiki": "4.4.3",
+    "shiki": "4.5.0",
     "three": "0.186.0",
     "tree-sitter-go": "0.25.0",
     "tree-sitter-java": "0.23.5",
